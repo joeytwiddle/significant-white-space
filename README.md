@@ -50,9 +50,11 @@ Sync will search the current folder and subfolders for all sws or sws-able files
 
 Any indented code blocks "detected" will be wrapped in curlies.  But the indent chars for detection are determined from the _first_ indented line found in the file.  Any later non-matching indents will be ignored and preserved (e.g. spaces in a Tab-indented file, or 2-spaces in a 4-space indented file).
 
-Semicolon injection appends a ; to any non-empty line that is not part of an indent block.
+Semicolon injection appends a ; to any non-empty line that is not part of an indent block.  Therefore it will inject incorrectly into single-line blocks such as:
 
-Blank lines containing only indentation/whitespace will be ignored and preserved; so will not affect curly wrapping.
+    if (condition) { action(); };
+
+Blank lines containing only indentation/whitespace are ignored and preserved, so they do not affect curly wrapping.
 
 
 
