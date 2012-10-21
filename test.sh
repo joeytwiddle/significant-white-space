@@ -3,6 +3,7 @@
 set -e
 
 ./build.sh
+echo "Build successful."
 
 mkdir -p data
 cp -f ./org/neuralyte/sws/Root.hx data/

@@ -3,13 +3,17 @@ SWS - Significant Whitespace
 
 SWS is a preprocessor for source code files (e.g. C or Java) which can perform transformation to and from meaningful-indentation style (as seen in Coffescript and Python).
 
-In correctly indentated code the { and } block markers are effectively redundant.  SWS allows you to code without them, using indentation only, and adds the { and } markers in for you later.
+In correctly indented code the { and } block markers are effectively redundant.  SWS allows you to code without them, using indentation only, and adds the { and } markers in for you later.
+
+SWS is also able to strip / inject semicolons, in good conditions.
 
 
 
 # Status
 
 Almost reached first milestone.  In other words, not quite working properly.
+
+Options are not yet parsed from arguments, so currently they can only be changed by editing Root.hx.
 
 
 
@@ -35,25 +39,31 @@ will read file myapp.c.sws and overwrite myapp.c
 
 # Future Usage
 
-My planned use-case is that:
+My planned use-case is to have this at the top of my build chain:
 
-    % sws
+    % sws sync
 
-will search the current folder and subfolders for all sws or sws-able files (by a default extension list), and will sync up any new edits based on which file was accessed most recently.  This will enable the user to edit files in either format, without having to worry about the direction in which changes will be propogated!
+Sync will search the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This will enable the user to edit files in either format, without having to worry about the direction in which changes will be propogated!
+
+
+# How it works
+
+Any indented code blocks "detected" will be wrapped in curlies.  But the indent chars for detection are determined from the _first_ indented line found in the file.  Any later non-matching indents will be ignored and preserved (e.g. spaces in a Tab-indented file, or 2-spaces in a 4-space indented file).
+
+Semicolon injection appends a ; to any non-empty line that is not part of an indent block.
+
+Blank lines containing only indentation/whitespace will be ignored and preserved; so will not affect curly wrapping.
 
 
 
 # Caveats
 
-SWS uses a simple text-processing algorithm to transform files; it does not properly lex/parse or understand your code.  Because of this, it will probably only work on a subset of the language you are using.  In other words, you may need to restrict your code-style a little, to something that SWS can handle.  Notable examples are:
+SWS uses a simple text-processing algorithm to transform files; it does not properly lex/parse or understand your code.  Because of this, it will probably only work on a _subset_ of the language you are using.  In other words, you may need to restrict your code-style a little, to something that SWS can handle.  Notable examples are:
 
-  - Breaking a line up over two lines may cause trouble if the second line is indented.  (However, indenting with 2 spaces in an otherwise 4-spaced file you can get away-with.)
+  - Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented.  (However, indenting with 2 spaces in an otherwise 4-spaced file you can get away-with.)
 
-  - Remember: all indented code blocks will be given curlies later!
-
-  - You can still express short { ... } blocks on one line if you want to, but don't mix things up.  Specifically, don't open a curly, continue for a while, then newline and indent.
+  - You can still express short { ... } blocks on-one-line if you want to, but don't mix things up.  Specifically, don't open a curly, continue for a while, then newline and indent.
 
   - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
-
 
 

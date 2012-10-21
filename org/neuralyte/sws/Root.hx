@@ -17,8 +17,6 @@ class Root {
 
 		var args = neko.Sys.args();
 
-		trace("HELLO");
-
 		if (args[0] == "curl") {
 
 			var filePath : String = args[1];
@@ -74,13 +72,13 @@ class Root {
 					line = endsWithSemicolon.replace(line,"");
 				}
 
-				trace("Line: "+line);
+				// trace("Line: "+line);
 				output.writeString(line + newline);
 
 			}
 
 		} catch (ex : haxe.io.Eof) {
-			trace("Reached the End Of the File.");
+			// trace("Reached the End Of the File.");
 		}
 
 		output.close();
@@ -103,19 +101,9 @@ class Root {
 
 		while ( (currentLine = helper.nextLine()) != null) {
 
-			trace("currentLine = "+currentLine);
+			// trace("currentLine = "+currentLine);
 
 			// if (!emptyOrBlank.match(currentLine)) {
-
-				// BUG TODO: first indent is detected from the currentLine.  This is too late to correctly detect the first indent!  We are more likely to find it in time, from the nextNonEmptyLine.
-				if (indentString == null) {
-					indentRE.match(currentLine);
-					var currentLineIndentString = indentRE.matched(0);
-					if (currentLineIndentString != "") {
-						indentString = currentLineIndentString;
-						trace("Found first indent, length "+indentString.length);
-					}
-				}
 
 				if (!emptyOrBlank.match(currentLine)) {
 					currentIndent = countIndent(indentString, currentLine);
@@ -125,9 +113,18 @@ class Root {
 				nextNonEmptyLine = helper.nextNonBlankLine();
 				// NOTE: nextNonEmptyLine may be null which means EOF which should be understood as indent 0.
 
+				if (indentString == null && nextNonEmptyLine!=null) {
+					indentRE.match(nextNonEmptyLine);
+					var indentPart = indentRE.matched(0);
+					if (indentPart != "") {
+						indentString = indentPart;
+						trace("Found first indent, length "+indentString.length);
+					}
+				}
+
 				var indent_of_nextNonEmptyLine = countIndent(indentString, nextNonEmptyLine);
 
-				trace("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
+				// trace("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
 
 				if (indent_of_nextNonEmptyLine > currentIndent) {
 
@@ -137,7 +134,7 @@ class Root {
 						output.writeString(currentLine + " {" + newline);
 					} else {
 						output.writeString(currentLine + newline);
-						output.writeString(repeatString(currentIndent,indentString)+"{" + newline);
+						output.writeString(repeatString(currentIndent,indentString) + "{" + newline);
 					}
 					currentIndent++;
 					continue;
@@ -154,16 +151,11 @@ class Root {
 					var i : Int;
 					i = currentIndent-1;
 					while (i >= indent_of_nextNonEmptyLine) {
-						trace("De-curlifying with i="+i);
-						var outLine : String = "";
-						for (j in 0...i) {
-							trace("Iterating with j="+j);
-							outLine = outLine + indentString;
-						}
+						// trace("De-curlifying with i="+i);
 						// TODO: If the next non-empty line starts with the "else" or "catch" keyword, then:
 						//   in Javastyle, we should join that line on after the }
 						//   in C-style, any blank lines between us and the next line should come *before* the } we are about to write.
-						output.writeString(outLine + "}" + newline);
+						output.writeString(repeatString(i,indentString) + "}" + newline);
 						i--;
 					}
 					currentIndent = indent_of_nextNonEmptyLine;
