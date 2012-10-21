@@ -11,27 +11,27 @@ SWS is also able to strip / inject semicolons, under favourable conditions.
 
 # Status
 
-Almost reached first milestone.  In other words, not quite working properly.
+Reached the first milestone.  Given suitable inputs, produces code which can compile!
 
-Options are not yet parsed from arguments, so currently they can only be changed by editing Root.hx.
+Options are not yet parsed from command-line arguments, but can be changed by editing Root.hx.
 
 
 
-# Current Usage
+# New Usage
 
 PLEASE NOTE that sws arguments are subject to change in future.  But are the moment, they are:
 
-    sws decurl <source_filename>
+    sws decurl <normal_source_infile> <sws_source_outfile>
 
-    sws curl <source_filename>
+    sws curl <sws_source_infile> <normal_source_outfile>
 
 For example:
 
-    % sws decurl myapp.c
+    % sws decurl myapp.c myapp.c.sws
 
-will create file myapp.c.sws
+will strip curlies and semicolons from myapp.c and write file myapp.c.sws
 
-    % sws curl myapp.c
+    % sws curl myapp.c.sws myapp.c
 
 will read file myapp.c.sws and overwrite myapp.c
 
