@@ -1,11 +1,11 @@
 SWS - Significant Whitespace
 ============================
 
-SWS is a preprocessor for source code files (e.g. C or Java) which can perform transformation to and from meaningful-indentation style (as seen in Coffescript and Python).
+SWS is a preprocessor for traditional curly-brace languages (C, Java, Javascript, Haxe) which can perform transformation of source-code files to and from meaningful-indentation style (as seen in Coffescript and Python).
 
-In correctly indented code the { and } block markers are effectively redundant.  SWS allows you to code without them, using indentation only, and adds the { and } markers in for you later.
+In well-indented code the { and } block markers are effectively redundant.  SWS allows you to code without them, using indentation alone to indicate blocks, and adds the { and } markers in for you later.
 
-SWS is also able to strip / inject semicolons, in good conditions.
+SWS is also able to strip / inject semicolons, under favourable conditions.
 
 
 
@@ -44,6 +44,7 @@ My planned use-case is to have this at the top of my build chain:
     % sws sync
 
 Sync will search the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This will enable the user to edit files in either format, without having to worry about the direction in which changes will be propogated!
+
 
 
 # How it works
