@@ -15,5 +15,7 @@ cp -f data/Root.hx.sws data/Root.hx.sws.2
 
 # diff --side-by-side ./org/neuralyte/sws/Root.hx data/Root.hx
 
-diff --side-by-side data/Root.hx.sws.1 data/Root.hx.sws.2
+# diff --side-by-side data/Root.hx.sws.1 data/Root.hx.sws.2
+
+# vimdiff ./org/neuralyte/sws/Root.hx data/Root.hx
 
