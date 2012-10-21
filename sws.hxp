@@ -1,0 +1,8 @@
+﻿<haxe selected="0">
+  <output name="Flash9" mode="swf9" out="sws.swf" class="org.neuralyte.sws.Root" lib="" cmd="" main="True" debug="False">-swf-header 800:600:40</output>
+  <output name="JS" mode="js" out="sws.js" class="org.neuralyte.sws.Root" lib="" cmd="sws.html" main="True" debug="False" active="False"></output>
+  <output name="Neash" mode="neko" out="sws.n" class="org.neuralyte.sws.Root" lib="" cmd="" main="True" debug="False" active="False">-lib neash --remap flash:neash</output>
+  <files path="/">
+    <file path="org\neuralyte\sws\Root.hx" />
+  </files>
+</haxe>
