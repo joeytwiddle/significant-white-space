@@ -24,13 +24,21 @@ class Root {
 
 		trace("HELLO");
 
-		var filePath : String = args[0];
+		if (args[0] == "curl") {
 
-		// if (!File.exists(filePath)) {
-			// return;
-		// }
+			var filePath : String = args[1];
+			decurl(filePath+".sws", filePath);
 
-		decurl(filePath, filePath+".sws");
+		} else if (args[0] == "decurl") {
+
+			var filePath : String = args[1];
+			decurl(filePath, filePath+".sws");
+
+		} else {
+
+			// showHelp();
+
+		}
 
 	}
 

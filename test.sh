@@ -1,1 +1,1 @@
-./build.sh && ./sws org/neuralyte/sws/Root.hx
+./build.sh && ./sws decurl org/neuralyte/sws/Root.hx
