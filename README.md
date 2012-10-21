@@ -4,16 +4,18 @@ SWS is a preprocessor for source code files which performs transformation to and
 
 PLEASE NOTE that sws arguments are subject to change in future.  But are the moment, they are:
 
-    sws [ decurl | curl ] <source_filename>
+    sws decurl <source_filename>
+
+    sws curl <source_filename>
 
 For example:
 
-    % sws decurl src/myapp.c
+    % sws decurl myapp.c
 
-will create file src/myapp.c.sws
+will create file myapp.c.sws
 
-    % sws curl src/myapp.c
+    % sws curl myapp.c
 
-will read file src/myapp.c.sws and overwrite src/myapp.c
+will read file myapp.c.sws and overwrite myapp.c
 
 
