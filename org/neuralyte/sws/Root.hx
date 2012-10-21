@@ -152,9 +152,9 @@ class Root {
 					i = currentIndent-1;
 					while (i >= indent_of_nextNonEmptyLine) {
 						// trace("De-curlifying with i="+i);
-						// TODO: If the next non-empty line starts with the "else" or "catch" keyword, then:
-						//   in Javastyle, we should join that line on after the }
-						//   in C-style, any blank lines between us and the next line should come *before* the } we are about to write.
+						// TODO: If the next non-empty line starts with the "else" or "catch" or "typedef" keyword, then:
+						//   in Javastyle, we could join that line on after the }
+						//   in C-style, any blank lines between us and the next line can come *before* the } we are about to write.
 						output.writeString(repeatString(i,indentString) + "}" + newline);
 						i--;
 					}

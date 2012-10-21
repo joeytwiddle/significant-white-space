@@ -69,4 +69,6 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
   - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
 
+  - Semicolon injection over multi-line comments is likely to get confused.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)
+
 
