@@ -4,7 +4,19 @@ import neko.io.File;
 import neko.io.FileInput;
 import neko.io.FileOutput;
 
+class HelpfulReader {
+
+	var input : haxe.io.Input;
+
+	public function new(infile : String) {
+		input = File.read(infile,false);
+	}
+
+}
+
 class Root {
+
+	static var newline : String = "\r\n";
 
 	static function main() {
 
@@ -18,17 +30,45 @@ class Root {
 			// return;
 		// }
 
-		var f : FileInput = File.read(filePath,false);
+		decurl(filePath, filePath+".sws");
 
-		var s : String;
+	}
+
+	static function decurl(infile : String, outfile : String) {
+
+		var startsWithCurly : EReg = ~/^\s*}\s*/;
+		var startReplacer : EReg = ~/}\s*/;   // We don't want to strip the indent
+		var endsWithCurly : EReg = ~/\s*{\s*$/;
+		var emptyOrBlank : EReg = ~/^\s*$/;
+
+		var input : FileInput = File.read(infile,false);
+
+		var output : FileOutput = File.write(outfile,false);
 
 		try {
 
 			while (true) {
 
-				s = f.readLine();
+				var line : String = input.readLine();
 
-				trace("Read line: "+s);
+				// trace("Read line: "+line);
+
+				if (startsWithCurly.match(line)) {
+					line = startReplacer.replace(line,"");
+					if (emptyOrBlank.match(line)) {
+						continue;
+					}
+				}
+
+				if (endsWithCurly.match(line)) {
+					line = endsWithCurly.replace(line,"");
+					if (emptyOrBlank.match(line)) {
+						continue;
+					}
+				}
+
+				trace("Line: "+line);
+				output.writeString(line + newline);
 
 			}
 
@@ -36,6 +76,9 @@ class Root {
 			trace("Reached the End Of the File.");
 		}
 
+		output.close();
+
 	}
 
 }
+

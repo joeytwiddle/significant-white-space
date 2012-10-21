@@ -1,1 +1,1 @@
-SWS performs transformation of source code files to and from meaningful-indentation style.
+SWS is a preprocessor for source code files which performs transformation to and from meaningful-indentation style.
