@@ -146,15 +146,22 @@ class Root {
 					// Write current line
 					// Write close curly (at lower indent)
 					// In fact write as many as we need...
-					// TODO: We need to check/apply addRemoveSemicolons rule to currentLine before we output it.
+
+					// DONE: We need to check/apply addRemoveSemicolons rule to currentLine before we output it.
+					// TODO: DRY - this is a clone of later code!
+					// TODO: We should not act on comment lines!
+					if (addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
+						currentLine += ";";
+					}
 					output.writeString(currentLine + newline);
+
 					var i : Int;
 					i = currentIndent-1;
 					while (i >= indent_of_nextNonEmptyLine) {
 						// trace("De-curlifying with i="+i);
 						// TODO: If the next non-empty line starts with the "else" or "catch" or "typedef" keyword, then:
 						//   in Javastyle, we could join that line on after the }
-						//   in C-style, any blank lines between us and the next line can come *before* the } we are about to write.
+						//   in either braces style, any blank lines between us and the next line can be outputted *before* the } we are about to write.
 						output.writeString(repeatString(i,indentString) + "}" + newline);
 						i--;
 					}
@@ -166,12 +173,13 @@ class Root {
 			// }
 
 			// If we got here then we have neither indented nor outdented
+
+			// TODO: DRY - this is a clone of earlier code!
 			// TODO: We should not act on comment lines!
 			if (addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
-				output.writeString(currentLine + ";" + newline);
-			} else {
-				output.writeString(currentLine + newline);
+				currentLine += ";";
 			}
+			output.writeString(currentLine + newline);
 
 		}
 
