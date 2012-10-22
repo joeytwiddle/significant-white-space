@@ -95,7 +95,7 @@ Semicolon injection appends a ';' to any non-empty line that is not part of an i
 
 Blank lines containing only indentation/whitespace are ignored and preserved, so they do not affect curly wrapping.
 
-Comment lines are not stripped or injected into, or used for indentation, where possible.  This works for many comment styles, but not in the body of multi-line comments.  (We also have some filthy heuristics to differentiate '*/' ending a comment from '*/' ending a regular expression literal.)
+Comment lines are not stripped or injected into, or used for indentation, where possible.  This works for many comment styles, but not in the body of multi-line comments.  (We also have some filthy heuristics to differentiate "*/" ending a comment from "*/" ending a regular expression literal.)
 
 
 
