@@ -9,7 +9,7 @@ SWS is also able to strip / inject semicolons, under favourable conditions.  Ple
 
 SWS is written in Haxe.  You might be able to export it to Java; so far I am building a binary via the CPP target.
 
-As a simple example, SWS will turn code like this:
+As a simple example, SWS can turn code like this:
 
     if (indent_of_nextNonEmptyLine > currentIndent)
         output.writeString(currentLine + " {" + newline)
@@ -42,9 +42,9 @@ Options are not yet parsed from command-line arguments, but can be changed by ed
 
 
 
-# New Usage
+# Usage
 
-PLEASE NOTE that sws arguments are subject to change in future.  But are the moment, they are:
+So far we have implemented:
 
     sws decurl <normal_source_infile> <sws_source_outfile>
 
@@ -58,7 +58,7 @@ will strip curlies and semicolons from myapp.c and write file myapp.c.sws
 
     % sws curl myapp.c.sws myapp.c
 
-will read file myapp.c.sws and overwrite myapp.c
+will read file myapp.c.sws, inject curlies and semicolons, and overwrite myapp.c
 
 
 
