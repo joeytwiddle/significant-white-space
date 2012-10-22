@@ -124,6 +124,9 @@ class Root {
 
 	static function curl(infile : String, outfile : String) {
 
+		var leadingIndentRE : EReg = ~/^\s*/;
+		var whitespaceRE : EReg = ~/\s+/;
+
 		var currentLine : String;
 
 		var helper = new HelpfulReader(infile);
@@ -136,7 +139,7 @@ class Root {
 
 		var currentIndent : Int = 0;
 
-		while ( (currentLine = helper.nextLine()) != null) {
+		while ( (currentLine = helper.getNextLine()) != null) {
 
 			// trace("currentLine = "+currentLine);
 
@@ -148,7 +151,7 @@ class Root {
 			} // otherwise we keep last indent
 
 			var nextNonEmptyLine : String;
-			nextNonEmptyLine = helper.nextNonBlankLine();
+			nextNonEmptyLine = helper.getNextNonEmptyLine();
 			// NOTE: nextNonEmptyLine may be null which means EOF which should be understood as indent 0.
 
 			if (indentString == null && nextNonEmptyLine!=null) {
@@ -165,10 +168,10 @@ class Root {
 			// trace("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
 
 			// We want to avoid semicolon addition on comment lines
-			// But do want consider comment lines for indentation / bracing
+			// But we do want consider comment lines for indentation / bracing
 			var isAComment = commentRE.match(currentLine);
 			if (isAComment) {
-				// Now a nasty fudge for lines ending */ because they are a Haxe EReg definition.
+				// Now a nasty fudge for lines ending */ because they are a Haxe EReg or Javascript RegExp literal, not a comment.
 				var lineCouldbeRegexp = couldbeRegexp.match(currentLine);
 				if (lineCouldbeRegexp) {
 					isAComment = false;
@@ -198,23 +201,77 @@ class Root {
 
 				// DONE: We need to check/apply addRemoveSemicolons rule to currentLine before we output it.
 				// TODO: DRY - this is a clone of later code!
-				// TODO: We should not act on comment lines!
+				// DONE: We should not act on comment lines!
 				if (!isAComment && addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
 					currentLine += ";";
 				}
 				output.writeString(currentLine + newline);
 
+				var delayCurly = false;
+
 				var i : Int;
 				i = currentIndent-1;
 				while (i >= indent_of_nextNonEmptyLine) {
 					// trace("De-curlifying with i="+i);
-					// TODO: If the next non-empty line starts with the "else" or "catch" or "typedef" keyword, then:
+
+					// DONE: If the next non-empty line starts with the "else" or "catch" or "typedef" keyword, then:
 					//   in Javastyle, we could join that line on after the }
 					//   in either braces style, any blank lines between us and the next line can be outputted *before* the } we are about to write.
-					output.writeString(repeatString(i,indentString) + "}" + newline);
+					// I am not quite sure how this should work on multiple outdents - for now only trying delayCurly on the last.  Yes that is right.
+					if (nextNonEmptyLine != null && i == indent_of_nextNonEmptyLine) {
+						var tokens = leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
+						var firstToken = tokens[0];
+						var continuationKeywords = [ "else", "catch" ];
+						if (continuationKeywords.has(firstToken)) {
+							delayCurly = true;
+						}
+					}
+					// TODO: One other situation where we might want to join lines, is when the next symbol after the "}" is a ")".  (Consider restriction: Only if that ")" line has the same indent as our "}" line would?)
+
+					// TODO: Even if we don't detect a continuation keyword, if the next *two* lines are both blanks, then emit one of them before the curly.  This won't always be right, but it may be right more often than wrong.
+					// This rule could be applied for every outdent, checking the next two lines again on each.
+
+					if (delayCurly) {
+
+						// We are guaranteed a nextLine
+						var nextLine = null;
+						while (true) {
+							nextLine = helper.getNextLine();
+							if (emptyOrBlank.match(nextLine)) {
+								output.writeString(nextLine + newline);
+							} else {
+								break;
+							}
+							// nextLine should be === nextNonEmptyLine now
+						}
+						var updatedLine;
+						if (javaStyleCurlies) {
+							// Join the next line to the curly
+							updatedLine = repeatString(i,indentString) + "} " + leadingIndentRE.replace(nextLine,"");
+							// output.writeString(updatedLine + newline);
+							// BUG TODO: But now we want to consider this line for opening an indent :O
+							// Feck!  Oh ... hmmm ...
+						} else {
+							// Write the curly on its own line
+							output.writeString(repeatString(i,indentString) + "}" + newline);
+							// Handle the next line normally
+							updatedLine = nextLine;
+						}
+						helper.pushBackLine(updatedLine);
+						break; // We were going to anyway tbh
+
+					} else {
+						output.writeString(repeatString(i,indentString) + "}" + newline);
+					}
+
 					i--;
 				}
+
 				currentIndent = indent_of_nextNonEmptyLine;
+				if (delayCurly) {
+					// We have unshifted the line back into the queue
+					// continue is good, we will handle it next
+				}
 				continue;
 
 			}
@@ -224,7 +281,7 @@ class Root {
 			// If we got here then we have neither indented nor outdented
 
 			// TODO: DRY - this is a clone of earlier code!
-			// TODO: We should not act on comment lines!
+			// DONE: We should not act on comment lines!
 			if (!isAComment && addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
 				currentLine += ";";
 			}
@@ -362,11 +419,12 @@ class Root {
 		// So we will simply try to touch the inFile ASAP, and if the time is a millisecond too late, accept the consequences (this source will be uneccessarily transformed again).
 		touchFile(inFile);
 		// Woop!  It worked!  (It might not work on very large files.)
-		var tempFile = inFile + ".res";
+		var tempFile = inFile + ".inv";
 		inverseFn(outFile, tempFile);
 		// trace("Now compare "+inFile+" against "+tempFile);
 		if (File.getContent(inFile) != File.getContent(tempFile)) {
 			trace("Warning: Inverse differs from original.");
+			// trace("Compare files: \""+inFile+"\" \""+tempFile+"\"");
 			// trace("Compare: vimdiff \""+inFile+"\" \""+tempFile+"\"");
 			trace("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
 		}
@@ -395,7 +453,7 @@ class HelpfulReader {
 		queue = new Array<String>();
 	}
 
-	public function nextLine() : String {
+	public function getNextLine() : String {
 		if (queue.length > 0) {
 			return queue.shift();
 		}
@@ -406,7 +464,7 @@ class HelpfulReader {
 		}
 	}
 
-	public function nextNonBlankLine() : String {
+	public function getNextNonEmptyLine() : String {
 		var i : Int;
 		for (i in 0...queue.length) {
 			if (!Root.emptyOrBlank.match(queue[i])) {
@@ -426,6 +484,10 @@ class HelpfulReader {
 			}
 		}
 		return null;
+	}
+
+	public function pushBackLine(line : String) {
+		queue.unshift(line);
 	}
 
 }
