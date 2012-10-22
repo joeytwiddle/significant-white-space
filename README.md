@@ -78,13 +78,13 @@ The indent chars for detection are determined from the _first_ indented line fou
 
 However that example will have problems with semicolon injection after the '\'.
 
-Semicolon injection appends a ; to any non-empty line that is not part of an indent block.  Therefore it will inject incorrectly into single-line blocks such as:
+Semicolon injection appends a ';' to any non-empty line that is not part of an indent block.  Therefore it will inject incorrectly into single-line blocks such as:
 
     if (condition) { action(); };
 
 Blank lines containing only indentation/whitespace are ignored and preserved, so they do not affect curly wrapping.
 
-Comment lines are not stripped or injected, or used for indentation, where possible.  This works for many comment styles, but not in the body of multi-line comments.
+Comment lines are not stripped or injected into, or used for indentation, where possible.  This works for many comment styles, but not in the body of multi-line comments.  (We also have some filthy heuristics to differentiate '*/' ending a comment from '*/' ending a regular expression literal.)
 
 
 
