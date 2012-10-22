@@ -89,7 +89,7 @@ The indent chars for detection are determined from the _first_ indented line fou
 
 However that example will have problems with semicolon injection after the '\'.
 
-Semicolon injection appends a ';' to any non-empty line that is not part of an indent block.  Therefore it will inject incorrectly into single-line blocks such as:
+Semicolon injection appends a ';' to any non-empty line that is not part of an indent block.  Therefore it will also inject incorrectly into single-line blocks such as:
 
     if (condition) { action(); };
 
