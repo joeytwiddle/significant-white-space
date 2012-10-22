@@ -7,18 +7,18 @@ In well-indented code the { and } block markers are effectively redundant.  SWS 
 
 SWS is also able to strip / inject semicolons, under favourable conditions.  Please be aware of the caveats below.  There are some situations which SWS cannot solve, so it only really works on a (nice clean) subset of parseable languages.
 
-SWS is written in Haxe.  You might be able to export it to Java; so far I am building a binary via the CPP target.
-
 As a simple example, SWS can turn code like this:
 
     if (indent_of_nextNonEmptyLine > currentIndent)
         output.writeString(currentLine + " {" + newline)
 
-into this:
+into the more traditional style:
 
     if (indent_of_nextNonEmptyLine > currentIndent) {
         output.writeString(currentLine + " {" + newline);
     }
+
+SWS is written in Haxe.  You might be able to export it to Java; so far I am building a binary via the CPP target.
 
 
 
@@ -95,7 +95,7 @@ Semicolon injection appends a ';' to any non-empty line that is not part of an i
 
 Blank lines containing only indentation/whitespace are ignored and preserved, so they do not affect curly wrapping.
 
-Comment lines are not stripped or injected into, or used for indentation, where possible.  This works for many comment styles, but not in the body of multi-line comments.  (We also have some filthy heuristics to differentiate "*/" ending a comment from "*/" ending a regular expression literal.)
+Comment lines are not stripped or injected into, or used for indentation, where possible.  This works for many comment styles, but not in the body of multi-line comments.  (We also have some filthy heuristics to differentiate '*/' ending a comment from '*/' ending a regular expression literal.)
 
 
 
@@ -105,11 +105,11 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
   - Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented.  (However, indenting with 2 spaces in an otherwise 4-spaced file you can get away-with.)
 
-  - You can still express short { ... } blocks on-one-line if you want to, but don't mix things up.  Specifically, don't open a curly, continue for a while, then newline and indent.
-
-  - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
+  - You can still express short { ... } blocks on-one-line if you want to, but don't mix things up.  Specifically, don't open a curly, continue for a while, then newline and indent.  That curly will not be stripped, whilst the indent will cause a new one to be injected.
 
   - Semicolon injection over multi-line comments is likely to get confused.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)
+
+  - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
 
 
 
