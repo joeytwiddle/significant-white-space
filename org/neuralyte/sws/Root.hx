@@ -3,10 +3,14 @@ package org.neuralyte.sws;
 import neko.io.File;
 import neko.io.FileInput;
 import neko.io.FileOutput;
+import neko.FileSystem;
+
+using Lambda;
 
 class Root {
 
 	static var newline : String = "\r\n";
+	static var pathSeparator = "/";
 	static var javaStyleCurlies : Bool = true;
 	static var addRemoveSemicolons : Bool = true;
 
@@ -17,11 +21,17 @@ class Root {
 	static var couldbeRegexp : EReg = ~/=[ \t]*~?\/[^\/].*\*\/\s*$/;
 	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //
 
+	static var validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc" ];   // "jpp"
+
 	static function main() {
 
 		var args = neko.Sys.args();
 
-		if (args[0] == "curl") {
+		if (args[0] == "--help") {
+
+			showHelp();
+
+		} else if (args[0] == "curl") {
 
 			curl(args[1], args[2]);
 
@@ -29,21 +39,37 @@ class Root {
 
 			decurl(args[1], args[2]);
 
+		} else if (args[0] == "sync") {
+
+			if (args[1] != null) {
+				doSync(args[1]);
+			} else {
+				doSync(".");
+			}
+
 		} else {
 
-			// showHelp();
+			showHelp();
 
 		}
 
 	}
 
+	static function showHelp() {
+		// Sys.out.
+		trace("sws curl <filename> <outname>");
+		trace("sws decurl <filename> <outname>");
+		trace("sws sync [<folder/filename>]");
+	}
+
 	static function decurl(infile : String, outfile : String) {
 
-		// We detect lines which start with a closing curly brace
+		// We detect lines which end with an opening curly brace
+		var endsWithCurly : EReg = ~/\s*{\s*$/;
+		// And lines which start with a closing curly brace
 		var startsWithCurly : EReg = ~/^\s*}\s*/;
 		var startReplacer : EReg = ~/}\s*/;   // We don't want to strip the indent
-		// And lines which end with an opening curly brace
-		var endsWithCurly : EReg = ~/\s*{\s*$/;
+		// And sometimes lines ending in a semicolon.
 		var endsWithSemicolon : EReg = ~/\s*;\s*$/;
 
 		var input : FileInput = File.read(infile,false);
@@ -243,6 +269,103 @@ class Root {
 			sb.add(str);
 		}
 		return sb.toString();
+	}
+
+	static function getExtension(filename : String) {
+		var words = filename.split(".");
+		if (words.length > 1) {
+			return words[words.length-1];
+		} else {
+			return "";
+		}
+	}
+
+	static function doSync(root : String) {
+
+		// We want to collect all files ending with ".sws" or with a valid source extension.
+		// Sometimes we will pick up a pair, but we merge them into one by canonicalisation.
+		var filesToDo : Array<String> = [];
+		forAllFilesBelow(root, function(f) {
+			// trace("Checking file: "+f);
+			var ext = getExtension(f);
+			if (validExtensions.has(ext)) {
+				// Canonicalise to the non-sws name
+				if (ext == "sws") {
+					var words = f.split(".");
+					words = words.slice(0,words.length-1);
+					f = words.join(".");
+				}
+				if (!filesToDo.has(f)) {
+					filesToDo.push(f);
+				}
+				// trace("pushing: "+f);
+			}
+		});
+
+		for (srcFile in filesToDo) {
+			var swsFile = srcFile + ".sws";
+
+			var direction : Int;   // 1=to_sws 2=from_sws
+			if (!FileSystem.exists(swsFile)) {
+				direction = 1;
+			} else if (!FileSystem.exists(srcFile)) {
+				direction = 2;
+			} else {
+				var srcStat = FileSystem.stat(srcFile);
+				var swsStat = FileSystem.stat(swsFile);
+				// trace(srcStat + " <-> "+swsStat);
+				if (srcStat.mtime.getTime() < swsStat.mtime.getTime()) {
+					direction = 2;
+				} else {
+					direction = 1;
+				}
+			}
+
+			if (direction == 1) {
+				trace("Decurling "+srcFile+" -> "+swsFile);
+				// traceCall(decurl(srcFile, swsFile));
+				// decurl(srcFile, swsFile);
+				doSafely(decurl, srcFile, swsFile, curl);
+				// TODO: safeCurl and safeDecurl
+				// After transformation, transform *back* (to a tempfile), and check if the result matches the original.  If not warn user, showing differences.  (If they are minor he may ignore them.)
+				// Also to be safe, we should store a backup of the target file before it is overwritten.
+			} else if (direction == 2) {
+				trace("Curling "+swsFile+" -> "+srcFile);
+				// traceCall(curl(swsFile, srcFile));
+				// curl(swsFile, srcFile);
+				doSafely(curl, swsFile, srcFile, decurl);
+			}
+		}
+
+	}
+
+	static function forAllFilesBelow<ResType>(root : String, fn : String -> ResType) {
+		var children = FileSystem.readDirectory(root);
+		for (child in children) {
+			var childPath = root + pathSeparator + child;
+			if (FileSystem.isDirectory(childPath)) {
+				// trace("Descending to folder: "+childPath);
+				forAllFilesBelow(childPath,fn);
+			} else {
+				fn(childPath);
+			}
+		}
+	}
+
+	static function doSafely(fn : Dynamic, inFile : String, outFile : String, inverseFn : Dynamic) {
+		var backupFile = outFile + ".bak";
+		if (FileSystem.exists(outFile)) {
+			File.copy(outFile, backupFile);
+		}
+		fn(inFile, outFile);
+		var tempFile = inFile + ".res";
+		inverseFn(outFile, tempFile);
+		trace("Now compare "+inFile+" against "+tempFile);
+	}
+
+	static function traceCall(fn : Dynamic, args : Array<Dynamic>) : Dynamic {
+		trace("Calling "+fn+" with args "+args);
+		return fn(args);
 	}
 
 }
