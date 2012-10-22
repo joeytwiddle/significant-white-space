@@ -1,5 +1,5 @@
 SWS - Significant Whitespace
-============================
+----------------------------
 
 SWS is a preprocessor for traditional curly-brace languages (C, Java, Javascript, Haxe) which can perform transformation of source-code files to and from meaningful-indentation style (as seen in Coffescript and Python).
 
@@ -7,13 +7,27 @@ In well-indented code the { and } block markers are effectively redundant.  SWS 
 
 SWS is also able to strip / inject semicolons, under favourable conditions.
 
+SWS is written in Haxe.  You might be able to export it to Java; so far I am building a binary via the CPP target.
+
 
 
 # Status
 
-Reached the first milestone.  Given suitable inputs, produces code which can compile!
+Reached the second milestone.  SWS can now successfully decurl and recurl itself into working source!
 
 Options are not yet parsed from command-line arguments, but can be changed by editing Root.hx.
+
+
+
+# TODO
+
+- Elegant handling of else / catch blocks.
+
+- sws sync
+
+- Argument parsing to set options from commandline
+
+- Clear documentation, detection and warning of problematic code configurations.
 
 
 

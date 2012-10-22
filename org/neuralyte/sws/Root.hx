@@ -12,6 +12,8 @@ class Root {
 
 	public static var emptyOrBlank : EReg = ~/^\s*$/;
 	static var indentRE : EReg = ~/^\s*/;
+	static var commentRE : EReg = ~/(^\s*\/\/|^\s*\/\*|\*\/\s*$)/;
+	static var couldbeRegexp : EReg = ~/[= \t]~\/.*\*\/\s*$/;
 
 	static function main() {
 
@@ -20,25 +22,23 @@ class Root {
 		if (args[0] == "curl") {
 
 			curl(args[1], args[2]);
-		}
 
-		else if (args[0] == "decurl") {
+		} else if (args[0] == "decurl") {
 
 			decurl(args[1], args[2]);
-		}
 
-		else {
+		} else {
 
 			// showHelp();
+
 		}
+
 	}
-
-
 
 	static function decurl(infile : String, outfile : String) {
 
 		var startsWithCurly : EReg = ~/^\s*}\s*/;
-		var startReplacer : EReg = ~/}\s*/;   // We don't want to strip the indent;
+		var startReplacer : EReg = ~/}\s*/;   // We don't want to strip the indent
 		var endsWithCurly : EReg = ~/\s*{\s*$/;
 		var endsWithSemicolon : EReg = ~/\s*;\s*$/;
 
@@ -54,37 +54,42 @@ class Root {
 
 				// trace("Read line: "+line);
 
-				if (startsWithCurly.match(line)) {
-					line = startReplacer.replace(line,"");
-					if (emptyOrBlank.match(line)) {
-						continue;
-					}
-				}
+				// We don't want to strip anything from comment lines
+				var isAComment = commentRE.match(line);
+				if (!isAComment) {
 
-				if (endsWithCurly.match(line)) {
-					line = endsWithCurly.replace(line,"");
-					if (emptyOrBlank.match(line)) {
-						continue;
+					if (startsWithCurly.match(line)) {
+						line = startReplacer.replace(line,"");
+						if (emptyOrBlank.match(line)) {
+							continue;
+						}
 					}
-				}
 
-				if (addRemoveSemicolons && endsWithSemicolon.match(line)) {
-					line = endsWithSemicolon.replace(line,"");
+					if (endsWithCurly.match(line)) {
+						line = endsWithCurly.replace(line,"");
+						if (emptyOrBlank.match(line)) {
+							continue;
+						}
+					}
+
+					if (addRemoveSemicolons && endsWithSemicolon.match(line)) {
+						line = endsWithSemicolon.replace(line,"");
+					}
+
 				}
 
 				// trace("Line: "+line);
 				output.writeString(line + newline);
+
 			}
-		}
 
-
-		catch (ex : haxe.io.Eof) {
+		} catch (ex : haxe.io.Eof) {
 			// trace("Reached the End Of the File.");
 		}
 
 		output.close();
-	}
 
+	}
 
 	static function curl(infile : String, outfile : String) {
 
@@ -104,93 +109,103 @@ class Root {
 
 			// trace("currentLine = "+currentLine);
 
-			// TODO: Do not seek curlies on comment lines, such as this trouble-maker here:;
+			// TODO: Do not seek curlies on comment lines, such as this trouble-maker here:
 			// if (!emptyOrBlank.match(currentLine)) {
 
-				if (!emptyOrBlank.match(currentLine)) {
-					currentIndent = countIndent(indentString, currentLine);
+			if (!emptyOrBlank.match(currentLine)) {
+				currentIndent = countIndent(indentString, currentLine);
+			} // otherwise we keep last indent
+
+			var nextNonEmptyLine : String;
+			nextNonEmptyLine = helper.nextNonBlankLine();
+			// NOTE: nextNonEmptyLine may be null which means EOF which should be understood as indent 0.
+
+			if (indentString == null && nextNonEmptyLine!=null) {
+				indentRE.match(nextNonEmptyLine);
+				var indentPart = indentRE.matched(0);
+				if (indentPart != "") {
+					indentString = indentPart;
+					trace("Found first indent, length "+indentString.length);
 				}
-				// otherwise we keep last indent;
+			}
 
-				var nextNonEmptyLine : String;
-				nextNonEmptyLine = helper.nextNonBlankLine();
-				// NOTE: nextNonEmptyLine may be null which means EOF which should be understood as indent 0.;
+			var indent_of_nextNonEmptyLine = countIndent(indentString, nextNonEmptyLine);
 
-				if (indentString == null && nextNonEmptyLine!=null) {
-					indentRE.match(nextNonEmptyLine);
-					var indentPart = indentRE.matched(0);
-					if (indentPart != "") {
-						indentString = indentPart;
-						trace("Found first indent, length "+indentString.length);
-					}
-				}
+			// trace("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
 
-				var indent_of_nextNonEmptyLine = countIndent(indentString, nextNonEmptyLine);
-
-				// trace("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
-
-				if (indent_of_nextNonEmptyLine > currentIndent) {
-
-					// Append open curly to current line;
-					// Then write it;
-					if (javaStyleCurlies) {
-						output.writeString(currentLine + " {" + newline);
-					}
-					else {
-						output.writeString(currentLine + newline);
-						output.writeString(repeatString(currentIndent,indentString) + "{" + newline);
-					}
-					currentIndent++;
-					continue;
-				}
-
-
-				if (indent_of_nextNonEmptyLine < currentIndent) {
-
-					// Write current line;
-					// Write close curly (at lower indent);
-					// In fact write as many as we need...;
-
-					// DONE: We need to check/apply addRemoveSemicolons rule to currentLine before we output it.;
-					// TODO: DRY - this is a clone of later code!;
-					// TODO: We should not act on comment lines!;
-					if (addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
-						currentLine += ";";
-					}
+			// We want to avoid semicolon addition on comment lines
+			// We assume comment lines are irrelevant for indentation (but this is not really true if the nextNonBlankLine is indented, although that illegal in Coffeescript anyway).
+			var isAComment = commentRE.match(currentLine);
+			if (isAComment) {
+				// Now a nasty fudge for lines ending */ because they are a Haxe EReg definition.
+				var lineCouldbeRegexp = couldbeRegexp.match(currentLine);
+				if (!lineCouldbeRegexp) {
+					// trace("Is a comment line: "+currentLine);
 					output.writeString(currentLine + newline);
-
-					var i : Int;
-					i = currentIndent-1;
-					while (i >= indent_of_nextNonEmptyLine) {
-						// trace("De-curlifying with i="+i);
-						// TODO: If the next non-empty line starts with the "else" or "catch" or "typedef" keyword, then:;
-						//   in Javastyle, we could join that line on after the };
-						//   in either braces style, any blank lines between us and the next line can be outputted *before* the } we are about to write.;
-						output.writeString(repeatString(i,indentString) + "}" + newline);
-						i--;
-					}
-					currentIndent = indent_of_nextNonEmptyLine;
 					continue;
 				}
 			}
 
+			if (indent_of_nextNonEmptyLine > currentIndent) {
 
-			// };
+				// Append open curly to current line
+				// Then write it
+				if (javaStyleCurlies) {
+					output.writeString(currentLine + " {" + newline);
+				} else {
+					output.writeString(currentLine + newline);
+					output.writeString(repeatString(currentIndent,indentString) + "{" + newline);
+				}
+				currentIndent++;
+				continue;
 
-			// If we got here then we have neither indented nor outdented;
+			}
 
-			// TODO: DRY - this is a clone of earlier code!;
-			// TODO: We should not act on comment lines!;
+			if (indent_of_nextNonEmptyLine < currentIndent) {
+
+				// Write current line
+				// Write close curly (at lower indent)
+				// In fact write as many as we need...
+
+				// DONE: We need to check/apply addRemoveSemicolons rule to currentLine before we output it.
+				// TODO: DRY - this is a clone of later code!
+				// TODO: We should not act on comment lines!
+				if (addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
+					currentLine += ";";
+				}
+				output.writeString(currentLine + newline);
+
+				var i : Int;
+				i = currentIndent-1;
+				while (i >= indent_of_nextNonEmptyLine) {
+					// trace("De-curlifying with i="+i);
+					// TODO: If the next non-empty line starts with the "else" or "catch" or "typedef" keyword, then:
+					//   in Javastyle, we could join that line on after the }
+					//   in either braces style, any blank lines between us and the next line can be outputted *before* the } we are about to write.
+					output.writeString(repeatString(i,indentString) + "}" + newline);
+					i--;
+				}
+				currentIndent = indent_of_nextNonEmptyLine;
+				continue;
+
+			}
+
+			// }
+
+			// If we got here then we have neither indented nor outdented
+
+			// TODO: DRY - this is a clone of earlier code!
+			// TODO: We should not act on comment lines!
 			if (addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
 				currentLine += ";";
 			}
 			output.writeString(currentLine + newline);
+
 		}
 
-
 		output.close();
-	}
 
+	}
 
 	static function countIndent(indentString : String, line : String) : Int {
 		if (indentString == null || line == null) {
@@ -211,8 +226,7 @@ class Root {
 					j = 0;
 					count++;
 				}
-			}
-			else {
+			} else {
 				break;
 			}
 		}
@@ -226,8 +240,8 @@ class Root {
 		}
 		return sb.toString();
 	}
-}
 
+}
 
 class HelpfulReader {
 
@@ -246,8 +260,7 @@ class HelpfulReader {
 		}
 		try {
 			return input.readLine();
-		}
-		catch (ex : haxe.io.Eof) {
+		} catch (ex : haxe.io.Eof) {
 			return null;
 		}
 	}
@@ -259,7 +272,7 @@ class HelpfulReader {
 				return queue[i];
 			}
 		}
-		// We ran out of queue to check!;
+		// We ran out of queue to check!
 		while (true) {
 			try {
 				var line = input.readLine();
@@ -267,13 +280,12 @@ class HelpfulReader {
 				if (!Root.emptyOrBlank.match(line)) {
 					return line;
 				}
-			}
-			catch (ex: haxe.io.Eof) {
+			} catch (ex: haxe.io.Eof) {
 				break;
 			}
 		}
 		return null;
 	}
-}
 
+}
 
