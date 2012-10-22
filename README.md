@@ -82,10 +82,10 @@ Indented code blocks are detected and wrapped in curlies.
 
 The indent chars for detection are determined from the _first_ indented line found in the file.  So if later indents do not match the detected indent (e.g. spaces in a Tab-indented file, or 2 spaces in a 4-space-indented file), that indentation will be ignored for curlies, and preserved in the output.  For example:
 
-    while (weHaveAFourSpaceIndentedFile)
-        if (ourLineIsTooLong() && weNeedToMakeItWrap() &&   \
-          weCanUseATwoSpaceIndent() && thatWillBeIgnored())
-            thisShouldStillGetTheCurliesItNeeds()
+    while (weHaveAFourSpaceIndentedFile)                            # indent 0
+        if (ourLineIsTooLong() && weNeedToMakeItWrap() &&   \       # indent 1
+          weCanUseATwoSpaceIndent() && thatWillBeIgnored())         # indent 1
+            thisShouldStillGetTheCurliesItNeeds()                   # indent 2
 
 However that example will have problems with semicolon injection after the '\'.
 
