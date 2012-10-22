@@ -39,8 +39,10 @@ class Root {
 
 	static function decurl(infile : String, outfile : String) {
 
+		// We detect lines which start with a closing curly brace
 		var startsWithCurly : EReg = ~/^\s*}\s*/;
 		var startReplacer : EReg = ~/}\s*/;   // We don't want to strip the indent
+		// And lines which end with an opening curly brace
 		var endsWithCurly : EReg = ~/\s*{\s*$/;
 		var endsWithSemicolon : EReg = ~/\s*;\s*$/;
 

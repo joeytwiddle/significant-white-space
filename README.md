@@ -9,6 +9,17 @@ SWS is also able to strip / inject semicolons, under favourable conditions.  Ple
 
 SWS is written in Haxe.  You might be able to export it to Java; so far I am building a binary via the CPP target.
 
+As a simple example, SWS will turn code like this:
+
+    if indent_of_nextNonEmptyLine > currentIndent
+        output.writeString(currentLine + " {" + newline)
+
+into this:
+
+    if (indent_of_nextNonEmptyLine > currentIndent) {
+        output.writeString(currentLine + " {" + newline);
+    }
+
 
 
 # Status
@@ -53,7 +64,7 @@ will read file myapp.c.sws and overwrite myapp.c
 
 # Future Usage
 
-My planned use-case is to have this at the top of my build chain:
+My planned use case is to have this at the top of my build chain:
 
     % sws sync
 
