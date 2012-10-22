@@ -9,10 +9,11 @@ using Lambda;
 
 class Root {
 
-	static var newline : String = "\r\n";
-	static var pathSeparator = "/";
 	static var javaStyleCurlies : Bool = true;
 	static var addRemoveSemicolons : Bool = true;
+
+	static var newline : String = "\r\n";
+	static var pathSeparator = "/";
 
 	public static var emptyOrBlank : EReg = ~/^\s*$/;
 	static var indentRE : EReg = ~/^\s*/;
@@ -164,15 +165,13 @@ class Root {
 			// trace("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
 
 			// We want to avoid semicolon addition on comment lines
-			// We assume comment lines are irrelevant for indentation (but this is not really true if the nextNonBlankLine is indented, although that illegal in Coffeescript anyway).
+			// But do want consider comment lines for indentation / bracing
 			var isAComment = commentRE.match(currentLine);
 			if (isAComment) {
 				// Now a nasty fudge for lines ending */ because they are a Haxe EReg definition.
 				var lineCouldbeRegexp = couldbeRegexp.match(currentLine);
-				if (!lineCouldbeRegexp) {
-					// trace("Is a comment line: "+currentLine);
-					output.writeString(currentLine + newline);
-					continue;
+				if (lineCouldbeRegexp) {
+					isAComment = false;
 				}
 			}
 
@@ -200,7 +199,7 @@ class Root {
 				// DONE: We need to check/apply addRemoveSemicolons rule to currentLine before we output it.
 				// TODO: DRY - this is a clone of later code!
 				// TODO: We should not act on comment lines!
-				if (addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
+				if (!isAComment && addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
 					currentLine += ";";
 				}
 				output.writeString(currentLine + newline);
@@ -226,7 +225,7 @@ class Root {
 
 			// TODO: DRY - this is a clone of earlier code!
 			// TODO: We should not act on comment lines!
-			if (addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
+			if (!isAComment && addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
 				currentLine += ";";
 			}
 			output.writeString(currentLine + newline);
@@ -305,7 +304,7 @@ class Root {
 		for (srcFile in filesToDo) {
 			var swsFile = srcFile + ".sws";
 
-			var direction : Int;   // 1=to_sws 2=from_sws
+			var direction : Int = 0;   // 0=none, 1=to_sws, 2=from_sws
 			if (!FileSystem.exists(swsFile)) {
 				direction = 1;
 			} else if (!FileSystem.exists(srcFile)) {
@@ -316,7 +315,7 @@ class Root {
 				// trace(srcStat + " <-> "+swsStat);
 				if (srcStat.mtime.getTime() < swsStat.mtime.getTime()) {
 					direction = 2;
-				} else {
+				} else if (srcStat.mtime.getTime() > swsStat.mtime.getTime()) {
 					direction = 1;
 				}
 			}
@@ -324,7 +323,7 @@ class Root {
 			if (direction == 1) {
 				trace("Decurling "+srcFile+" -> "+swsFile);
 				// traceCall(decurl(srcFile, swsFile));
-				// decurl(srcFile, swsFile);
+				// decurl(srcFile, swsFile);    // NOTE: safeCurl is now mandatory, because it deals with date updating
 				doSafely(decurl, srcFile, swsFile, curl);
 				// TODO: safeCurl and safeDecurl
 				// After transformation, transform *back* (to a tempfile), and check if the result matches the original.  If not warn user, showing differences.  (If they are minor he may ignore them.)
@@ -358,9 +357,24 @@ class Root {
 			File.copy(outFile, backupFile);
 		}
 		fn(inFile, outFile);
+		// Now we want to mark the outFile with identical modification time to the inFile, so that sws knows it need not translate between them.
+		// Unfortunately neko FileSystem does not expose this ability
+		// So we will simply try to touch the inFile ASAP, and if the time is a millisecond too late, accept the consequences (this source will be uneccessarily transformed again).
+		touchFile(inFile);
+		// Woop!  It worked!  (It might not work on very large files.)
 		var tempFile = inFile + ".res";
 		inverseFn(outFile, tempFile);
-		trace("Now compare "+inFile+" against "+tempFile);
+		// trace("Now compare "+inFile+" against "+tempFile);
+		if (File.getContent(inFile) != File.getContent(tempFile)) {
+			trace("Warning: Inverse differs from original.");
+			// trace("Compare: vimdiff \""+inFile+"\" \""+tempFile+"\"");
+			trace("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
+		}
+	}
+
+	static function touchFile(filename) {
+		File.copy(filename,filename+".touch");
+		FileSystem.rename(filename+".touch",filename);
 	}
 
 	static function traceCall(fn : Dynamic, args : Array<Dynamic>) : Dynamic {
