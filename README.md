@@ -11,7 +11,7 @@ SWS is written in Haxe.  You might be able to export it to Java; so far I am bui
 
 As a simple example, SWS will turn code like this:
 
-    if indent_of_nextNonEmptyLine > currentIndent
+    if (indent_of_nextNonEmptyLine > currentIndent)
         output.writeString(currentLine + " {" + newline)
 
 into this:
