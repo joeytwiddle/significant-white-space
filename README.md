@@ -22,35 +22,17 @@ SWS is written in Haxe.  You might be able to export it to Java; so far I am bui
 
 
 
-# Status
-
-Reached the second milestone.  SWS can now successfully decurl and recurl itself into working source!
-
-Options are not yet parsed from command-line arguments, but can be changed by editing Root.hx.
-
-
-
-# TODO
-
-- Elegant handling of else / catch blocks.
-
-- sws sync
-
-- Argument parsing to set options from commandline
-
-- Clear documentation, detection and warning of problematic code configurations.  (This will be a list of WONT_FIX examples.)
-
-
-
 # Usage
 
-So far we have implemented:
+Available commands are:
 
-    sws decurl <normal_source_infile> <sws_source_outfile>
+    sws decurl <curly_file> <sws_file>
 
-    sws curl <sws_source_infile> <normal_source_outfile>
+    sws curl <sws_file> <curly_file>
 
-For example:
+    sws sync [ <directory/filename> ]
+
+## Examples
 
     % sws decurl myapp.c myapp.c.sws
 
@@ -60,19 +42,38 @@ will strip curlies and semicolons from myapp.c and write file myapp.c.sws
 
 will read file myapp.c.sws, inject curlies and semicolons, and overwrite myapp.c
 
+    % sws sync src/
+
+SWS sync can be used to transform a tree of files automatically.  De-curled files will be written with the ".sws" extension appended (e.g. "MyClass.java.sws").  The user may then edit either the curly file or the sws file, and sync will update the other file in the pair.
+
+A good place to use sync would be at the top of your build chain.
+
+Sync will search the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This will enable the user to edit files in either format, without having to worry about the direction in which changes will be propagated!  This way a single project can be edited both through its sws files, and through an IDE like Eclipse requiring traditional syntax.
 
 
-# Future Usage
 
-My planned use case is to have this at the top of my build chain:
+# Status
 
-    % sws sync
+Reached the second milestone.  SWS can now successfully decurl and recurl itself into working source!
 
-Sync will search the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This will enable the user to edit files in either format, without having to worry about the direction in which changes will be propogated!  This way a single project can be edited both through its sws files, and through an IDE like Eclipse requiring traditional syntax.
+Options are not yet parsed from command-line arguments, but can be changed by editing Root.hx.
 
-## On the radar
 
-We may implement stripping and re-injection of parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This may not be applied to multi-line expressions.
+
+# Recent Changes
+
+- sws sync
+- Better handling of else / catch blocks.
+
+
+
+# TODO
+
+- Argument parsing to set options from commandline
+
+- Clear documentation, detection and warning of problematic code configurations.  (This will be a list of WONT_FIX examples.)
+
+- On the radar: We could implement stripping and re-injection of parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
 
 
 
