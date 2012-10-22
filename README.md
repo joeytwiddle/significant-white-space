@@ -67,12 +67,14 @@ We may implement stripping and re-injection of parenthesis ( and ) surrounding t
 
 # How it works
 
-Indented code blocks are detected and wrapped in curlies.  But the indent chars for detection are determined from the _first_ indented line found in the file.  So if later indents do not match the detected indent (e.g. spaces in a Tab-indented file, or 2-spaces in a 4-space indented file), that indentation will be ignored for bracing, and preserved in the output.
+Indented code blocks are detected and wrapped in curlies.
 
-    if (thisIsAFourSpaceIndentedFile)
-        if (readyToGo && very_long_function_names_suck(data) \
-          but_two_space_indents_are_ignored(data))
-            thisWillWorkFine()
+The indent chars for detection are determined from the _first_ indented line found in the file.  So if later indents do not match the detected indent (e.g. spaces in a Tab-indented file, or 2 spaces in a 4-space-indented file), that indentation will be ignored for curlies, and preserved in the output.  For example:
+
+    while (weHaveAFourSpaceIndentedFile)
+        if (ourLineIsTooLong() && weNeedToMakeItWrap() &&   \
+          weCanUseATwoSpaceIndent() && thatWillBeIgnored())
+            thisShouldStillGetTheCurliesItNeeds()
 
 However that example will have problems with semicolon injection after the \.
 
@@ -81,6 +83,8 @@ Semicolon injection appends a ; to any non-empty line that is not part of an ind
     if (condition) { action(); };
 
 Blank lines containing only indentation/whitespace are ignored and preserved, so they do not affect curly wrapping.
+
+Comment lines are not stripped or injected, or used for indentation, where possible.  This works for many comment styles, but not in the body of multi-line comments.
 
 
 
