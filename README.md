@@ -68,7 +68,7 @@ My planned use case is to have this at the top of my build chain:
 
     % sws sync
 
-Sync will search the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This will enable the user to edit files in either format, without having to worry about the direction in which changes will be propogated!
+Sync will search the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This will enable the user to edit files in either format, without having to worry about the direction in which changes will be propogated!  This way a single project can be edited both through its sws files, and through an IDE like Eclipse requiring traditional syntax.
 
 ## On the radar
 
