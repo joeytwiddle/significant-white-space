@@ -13,7 +13,9 @@ class Root {
 	public static var emptyOrBlank : EReg = ~/^\s*$/;
 	static var indentRE : EReg = ~/^\s*/;
 	static var commentRE : EReg = ~/(^\s*\/\/|^\s*\/\*|\*\/\s*$)/;
-	static var couldbeRegexp : EReg = ~/[= \t]~\/.*\*\/\s*$/;
+	// Warning: Do not be tempted to search for "  //" mid-line.  That could be a comment, or it could be part of a string on a line requiring semicolon injection!
+	static var couldbeRegexp : EReg = ~/=[ \t]*~?\/[^\/].*\*\/\s*$/;
+	// That catches Haxe EReg declared with = ~/...*/, or Javascript RegExp declared with = /...*/ whilst ignoring comment lines declared with //
 
 	static function main() {
 

@@ -1,11 +1,11 @@
-SWS - Significant Whitespace
+# SWS - Significant Whitespace
 ----------------------------
 
 SWS is a preprocessor for traditional curly-brace languages (C, Java, Javascript, Haxe) which can perform transformation of source-code files to and from meaningful-indentation style (as seen in Coffescript and Python).
 
 In well-indented code the { and } block markers are effectively redundant.  SWS allows you to code without them, using indentation alone to indicate blocks, and adds the { and } markers in for you later.
 
-SWS is also able to strip / inject semicolons, under favourable conditions.
+SWS is also able to strip / inject semicolons, under favourable conditions.  Please be aware of the caveats below.  There are some situations which SWS cannot solve, so it only really works on a (nice clean) subset of parseable languages.
 
 SWS is written in Haxe.  You might be able to export it to Java; so far I am building a binary via the CPP target.
 
@@ -59,11 +59,22 @@ My planned use-case is to have this at the top of my build chain:
 
 Sync will search the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This will enable the user to edit files in either format, without having to worry about the direction in which changes will be propogated!
 
+## On the radar
+
+We may implement stripping and re-injection of parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This may not be applied to multi-line expressions.
+
 
 
 # How it works
 
-Any indented code blocks "detected" will be wrapped in curlies.  But the indent chars for detection are determined from the _first_ indented line found in the file.  Any later non-matching indents will be ignored and preserved (e.g. spaces in a Tab-indented file, or 2-spaces in a 4-space indented file).
+Indented code blocks are detected and wrapped in curlies.  But the indent chars for detection are determined from the _first_ indented line found in the file.  So if later indents do not match the detected indent (e.g. spaces in a Tab-indented file, or 2-spaces in a 4-space indented file), that indentation will be ignored for bracing, and preserved in the output.
+
+    if (thisIsAFourSpaceIndentedFile)
+        if (readyToGo && very_long_function_names_suck(data) \
+          but_two_space_indents_are_ignored(data))
+            thisWillWorkFine()
+
+However that example will have problems with semicolon injection after the \.
 
 Semicolon injection appends a ; to any non-empty line that is not part of an indent block.  Therefore it will inject incorrectly into single-line blocks such as:
 
@@ -84,5 +95,17 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
   - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
 
   - Semicolon injection over multi-line comments is likely to get confused.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)
+
+
+
+# Vim users
+
+Vim users who want syntax highlighting and tags to work like normal when they are editing sws files, can inform vim of the correct filetype by adding to their .vimrc:
+
+    au BufRead,BufNewFile {*.haxe.sws}           set ft=haxe
+    au BufRead,BufNewFile {*.jave.sws}           set ft=java
+    au BufRead,BufNewFile {*.c.sws}              set ft=c
+
+Some strict syntax files may complain about missing semicolons and curlies, whilst others will be flexible enough to work fine.
 
 
