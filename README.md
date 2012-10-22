@@ -76,7 +76,7 @@ The indent chars for detection are determined from the _first_ indented line fou
           weCanUseATwoSpaceIndent() && thatWillBeIgnored())
             thisShouldStillGetTheCurliesItNeeds()
 
-However that example will have problems with semicolon injection after the \.
+However that example will have problems with semicolon injection after the '\'.
 
 Semicolon injection appends a ; to any non-empty line that is not part of an indent block.  Therefore it will inject incorrectly into single-line blocks such as:
 
