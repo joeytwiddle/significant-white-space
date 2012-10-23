@@ -64,6 +64,7 @@ Options are not yet parsed from command-line arguments, but can be changed by ed
 
 - sws sync
 - Better handling of else / catch blocks.
+- Better spacing of closing curlies.
 
 
 
@@ -78,6 +79,8 @@ Options are not yet parsed from command-line arguments, but can be changed by ed
 - We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures "//" did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. "#" then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful $#, but we could demand a gap before the "#" to address that.)
 
 - We could ask HelpfulReader to attempt to track when we are inside a multi-line comment.
+
+- Refactor to tidy the code up into neat classes, and expose the tool for use in file-free environments.
 
 
 
