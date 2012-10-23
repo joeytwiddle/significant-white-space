@@ -223,13 +223,13 @@ class Root {
 						var tokens = leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
 						var firstToken = tokens[0];
 						var continuationKeywords = [ "else", "catch" ];
-						if (continuationKeywords.has(firstToken)) {
+						if (continuationKeywords.has(firstToken) || firstToken.charAt(0)==')') {
 							delayCurly = true;
 						}
 					}
-					// TODO: One other situation where we might want to join lines, is when the next symbol after the "}" is a ")".  (Consider restriction: Only if that ")" line has the same indent as our "}" line would?)
+					// DONE: One other situation where we might want to join lines, is when the next symbol after the "}" is a ")".  (Consider restriction: Only if that ")" line has the same indent as our "}" line would?)
 
-					// TODO: Even if we don't detect a continuation keyword, if the next *two* lines are both blanks, then emit one of them before the curly.  This won't always be right, but it may be right more often than wrong.
+					// DONE: Even if we don't detect a continuation keyword, if the next *two* lines are both blanks, then emit one of them before the curly.  This won't always be right, but it may be right more often than wrong.
 					// This rule could be applied for every outdent, checking the next two lines again on each.
 
 					if (delayCurly) {
@@ -262,7 +262,12 @@ class Root {
 						break; // We were going to anyway tbh
 
 					} else {
-						if (emptyOrBlank.match(helper.peekLine(1)) && emptyOrBlank.match(helper.peekLine(2))) {
+						var nextLine = helper.peekLine(1);
+						var lineAfterThat = helper.peekLine(2);
+						// Hmm but if I have two curlies to go out, I really want to check if 3 lines are empty!
+						// I don't want to gap the first curly if I can't gap the second.
+						// Well really we dunno what we want.  :P
+						if (nextLine!=null && emptyOrBlank.match(nextLine) && lineAfterThat!=null && emptyOrBlank.match(lineAfterThat)) {
 							// Do not write the '}' just yet ...
 							// Consume and write the blank line now, and the '}' right after.
 							var nextLine = helper.getNextLine();
@@ -366,38 +371,44 @@ class Root {
 		});
 
 		for (srcFile in filesToDo) {
-			var swsFile = srcFile + ".sws";
+			syncFile(srcFile);
+		}
 
-			var direction : Int = 0;   // 0=none, 1=to_sws, 2=from_sws
-			if (!FileSystem.exists(swsFile)) {
-				direction = 1;
-			} else if (!FileSystem.exists(srcFile)) {
+	}
+
+	static function syncFile(srcFile) {
+
+		var swsFile = srcFile + ".sws";
+
+		var direction : Int = 0;   // 0=none, 1=to_sws, 2=from_sws
+		if (!FileSystem.exists(swsFile)) {
+			direction = 1;
+		} else if (!FileSystem.exists(srcFile)) {
+			direction = 2;
+		} else {
+			var srcStat = FileSystem.stat(srcFile);
+			var swsStat = FileSystem.stat(swsFile);
+			// trace(srcStat + " <-> "+swsStat);
+			if (srcStat.mtime.getTime() < swsStat.mtime.getTime()) {
 				direction = 2;
-			} else {
-				var srcStat = FileSystem.stat(srcFile);
-				var swsStat = FileSystem.stat(swsFile);
-				// trace(srcStat + " <-> "+swsStat);
-				if (srcStat.mtime.getTime() < swsStat.mtime.getTime()) {
-					direction = 2;
-				} else if (srcStat.mtime.getTime() > swsStat.mtime.getTime()) {
-					direction = 1;
-				}
+			} else if (srcStat.mtime.getTime() > swsStat.mtime.getTime()) {
+				direction = 1;
 			}
+		}
 
-			if (direction == 1) {
-				trace("Decurling "+srcFile+" -> "+swsFile);
-				// traceCall(decurl(srcFile, swsFile));
-				// decurl(srcFile, swsFile);    // NOTE: safeCurl is now mandatory, because it deals with date updating
-				doSafely(decurl, srcFile, swsFile, curl);
-				// TODO: safeCurl and safeDecurl
-				// After transformation, transform *back* (to a tempfile), and check if the result matches the original.  If not warn user, showing differences.  (If they are minor he may ignore them.)
-				// Also to be safe, we should store a backup of the target file before it is overwritten.
-			} else if (direction == 2) {
-				trace("Curling "+swsFile+" -> "+srcFile);
-				// traceCall(curl(swsFile, srcFile));
-				// curl(swsFile, srcFile);
-				doSafely(curl, swsFile, srcFile, decurl);
-			}
+		if (direction == 1) {
+			trace("Decurling "+srcFile+" -> "+swsFile);
+			// traceCall(decurl(srcFile, swsFile));
+			// decurl(srcFile, swsFile);    // NOTE: safeCurl is now mandatory, because it deals with date updating
+			doSafely(decurl, srcFile, swsFile, curl);
+			// TODO: safeCurl and safeDecurl
+			// After transformation, transform *back* (to a tempfile), and check if the result matches the original.  If not warn user, showing differences.  (If they are minor he may ignore them.)
+			// Also to be safe, we should store a backup of the target file before it is overwritten.
+		} else if (direction == 2) {
+			trace("Curling "+swsFile+" -> "+srcFile);
+			// traceCall(curl(swsFile, srcFile));
+			// curl(swsFile, srcFile);
+			doSafely(curl, swsFile, srcFile, decurl);
 		}
 
 	}
@@ -503,8 +514,8 @@ class HelpfulReader {
 				var nextLine = input.readLine();
 				queue.push(nextLine);
 			} catch (ex : haxe.io.Eof) {
-				// return null;   // This causes segfault when a regexp match is attempted on the return value.
-				return "DUMMY";
+				return null;   // Beware: Do not attempt regexp matching on a null String - it will causes a segfault!
+				// return "DUMMY";
 			}
 		}
 		return queue[i - 1];

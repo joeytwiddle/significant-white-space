@@ -124,12 +124,10 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
 Vim users who want syntax highlighting and tags to work like normal when they are editing sws files, can inform vim of the correct filetype by adding to their .vimrc:
 
-
     au BufRead,BufNewFile {*.hx.sws}             set ft=haxe
     au BufRead,BufNewFile {*.java.sws}           set ft=java
     au BufRead,BufNewFile {*.c.sws}              set ft=c
     au BufRead,BufNewFile {*.cpp.sws}            set ft=cpp
 
 Some strict syntax files may complain about missing semicolons and curlies, whilst others will be flexible enough to work fine.
-
 
