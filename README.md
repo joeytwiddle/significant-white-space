@@ -44,7 +44,7 @@ will read file myapp.c.sws, inject curlies and semicolons, and overwrite myapp.c
 
     % sws sync src/
 
-The sync command can be used to transform a tree of files automatically.  De-curled files will be written with the ".sws" extension appended (e.g. "MyClass.java.sws").  The user may then edit either the curly file or the sws file, and on its next run sync will update the other file in the pair.
+The sync command can be used to transform a tree of files automatically.  De-curled files will be written with the `.sws` extension appended (e.g. `MyClass.java.sws`).  The user may then edit either the curly file or the sws file, and on its next run sync will update the other file in the pair.
 
 A good place to use sync would be at the top of your build chain.
 
@@ -86,7 +86,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - Clear documentation, detection and warning of problematic code configurations.  Easy to read definition of what is legal code structure, and list of the gotchas (common issues we cannot fix).
 
-- DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures "//" did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. "#" then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful $#, but we could demand a gap before the "#" to address that.)
+- DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures `//` did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. `#` then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful $#, but we could demand a gap before the `#` to address that.)
 
 - DONE: But this still leaves us with the problem that trailing comment lines will not get semicolon injection or stripping of semicolons or curlies.  To address this, we should "remove" trailing comments when considering application of said features.
 
@@ -94,7 +94,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
 
-- The header line of a block (e.g. class and function declarations) are stripped of all symbols, and this looks a bit odd.  In Python indented blocks are always preceeded by a ':', and in Coffeescript either a ':' or an '=' (not true of classes).  We could give users the option of initialising blocks with a ':'.  Although one might still argue that such symbols are as redundant as curly braces, given significant indenting whitespace!
+- The header line of a block (e.g. class and function declarations) are stripped of all symbols, and this looks a bit odd.  In Python indented blocks are always preceeded by a `:`, and in Coffeescript either a `:` or an `=` (not true of classes).  We could give users the option of initialising blocks with a `:`.  Although one might still argue that such symbols are as redundant as curly braces, given significant indenting whitespace!
 
 
 
@@ -102,7 +102,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 ## Decurling
 
-When de-curling, curlies are stripped when a line ends with "{" or begins with "}".  Currently no checking is performed to ensure that indentation is correct; that is your duty before de-curling!  (TODO: implement checking.)
+When de-curling, curlies are stripped when a line ends with `{` or begins with `}`.  Currently no checking is performed to ensure that indentation is correct; that is your duty before de-curling!  (TODO: implement checking.)
 
 ## Curling
 
@@ -117,13 +117,13 @@ The indent chars for detection are determined from the _first_ indented line fou
 
 However that example will have problems if semicolon injection is enabled (one will be added after the `\`).
 
-Semicolon injection appends a ';' to any non-empty line that is not the start of an indent block.  Therefore it will also inject incorrectly after single-line blocks as seen here:
+Semicolon injection appends a `;` to any non-empty line that is not the start of an indent block.  Therefore it will also inject incorrectly after single-line blocks as seen here:
 
     if (condition) { action(); };
 
 Blank lines containing only indentation/whitespace are ignored and preserved, so they do not affect curly wrapping.
 
-Comment lines should not be stripped or injected into, or used for indentation.  This policy is followed for simple single-line comments, but not for trailing comments at the end of a line, and _not in the body of multi-line comments_.  (By the way, we also have some filthy heuristics to differentiate '*/' ending a comment from '*/' ending a regular expression literal.)
+Comment lines should not be stripped or injected into, or used for indentation.  This policy is followed for simple single-line comments, but not for trailing comments at the end of a line, and _not in the body of multi-line comments_.  (By the way, we also have some filthy heuristics to differentiate `*/` ending a comment from `*/` ending a regular expression literal.)
 
 
 
@@ -153,7 +153,7 @@ Let's also critique the sync algorithm:
 
 # Bugs:
 
-  - sync fails with exception "std@sys_file_type" if it encounters any broken symlinks in the scanned tree.
+  - sync fails with exception `std@sys_file_type` if it encounters any broken symlinks in the scanned tree.
 
 
 
