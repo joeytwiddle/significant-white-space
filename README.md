@@ -86,11 +86,13 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - Clear documentation, detection and warning of problematic code configurations.  (This will be a list of WONT_FIX examples.)
 
-- On the radar: We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
-
 - DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures "//" did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. "#" then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful $#, but we could demand a gap before the "#" to address that.)
 
 - DONE: But this still leaves us with the problem that trailing comment lines will not get semicolon injection or stripping of semicolons or curlies.  To address this, we should "remove" trailing comments when considering application of said features.
+
+## On the radar
+
+- We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
 
 - The header line of a block (e.g. class and function declarations) are stripped of all symbols, and this looks a bit odd.  In Python indented blocks are always preceeded by a ':', and in Coffeescript either a ':' or an '=' (not true of classes).  We could give users the option of initialising blocks with a ':'.  Although one might still argue that such symbols are as redundant as curly braces, given significant indenting whitespace!
 
