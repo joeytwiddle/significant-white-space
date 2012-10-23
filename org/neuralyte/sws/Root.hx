@@ -30,8 +30,9 @@ class Root {
 
 	public static var emptyOrBlank : EReg = ~/^\s*$/;
 	static var indentRE : EReg = ~/^\s*/;
-	static var commentRE : EReg = ~/(^\s*\/\/|^\s*\/\*|\*\/\s*$)/;
+	static var wholeLineIsCommentRE : EReg = ~/(^\s*\/\/|^\s*\/\*|\*\/\s*$)/;
 	// Warning: Do not be tempted to search for "  //" mid-line.  Yes that could indicate an appended comment, but it could just as easily be part of a string on a line which requires semicolon injection!
+
 	// Sorry I really could not resist the temptation.
 	// This regexp throws an exception via nekotools: "An error occured while running pcre_exec"
 	// static var evenNumberOfQuotes = '([^"]*"[^"]*"[^"]*|[^"]*)*';
@@ -39,10 +40,12 @@ class Root {
 	// TODO: This ensures an even number of " chars, but not an even number of ' chars.  Since one may contain the other, we really can't do this without a proper parser.
 	// static var forExample = "This \" will break";   // if we follow it with a comment
 	static var trailingCommentSafeRE = new EReg("^("+evenNumberOfQuotes+")(\\s*//.*)$",'');
-	// Unfortunately this regexp is greedy and eats all the spaces in the first () leaving none in the last ().
+	// Unfortunately this regexp is greedy and eats all the spaces in the first () leaving none in the last ().  This problem is addressed by splitLineAtComment.
+	// TODO: If // is a trailing comment then we should probably assume that /* is too.  Looking at this line right here, we can see we really want to match the first occurrence!
 	// This version is unsafe:
 	// static var trailingCommentSafeRE = new EReg("^(.*)(\\s*//.*)$",'');
 	// NOTE: trailingCommentSafeRE may need more checks if "//" can appear outside a string literal, e.g. inside a regexp literal.
+
 	static var couldbeRegexp : EReg = ~/=[ \t]*~?\/[^\/].*\*\/\s*$/;
 	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //
 
@@ -128,19 +131,21 @@ class Root {
 				// echo("Read line: "+line);
 
 				// We don't want to strip anything from comment lines
-				var isAComment = commentRE.match(line);
-				if (!isAComment) {
+				// var wholeLineIsComment = wholeLineIsCommentRE.match(line);
+				// DISABLED: splitLineAtComment can deal with this now
+				var wholeLineIsComment = false;
+				if (!wholeLineIsComment) {
 
 					if (startsWithCurly.match(line)) {
 						line = startReplacer.replace(line,"");
-						if (emptyOrBlank.match(line)) {
+						if (emptyOrBlank.match(line + trailingComment)) {
 							continue;
 						}
 					}
 
 					if (endsWithCurly.match(line)) {
 						line = endsWithCurly.replace(line,"");
-						if (emptyOrBlank.match(line)) {
+						if (emptyOrBlank.match(line + trailingComment)) {
 							continue;
 						}
 					}
@@ -211,22 +216,27 @@ class Root {
 
 			// We want to avoid semicolon addition on comment lines
 			// But we do want consider comment lines for indentation / bracing
-			var isAComment = commentRE.match(currentLine);
-			if (isAComment) {
+			var wholeLineIsComment = wholeLineIsCommentRE.match(currentLine);
+			if (wholeLineIsComment) {
 				// Now a nasty fudge for lines ending */ because they are a Haxe EReg or Javascript RegExp literal, not a comment.
 				var lineCouldbeRegexp = couldbeRegexp.match(currentLine);
 				if (lineCouldbeRegexp) {
-					isAComment = false;
+					wholeLineIsComment = false;
 				}
 			}
 			// But it could be a regexp line with a trailing comment!
-			if (!isAComment) {
+			/*
+			if (!wholeLineIsComment) {
 				var containsTrailingComment = trailingCommentSafeRE.match(currentLine);
 				if (containsTrailingComment) {
 					// trace("Found trailing comment on: "+currentLine);
-					// isAComment = true;
+					// wholeLineIsComment = true;
 				}
 			}
+			*/
+
+			// wholeLineIsComment = false; // Let splitLineAtComment handle this concern.  This approach fails with current code below - it adds semicolons on lines containing only a comment, because semicolon injection checks the whole line for emptiness, not the split part of the line!  The split is only done inside appendToLine at the moment.  :f
+			// This only affects semicolon injection, which is just where we need it.  :)
 
 			if (indent_of_nextNonEmptyLine > currentIndent) {
 
@@ -253,7 +263,7 @@ class Root {
 				// DONE: We need to check/apply addRemoveSemicolons rule to currentLine before we output it.
 				// TODO: DRY - this is a clone of later code!
 				// DONE: We should not act on comment lines!
-				if (!isAComment && addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
+				if (addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
 					currentLine = appendToLine(currentLine,";");
 				}
 				output.writeString(currentLine + newline);
@@ -362,7 +372,7 @@ class Root {
 
 			// TODO: DRY - this is a clone of earlier code!
 			// DONE: We should not act on comment lines!
-			if (!isAComment && addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
+			if (addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
 				currentLine = appendToLine(currentLine,";");
 			}
 			output.writeString(currentLine + newline);
@@ -381,6 +391,7 @@ class Root {
 		return beforeComment + toAppend + afterComment;
 	}
 
+	// TODO: Does Haxe have a better way to return tuples, or use "out" arguments like UScript or &var pointers like C?
 	static function splitLineAtComment(line : String) {
 		var hasTrailingComment = trailingCommentSafeRE.match(line);
 		// Actually it might only be trailing after indentation, no content!

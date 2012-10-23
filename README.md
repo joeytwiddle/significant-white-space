@@ -68,6 +68,7 @@ Options are not yet parsed from command-line arguments, but can be changed by ed
 - Better handling of else / catch blocks.
 - Better spacing of closing curlies.
 - Filthy regexps to find trailing comments without matching comment-like text in string literals.
+- Better handling of trailing comments, by splitting and rejoining line.
 
 
 
@@ -83,7 +84,7 @@ Options are not yet parsed from command-line arguments, but can be changed by ed
 
 - DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures "//" did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. "#" then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful $#, but we could demand a gap before the "#" to address that.)
 
-- But this still leaves us with the problem that trailing comment lines will not get semicolon injection or stripping of semicolons or curlies.  To address this, we should "remove" trailing comments when considering application of said features.
+- DONE: But this still leaves us with the problem that trailing comment lines will not get semicolon injection or stripping of semicolons or curlies.  To address this, we should "remove" trailing comments when considering application of said features.
 
 - We could ask HelpfulReader to attempt to track when we are inside a multi-line comment.
 
@@ -128,7 +129,7 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
   - Semicolon injection's inability to detect multi-line comments and trailing comments can cause them to appear unwantedly.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)  You can either stick with a strict single-line comment style, or try to stop caring about odd semicolons appearing in comments!
 
-  - Trailing comments no longer get semicolons appended to them, but you need to put the semicolon before the comment, as none is injected.
+  - Indentation of the original code must be correct for transformation to sws.  (E.g. this can be thrown up if you comment out the top and bottom lines of an if statement.)  A fix for this could be to parse { and }s and force correct indentation in the output.
 
   - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
 
