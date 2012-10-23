@@ -193,35 +193,35 @@ It would be great if we could get the breakindent patch working again.
 
 # Debate:
 
-- "I like curlies!"
+-- "I like curlies!"
 
--- Don't use sws.  And also don't fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
+- Don't use sws.  And also don't fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
 
-- "Why do you hate curlies?"
+-- "Why do you hate curlies?"
 
--- I haven't really made up my mind on this yet, I'm just trying to keep my options open.
+- I haven't really made up my mind on this yet, I'm just trying to keep my options open.
 
-- "Are there any advantages to coding without curlies?"
+-- "Are there any advantages to coding without curlies?"
 
--- If you aren't using an IDE, then it can save time and work for your fingers.
+- If you aren't using an IDE, then it can save time and work for your fingers.
 
--- Refactoring code with copy-paste can be easier if you only have to worry about the indentation, not the indentation *and* the curlies.
+- Refactoring code with copy-paste can be easier if you only have to worry about the indentation, not the indentation *and* the curlies.
 
--- Without ending curlies, you can fit more lines of actual code on the screen!
+- Without ending curlies, you can fit more lines of actual code on the screen!
 
--- You save disk-space.
+- You save disk-space.
 
-- "What have you got against semicolons?"
+-- "What have you got against semicolons?"
 
--- What have you got against newlines?
+- What have you got against newlines?
 
-- "Why were curlies ever introduced in the first place?"
+-- "Why were curlies ever introduced in the first place?"
 
--- Meaningful indentation is very difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Note that we are not demanding an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.
+- Meaningful indentation is very difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Note that we are not demanding an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.
 
--- Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
+- Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
 
-- "Why are some of the comments in the SWS source code longer than 80 chars?"
+-- "Why are some of the comments in the SWS source code longer than 80 chars?"
 
--- Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
+- Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
 
