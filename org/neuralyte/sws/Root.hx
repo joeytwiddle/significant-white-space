@@ -38,8 +38,10 @@ class Root {
 	static var evenNumberOfQuotes = '(([^"]*"[^"]*"[^"]*)*|[^"]*)';
 	// TODO: This ensures an even number of " chars, but not an even number of ' chars.  Since one may contain the other, we really can't do this without a proper parser.
 	// static var forExample = "This \" will break";   // if we follow it with a comment
-	// The requirement that the line end in ; or } is optional, but may improve safety.
-	static var trailingCommentSafeRE = new EReg("^"+evenNumberOfQuotes+"[;}]\\s*//.*$",'');
+	static var trailingCommentSafeRE = new EReg("^("+evenNumberOfQuotes+")(\\s*//.*)$",'');
+	// Unfortunately this regexp is greedy and eats all the spaces in the first () leaving none in the last ().
+	// This version is unsafe:
+	// static var trailingCommentSafeRE = new EReg("^(.*)(\\s*//.*)$",'');
 	// NOTE: trailingCommentSafeRE may need more checks if "//" can appear outside a string literal, e.g. inside a regexp literal.
 	static var couldbeRegexp : EReg = ~/=[ \t]*~?\/[^\/].*\*\/\s*$/;
 	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //
@@ -117,7 +119,11 @@ class Root {
 
 			while (true) {
 
-				var line : String = input.readLine();
+				var wholeLine : String = input.readLine();
+
+				var res = splitLineAtComment(wholeLine);
+				var line = res[0];
+				var trailingComment = res[1];
 
 				// echo("Read line: "+line);
 
@@ -145,8 +151,8 @@ class Root {
 
 				}
 
-				// echo("Line: "+line);
-				output.writeString(line + newline);
+				wholeLine = line + trailingComment;
+				output.writeString(wholeLine + newline);
 
 			}
 
@@ -205,12 +211,20 @@ class Root {
 
 			// We want to avoid semicolon addition on comment lines
 			// But we do want consider comment lines for indentation / bracing
-			var isAComment = commentRE.match(currentLine) || trailingCommentSafeRE.match(currentLine);
+			var isAComment = commentRE.match(currentLine);
 			if (isAComment) {
 				// Now a nasty fudge for lines ending */ because they are a Haxe EReg or Javascript RegExp literal, not a comment.
 				var lineCouldbeRegexp = couldbeRegexp.match(currentLine);
 				if (lineCouldbeRegexp) {
 					isAComment = false;
+				}
+			}
+			// But it could be a regexp line with a trailing comment!
+			if (!isAComment) {
+				var containsTrailingComment = trailingCommentSafeRE.match(currentLine);
+				if (containsTrailingComment) {
+					// trace("Found trailing comment on: "+currentLine);
+					// isAComment = true;
 				}
 			}
 
@@ -220,7 +234,7 @@ class Root {
 				// Append open curly to current line
 				// Then write it
 				if (javaStyleCurlies) {
-					output.writeString(currentLine + " {" + newline);
+					output.writeString(appendToLine(currentLine," {") + newline);
 				} else {
 					output.writeString(currentLine + newline);
 					output.writeString(repeatString(currentIndent,indentString) + "{" + newline);
@@ -240,7 +254,7 @@ class Root {
 				// TODO: DRY - this is a clone of later code!
 				// DONE: We should not act on comment lines!
 				if (!isAComment && addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
-					currentLine += ";";
+					currentLine = appendToLine(currentLine,";");
 				}
 				output.writeString(currentLine + newline);
 
@@ -349,7 +363,7 @@ class Root {
 			// TODO: DRY - this is a clone of earlier code!
 			// DONE: We should not act on comment lines!
 			if (!isAComment && addRemoveSemicolons && !emptyOrBlank.match(currentLine)) {
-				currentLine += ";";
+				currentLine = appendToLine(currentLine,";");
 			}
 			output.writeString(currentLine + newline);
 
@@ -357,6 +371,35 @@ class Root {
 
 		output.close();
 
+	}
+
+	// appends the string to the line, except if there is a trailing comment on the line, the append is done *before* the comment.
+	static function appendToLine(line : String, toAppend : String) {
+		var res = splitLineAtComment(line);
+		var beforeComment = res[0];
+		var afterComment = res[1];
+		return beforeComment + toAppend + afterComment;
+	}
+
+	static function splitLineAtComment(line : String) {
+		var hasTrailingComment = trailingCommentSafeRE.match(line);
+		// Actually it might only be trailing after indentation, no content!
+		if (!hasTrailingComment) {
+			return [line,""];
+		} else {
+			// trace("Line has trailing comment!  "+line);
+			var beforeComment = trailingCommentSafeRE.matched(1);
+			var afterComment = trailingCommentSafeRE.matched(4);
+			// trace("beforeComment = "+beforeComment);
+			// trace("afterComment="+afterComment);
+			// Deal with annoying greediness: move the spaces from the end of beforeComment into the front of afterComment.
+			var trailingSpaces = ~/\s*$/;
+			if (trailingSpaces.match(beforeComment)) {
+				afterComment = trailingSpaces.matched(0) + afterComment;
+				beforeComment = trailingSpaces.replace(beforeComment,'');
+			}
+			return [beforeComment,afterComment];
+		}
 	}
 
 	static function countIndent(indentString : String, line : String) : Int {

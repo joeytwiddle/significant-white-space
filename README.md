@@ -48,6 +48,8 @@ The sync command can be used to transform a tree of files automatically.  De-cur
 
 A good place to use sync would be at the top of your build chain.
 
+If no argument is provided, sws sync will search everything below the current folder.  If that does more than you hoped it would, you will want to delete all the files it generated: **/*.(sws|bak|inv)  (By default sync generates more files than it really needs to, to aid debugging and reverting.)
+
 Sync searches the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This allows the user to edit files in either format, without having to worry about the direction in which changes will be propagated!  Thus a single project can be edited both through its sws files, and through its traditional files, for example using an IDE such as Eclipse.
 
 
@@ -135,6 +137,12 @@ Let's also critique the sync algorithm:
   - Neko does not offer a way to set the modification time of a file.  Until we write target-specific code for this, we fake this by simply writing a new copy of the file.  That is only likely to work on small source files, and not on filesystems which store fine-grained time-stamps.  (In that case, our approach will cause the same transformation to be performed again on the next sync - not the end of the world.)
 
   - On filesystems with coarse-grained time-stamps, sync may not notice changes made to a source file very soon after it was synced (within 1 second).  This is rare, but could happen e.g. if a developer edits his file while sync is running in the background.
+
+
+
+# Bugs:
+
+  - sync fails with exception "std@sys_file_type" if it encounters any broken symlinks in the scanned tree.
 
 
 
