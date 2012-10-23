@@ -48,7 +48,7 @@ The sync command can be used to transform a tree of files automatically.  De-cur
 
 A good place to use sync would be at the top of your build chain.
 
-If no argument is provided, sws sync will search everything below the current folder.  If that does more than you hoped it would, you will want to delete all the files it generated: **/*.(sws|bak|inv)  (By default sync generates more files than it really needs to, to aid debugging and reverting.)
+If no argument is provided, sws sync will search everything below the current folder.  If that does more than you hoped it would, you may want to delete all the files it generated: **/*.(sws|bak|inv)  (By default sync generates more files than it really needs to, to aid debugging and reverting.)
 
 Sync searches the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This allows the user to edit files in either format, without having to worry about the direction in which changes will be propagated!  Thus a single project can be edited both through its sws files, and through its traditional files, for example using an IDE such as Eclipse.
 
@@ -115,7 +115,7 @@ The indent chars for detection are determined from the _first_ indented line fou
           weCanUseATwoSpaceIndent() && thatWillBeIgnored())         # indent 1
             thisShouldStillGetTheCurliesItNeeds()                   # indent 2
 
-However that example will have problems if semicolon injection is enabled (one will be added after the '\').
+However that example will have problems if semicolon injection is enabled (one will be added after the `\`).
 
 Semicolon injection appends a ';' to any non-empty line that is not the start of an indent block.  Therefore it will also inject incorrectly after single-line blocks as seen here:
 
