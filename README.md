@@ -18,7 +18,7 @@ into the more traditional style:
         output.writeString(currentLine + " {" + newline);
     }
 
-SWS is written in Haxe.  You might be able to export it to Java; so far I am building a binary via the CPP target.
+SWS is written in Haxe.  Currently we build a binary via cpp, but you may be able to export the tool to Java or Javascript.
 
 
 

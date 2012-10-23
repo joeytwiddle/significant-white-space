@@ -180,6 +180,7 @@ class Root {
 
 			if (indent_of_nextNonEmptyLine > currentIndent) {
 
+				// Assumption: indent never increases by more than one
 				// Append open curly to current line
 				// Then write it
 				if (javaStyleCurlies) {
@@ -261,6 +262,12 @@ class Root {
 						break; // We were going to anyway tbh
 
 					} else {
+						if (emptyOrBlank.match(helper.peekLine(1)) && emptyOrBlank.match(helper.peekLine(2))) {
+							// Do not write the '}' just yet ...
+							// Consume and write the blank line now, and the '}' right after.
+							var nextLine = helper.getNextLine();
+							output.writeString(nextLine + newline);
+						}
 						output.writeString(repeatString(i,indentString) + "}" + newline);
 					}
 
@@ -488,6 +495,19 @@ class HelpfulReader {
 
 	public function pushBackLine(line : String) {
 		queue.unshift(line);
+	}
+
+	public function peekLine(i : Int) : String {
+		while (queue.length < i) {
+			try {
+				var nextLine = input.readLine();
+				queue.push(nextLine);
+			} catch (ex : haxe.io.Eof) {
+				// return null;   // This causes segfault when a regexp match is attempted on the return value.
+				return "DUMMY";
+			}
+		}
+		return queue[i - 1];
 	}
 
 }
