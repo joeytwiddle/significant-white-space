@@ -110,7 +110,7 @@ Semicolon injection appends a ';' to any non-empty line that is not the start of
 
 Blank lines containing only indentation/whitespace are ignored and preserved, so they do not affect curly wrapping.
 
-Comment lines should not be stripped or injected into, or used for indentation.  This policy is followed for simple single-line comments, but not for comments appended to lines, and _not in the body of multi-line comments_.  (By the way, we also have some filthy heuristics to differentiate '*/' ending a comment from '*/' ending a regular expression literal.)
+Comment lines should not be stripped or injected into, or used for indentation.  This policy is followed for simple single-line comments, but not for trailing comments at the end of a line, and _not in the body of multi-line comments_.  (By the way, we also have some filthy heuristics to differentiate '*/' ending a comment from '*/' ending a regular expression literal.)
 
 
 
@@ -122,7 +122,9 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
   - You can still express short { ... } blocks on-one-line if you want to, but don't mix things up.  Specifically do not follow a curly by text and then newline and indent.  That mid-line curly will not be stripped, whilst the indent will cause a new one to be injected.
 
-  - Semicolon injection's inability to detect multi-line comments and appended comments can cause them to appear unwantedly.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)  You can either stick with a strict single-line comment style, or try to stop caring about odd semicolons appearing in comments!
+  - Semicolon injection's inability to detect multi-line comments and trailing comments can cause them to appear unwantedly.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)  You can either stick with a strict single-line comment style, or try to stop caring about odd semicolons appearing in comments!
+
+  - Trailing comments no longer get semicolons appended to them, but you need to put the semicolon before the comment, as none is injected.
 
   - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
 
