@@ -99,7 +99,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - Clear documentation, detection and warning of problematic code configurations.  Easy to read definition of what is legal code structure, and list of the gotchas (common issues we cannot fix).
 
-- DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures `//` did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. `#` then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful $#, but we could demand a gap before the `#` to address that.)
+- DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures `//` did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. `#` then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful `$#`, but we could demand a gap before the `#` to address that.)
 
 - DONE: But this still leaves us with the problem that trailing comment lines will not get semicolon injection or stripping of semicolons or curlies.  To address this, we should "remove" trailing comments when considering application of said features.
 
@@ -195,33 +195,33 @@ It would be great if we could get the breakindent patch working again.
 
 - "I like curlies!"
 
-## Don't use sws.  And also don't fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
+-- Don't use sws.  And also don't fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
 
 - "Why do you hate curlies?"
 
-## I haven't really made up my mind on this yet, I'm just trying to keep my options open.
+-- I haven't really made up my mind on this yet, I'm just trying to keep my options open.
 
 - "Are there any advantages to coding without curlies?"
 
-## If you aren't using an IDE, then it can save time and work for your fingers.
+-- If you aren't using an IDE, then it can save time and work for your fingers.
 
-## Refactoring code with copy-paste can be easier if you only have to worry about the indentation, not the indentation *and* the curlies.
+-- Refactoring code with copy-paste can be easier if you only have to worry about the indentation, not the indentation *and* the curlies.
 
-## Without ending curlies, you can fit more lines of actual code on the screen!
+-- Without ending curlies, you can fit more lines of actual code on the screen!
 
-## You save disk-space.
+-- You save disk-space.
 
 - "What have you got against semicolons?"
 
-## What have you got against newlines?
+-- What have you got against newlines?
 
 - "Why were curlies ever introduced in the first place?"
 
-## Meaningful indentation is very difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Note that we are not demanding an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.
+-- Meaningful indentation is very difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Note that we are not demanding an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.
 
-## Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
+-- Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
 
 - "Why are some of the comments in the SWS source code longer than 80 chars?"
 
-## Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
+-- Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
 
