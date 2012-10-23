@@ -56,9 +56,11 @@ Sync searches the current folder and subfolders for all sws or sws-able files (b
 
 # Status
 
-Reached the third milestone: a working sync!
+Now able to transform its own source leaving only 2 minor differences.
 
-Options are not yet parsed from command-line arguments, but can be changed by editing Root.hx.
+Significant problem detecting indentation of files which start with multi-line comments.
+
+Options are not yet exposed as command-line arguments, but can be changed by editing Root.hx.
 
 
 
@@ -73,6 +75,8 @@ Options are not yet parsed from command-line arguments, but can be changed by ed
 
 
 # TODO
+
+- Problem detecting false indent from files starting with a multi-line comment (e.g. well-document Java files).  Ideal solution: Solve this alongside other issues, by doing our best to track when we are inside a multi-line comment.  (The plan was to do that in HelpfulReader, and for it to expose the state (in/out of a comment) of the parser after the current line has been read (at the beginning of the next line).)
 
 - Argument parsing to set options from commandline
 
@@ -131,11 +135,13 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
   - Indentation of the original code must be correct for transformation to sws.  (E.g. this can be thrown up if you comment out the top and bottom lines of an if statement.)  A fix for this could be to parse { and }s and force correct indentation in the output.
 
+  - Since indentation is required to create curlies { }, if you attempt to create a class or function (or any block) with an empty body, you had better add an indented dummy line too (e.g. a comment) or you won't get curlies (and with SCI you will get a semicolon).
+
   - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
 
 Let's also critique the sync algorithm:
 
-  - Neko does not offer a way to set the modification time of a file.  Until we write target-specific code for this, we fake this by simply writing a new copy of the file.  That is only likely to work on small source files, and not on filesystems which store fine-grained time-stamps.  (In that case, our approach will cause the same transformation to be performed again on the next sync - not the end of the world.)
+  - After syncing a pair of files we would like to set the modification time of the target file to match that of the source file, to indicate against syncing again on future runs.  Unfortunately Neko does not offer a way to set the stats of files directly.  Until we introduce C-specific code for this, as an alternative we "touch" the *source* file by cloning and replacing it.  That is only likely to match up the mtimes exactly on small/medium source files, and not on filesystems with fine-grained time-stamps.  (Although if the mtimes don't match, our approach will only cause the same transformation to be performed again on the next sync - not the end of the world.)  Another minor disadvantage of touching the source file is that your editor may think it has been updated when it hasn't.
 
   - On filesystems with coarse-grained time-stamps, sync may not notice changes made to a source file very soon after it was synced (within 1 second).  This is rare, but could happen e.g. if a developer edits his file while sync is running in the background.
 
