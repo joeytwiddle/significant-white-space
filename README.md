@@ -7,27 +7,27 @@ In well-indented code the `{` and `}` block markers are effectively redundant.  
 
 SWS is also able to strip and inject `;` semicolons.
 
-As a simple example, SWS will be able to turn code like this:
+As a simple example, SWS can turn code like this:
 
-    if indent_of_nextNonEmptyLine > currentIndent
-        output.writeString(currentLine + " {" + newline)
-    else
-        output.writeString(currentLine)
+        if (indent_of_nextNonEmptyLine > currentIndent)
+            output.writeString(currentLine + " {" + newline)
+        else
+            output.writeString(currentLine)
 
-    if indent_of_nextNonEmptyLine < currentIndent
-        output.writeString("}")
+        if (indent_of_nextNonEmptyLine < currentIndent)
+            output.writeString("}")
 
 into the more traditional style:
 
-    if (indent_of_nextNonEmptyLine > currentIndent) {
-        output.writeString(currentLine + " {" + newline);
-    } else {
-        output.writeString(currentLine);
-    }
+        if (indent_of_nextNonEmptyLine > currentIndent) {
+            output.writeString(currentLine + " {" + newline);
+        } else {
+            output.writeString(currentLine);
+        }
 
-    if (indent_of_nextNonEmptyLine < currentIndent) {
-        output.writeString("}");
-    }
+        if (indent_of_nextNonEmptyLine < currentIndent) {
+            output.writeString("}");
+        }
 
 Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.
 
