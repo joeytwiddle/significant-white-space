@@ -78,6 +78,8 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - Problem detecting false indent from files starting with a multi-line comment (e.g. well-document Java files).  Ideal solution: Solve this alongside other issues, by doing our best to track when we are inside a multi-line comment.  (The plan was to do that in HelpfulReader, and for it to expose the state (in/out of a comment) of the parser after the current line has been read (at the beginning of the next line).)
 
+- Get HelpfulReader to track whether we are inside or outside a multi-line comment.
+
 - Argument parsing to set options from commandline
 
 - Refactor to tidy the code up into neat classes, and expose the tool for use in file-free environments.
@@ -90,7 +92,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - DONE: But this still leaves us with the problem that trailing comment lines will not get semicolon injection or stripping of semicolons or curlies.  To address this, we should "remove" trailing comments when considering application of said features.
 
-- We could ask HelpfulReader to attempt to track when we are inside a multi-line comment.
+- The header line of a block (e.g. class and function declarations) are stripped of all symbols, and this looks a bit odd.  In Python indented blocks are always preceeded by a ':', and in Coffeescript either a ':' or an '=' (not true of classes).  We could give users the option of initialising blocks with a ':'.  Although one might still argue that such symbols are as redundant as curly braces, given significant indenting whitespace!
 
 
 

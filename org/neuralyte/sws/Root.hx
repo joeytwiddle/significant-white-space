@@ -12,11 +12,12 @@ using Lambda;
 
 /*
 	If the comment line above is not indented, then the indent of this line is critical.
-	Both these problems should be addressed, or people will get annoyed.
+	Both these problems are worth addressing, to avoid issues with comments in the wild.
 	They are only problematic for curling, not decurling.
 	We need to get HelpfulReader tracking whether or not we are inside a comment block.
 	And we should then ignore comments for indentation?
 	(That would invalidate our advice to use a comment to force curling of empty blocks.)
+	(Perhaps we should ignore multi-line comments for indentation, but still recognise one-line comments.)
 */
 
 class Root {
