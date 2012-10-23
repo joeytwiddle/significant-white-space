@@ -22,6 +22,8 @@ class Root {
 	static var couldbeRegexp : EReg = ~/=[ \t]*~?\/[^\/].*\*\/\s*$/;
 	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //
 
+	static var continuationKeywords = [ "else", "catch" ];
+
 	static var validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc" ];   // "jpp"
 
 	static function main() {
@@ -208,31 +210,31 @@ class Root {
 				}
 				output.writeString(currentLine + newline);
 
-				var delayCurly = false;
+				var delayLastCurly = false;
+				// DONE: If the next non-empty line starts with the "else" or "catch" keyword, then:
+				//   in Javastyle, we could join that line on after the }
+				//   in either braces style, any blank lines between us and the next line can be outputted *before* the } we are about to write.
+				// I am not quite sure how this should work on multiple outdents - for now only trying delayLastCurly on the last.  Yes that is right.
+				// Other things which like to trail after closing } is the name following a "typedef struct { ... } Name;".  Since that name could be anything, we could look for just one word, but then that would misfire on other single words like "break" "continue" "debugger" and "i++"!
+				if (nextNonEmptyLine != null) {
+					var tokens = leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
+					var firstToken = tokens[0];
+					if (continuationKeywords.has(firstToken) || firstToken.charAt(0)==')') {
+						delayLastCurly = true;
+					}
+				}
+				// DONE: One other situation where we might want to join lines, is when the next symbol after the "}" is a ")".  (Consider restriction: Only if that ")" line has the same indent as our "}" line would?)
 
-				var i : Int;
-				i = currentIndent-1;
+				var i = currentIndent - 1;   // We could actually just continue to use currentIndent instead of i.
 				while (i >= indent_of_nextNonEmptyLine) {
 					// trace("De-curlifying with i="+i);
 
-					// DONE: If the next non-empty line starts with the "else" or "catch" or "typedef" keyword, then:
-					//   in Javastyle, we could join that line on after the }
-					//   in either braces style, any blank lines between us and the next line can be outputted *before* the } we are about to write.
-					// I am not quite sure how this should work on multiple outdents - for now only trying delayCurly on the last.  Yes that is right.
-					if (nextNonEmptyLine != null && i == indent_of_nextNonEmptyLine) {
-						var tokens = leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
-						var firstToken = tokens[0];
-						var continuationKeywords = [ "else", "catch" ];
-						if (continuationKeywords.has(firstToken) || firstToken.charAt(0)==')') {
-							delayCurly = true;
-						}
-					}
-					// DONE: One other situation where we might want to join lines, is when the next symbol after the "}" is a ")".  (Consider restriction: Only if that ")" line has the same indent as our "}" line would?)
+					var indentAtThisLevel = repeatString(i,indentString);
 
 					// DONE: Even if we don't detect a continuation keyword, if the next *two* lines are both blanks, then emit one of them before the curly.  This won't always be right, but it may be right more often than wrong.
 					// This rule could be applied for every outdent, checking the next two lines again on each.
 
-					if (delayCurly) {
+					if (delayLastCurly && i == indent_of_nextNonEmptyLine) {
 
 						// We are guaranteed a nextLine
 						var nextLine = null;
@@ -248,13 +250,13 @@ class Root {
 						var updatedLine;
 						if (javaStyleCurlies) {
 							// Join the next line to the curly
-							updatedLine = repeatString(i,indentString) + "} " + leadingIndentRE.replace(nextLine,"");
+							updatedLine = indentAtThisLevel + "} " + leadingIndentRE.replace(nextLine,"");
 							// output.writeString(updatedLine + newline);
 							// But now we want to consider this line for opening an indent :O
 							// Feck!  Oh ... hmmm ... Managed that using pushBackLine.  :)
 						} else {
 							// Write the curly on its own line
-							output.writeString(repeatString(i,indentString) + "}" + newline);
+							output.writeString(indentAtThisLevel + "}" + newline);
 							// Handle the next line normally
 							updatedLine = nextLine;
 						}
@@ -262,6 +264,7 @@ class Root {
 						break; // We were going to anyway tbh
 
 					} else {
+
 						// var nextLine = helper.peekLine(1);
 						// var lineAfterThat = helper.peekLine(2);
 						// if (nextLine!=null && emptyOrBlank.match(nextLine) && lineAfterThat!=null && emptyOrBlank.match(lineAfterThat)) {
@@ -270,7 +273,10 @@ class Root {
 						var spaceCurly = true;
 						var indentsToGo = (i - indent_of_nextNonEmptyLine) + 1;   // +1 cos "to go" includes this one we are about to do
 						var numEmptyLinesRequired = indentsToGo + 1;
-						// TODO: This seems to do what I want.  Except in one exceptional circumstance.  If the next non-empty line will have delayCurly applied (e.g. because it starts with a continuationKeywords) then we need not be concerned about spacing that last curly, therefore we can require one less space for our earlier curlies to reach the spaceCurly condition!
+						// DONE: This seems to do what I want.  Except in one exceptional circumstance.  If the next non-empty line will have delayLastCurly applied (e.g. because it starts with a continuationKeywords) then we need not be concerned about spacing that last curly, therefore we can require one less space for our earlier curlies to reach the spaceCurly condition!
+						if (delayLastCurly) {
+							numEmptyLinesRequired--;
+						}
 						for (j in 0...numEmptyLinesRequired) {
 							var peekLine = helper.peekLine(j+1);
 							if (peekLine == null || !emptyOrBlank.match(peekLine)) {
@@ -278,20 +284,23 @@ class Root {
 								break;
 							}
 						}
+
 						if (spaceCurly) {
 							// Do not write the '}' just yet ...
 							// Consume and write the blank line now, and the '}' right after.
 							var nextLine = helper.getNextLine();
 							output.writeString(nextLine + newline);
 						}
-						output.writeString(repeatString(i,indentString) + "}" + newline);
+
+						output.writeString(indentAtThisLevel + "}" + newline);
+
 					}
 
 					i--;
 				}
 
 				currentIndent = indent_of_nextNonEmptyLine;
-				if (delayCurly) {
+				if (delayLastCurly) {
 					// We have unshifted the line back into the queue
 					// continue is good, we will handle it next
 				}
@@ -452,10 +461,10 @@ class Root {
 		inverseFn(outFile, tempFile);
 		// trace("Now compare "+inFile+" against "+tempFile);
 		if (File.getContent(inFile) != File.getContent(tempFile)) {
-			trace("Warning: Inverse differs from original.");
+			trace("Warning: Inverse differs from original.  Differences may or may not be cosmetic!");
 			// trace("Compare files: \""+inFile+"\" \""+tempFile+"\"");
-			// trace("Compare: vimdiff \""+inFile+"\" \""+tempFile+"\"");
-			trace("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
+			trace("Compare: vimdiff \""+inFile+"\" \""+tempFile+"\"");
+			// trace("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
 		}
 	}
 
