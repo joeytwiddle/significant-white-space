@@ -16,7 +16,10 @@ cp -f data/Root.hx.sws data/Root.hx.sws.2
 
 if ! cmp data/Root.hx.sws.1 data/Root.hx.sws.2
 then
-	echo "Error: Something went WRONG!  data/Root.hx.sws.[12] do not match!"
+	echo "STABILITY TEST FAILED!  Second generation does not match first!"
+	echo "  vimdiff org/neuralyte/sws/Root.hx data/Root.hx"
+	echo "  vimdiff data/Root.hx.sws.1 data/Root.hx.sws.2"
+	exit 17
 fi
 
 # diff --side-by-side ./org/neuralyte/sws/Root.hx data/Root.hx
