@@ -3,9 +3,9 @@
 
 SWS is a preprocessor for traditional curly-brace languages (C, Java, Javascript, Haxe) which can perform transformation of source-code files to and from meaningful-indentation style (as seen in Coffescript and Python).
 
-In well-indented code the { and } block markers are effectively redundant.  SWS allows you to code without them, using indentation alone to indicate blocks, and adds the { and } markers in for you later.
+In well-indented code the `{` and `}` block markers are effectively redundant.  SWS allows you to code without them, using indentation alone to indicate blocks, and adds the `{` and `}` markers in for you later.
 
-SWS is also able to strip / inject semicolons, under favourable conditions.  Please be aware of the caveats below.  There are some situations which SWS cannot solve, so it only really works on a (nice clean) subset of parseable languages.
+SWS is also able to strip / inject `;` semicolons, under favourable conditions.  Please be aware of the caveats below.  There are some situations which SWS cannot solve, so it only really works on a (nice clean) subset of parseable languages.
 
 As a simple example, SWS can turn code like this:
 
@@ -133,13 +133,13 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
   - Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented.  (You can get away with indenting 2 spaces in an otherwise 4-spaced file, but may face issues with semicolon-injection.)
 
-  - You can still express short { ... } blocks on-one-line if you want to, but don't mix things up.  Specifically do not follow a curly by text and then newline and indent.  That mid-line curly will not be stripped, whilst the indent will cause a new one to be injected.
+  - You can still express short `{ ... }` blocks on-one-line if you want to, but don't mix things up.  Specifically do not follow a curly by text and then newline and indent.  That mid-line curly will not be stripped, whilst the indent will cause a new one to be injected.
 
   - Semicolon injection's inability to detect multi-line comments and trailing comments can cause them to appear unwantedly.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)  You can either stick with a strict single-line comment style, or try to stop caring about odd semicolons appearing in comments!
 
-  - Indentation of the original code must be correct for transformation to sws.  (E.g. this can be thrown up if you comment out the top and bottom lines of an if statement.)  A fix for this could be to parse { and }s and force correct indentation in the output.
+  - Indentation of the original code must be correct for transformation to sws.  (E.g. this can be thrown up if you comment out the top and bottom lines of an if statement.)  A fix for this could be to parse `{` and `}`s and force correct indentation in the output.
 
-  - Since indentation is required to create curlies { }, if you attempt to create a class or function (or any block) with an empty body, you had better add an indented dummy line too (e.g. a comment) or you won't get curlies (and with SCI you will get a semicolon).
+  - Since indentation is required to create curlies `{` `}`, if you attempt to create a class or function (or any block) with an empty body, you had better add an indented dummy line too (e.g. a comment) or you won't get curlies (and with SCI you will get a semicolon).
 
   - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
 
