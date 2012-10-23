@@ -73,15 +73,17 @@ Options are not yet parsed from command-line arguments, but can be changed by ed
 
 - Argument parsing to set options from commandline
 
+- Refactor to tidy the code up into neat classes, and expose the tool for use in file-free environments.
+
 - Clear documentation, detection and warning of problematic code configurations.  (This will be a list of WONT_FIX examples.)
 
 - On the radar: We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
 
 - DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures "//" did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. "#" then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful $#, but we could demand a gap before the "#" to address that.)
 
-- We could ask HelpfulReader to attempt to track when we are inside a multi-line comment.
+- But this still leaves us with the problem that trailing comment lines will not get semicolon injection or stripping of semicolons or curlies.  To address this, we should "remove" trailing comments when considering application of said features.
 
-- Refactor to tidy the code up into neat classes, and expose the tool for use in file-free environments.
+- We could ask HelpfulReader to attempt to track when we are inside a multi-line comment.
 
 
 
@@ -127,6 +129,12 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
   - Trailing comments no longer get semicolons appended to them, but you need to put the semicolon before the comment, as none is injected.
 
   - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
+
+Let's also critique the sync algorithm:
+
+  - Neko does not offer a way to set the modification time of a file.  Until we write target-specific code for this, we fake this by simply writing a new copy of the file.  That is only likely to work on small source files, and not on filesystems which store fine-grained time-stamps.  (In that case, our approach will cause the same transformation to be performed again on the next sync - not the end of the world.)
+
+  - On filesystems with coarse-grained time-stamps, sync may not notice changes made to a source file very soon after it was synced (within 1 second).  This is rare, but could happen e.g. if a developer edits his file while sync is running in the background.
 
 
 
