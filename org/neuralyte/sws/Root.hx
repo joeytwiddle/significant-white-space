@@ -250,8 +250,8 @@ class Root {
 							// Join the next line to the curly
 							updatedLine = repeatString(i,indentString) + "} " + leadingIndentRE.replace(nextLine,"");
 							// output.writeString(updatedLine + newline);
-							// BUG TODO: But now we want to consider this line for opening an indent :O
-							// Feck!  Oh ... hmmm ...
+							// But now we want to consider this line for opening an indent :O
+							// Feck!  Oh ... hmmm ... Managed that using pushBackLine.  :)
 						} else {
 							// Write the curly on its own line
 							output.writeString(repeatString(i,indentString) + "}" + newline);
@@ -262,12 +262,23 @@ class Root {
 						break; // We were going to anyway tbh
 
 					} else {
-						var nextLine = helper.peekLine(1);
-						var lineAfterThat = helper.peekLine(2);
+						// var nextLine = helper.peekLine(1);
+						// var lineAfterThat = helper.peekLine(2);
+						// if (nextLine!=null && emptyOrBlank.match(nextLine) && lineAfterThat!=null && emptyOrBlank.match(lineAfterThat)) {
 						// Hmm but if I have two curlies to go out, I really want to check if 3 lines are empty!
-						// I don't want to gap the first curly if I can't gap the second.
-						// Well really we dunno what we want.  :P
-						if (nextLine!=null && emptyOrBlank.match(nextLine) && lineAfterThat!=null && emptyOrBlank.match(lineAfterThat)) {
+						// I don't want to gap the first curly if I can't gap the second.  Well really we dunno what we want.  :P
+						var spaceCurly = true;
+						var indentsToGo = (i - indent_of_nextNonEmptyLine) + 1;   // +1 cos "to go" includes this one we are about to do
+						var numEmptyLinesRequired = indentsToGo + 1;
+						// TODO: This seems to do what I want.  Except in one exceptional circumstance.  If the next non-empty line will have delayCurly applied (e.g. because it starts with a continuationKeywords) then we need not be concerned about spacing that last curly, therefore we can require one less space for our earlier curlies to reach the spaceCurly condition!
+						for (j in 0...numEmptyLinesRequired) {
+							var peekLine = helper.peekLine(j+1);
+							if (peekLine == null || !emptyOrBlank.match(peekLine)) {
+								spaceCurly = false;
+								break;
+							}
+						}
+						if (spaceCurly) {
 							// Do not write the '}' just yet ...
 							// Consume and write the blank line now, and the '}' right after.
 							var nextLine = helper.getNextLine();

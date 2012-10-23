@@ -73,7 +73,11 @@ Options are not yet parsed from command-line arguments, but can be changed by ed
 
 - Clear documentation, detection and warning of problematic code configurations.  (This will be a list of WONT_FIX examples.)
 
-- On the radar: We could implement stripping and re-injection of parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
+- On the radar: We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
+
+- We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures "//" did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. "#" then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful $#, but we could demand a gap before the "#" to address that.)
+
+- We could ask HelpfulReader to attempt to track when we are inside a multi-line comment.
 
 
 
