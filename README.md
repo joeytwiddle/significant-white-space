@@ -76,15 +76,15 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 # TODO
 
-- Problem detecting false indent from files starting with a multi-line comment (e.g. well-document Java files).  Ideal solution: Solve this alongside other issues, by doing our best to track when we are inside a multi-line comment.  (The plan was to do that in HelpfulReader, and for it to expose the state (in/out of a comment) of the parser after the current line has been read (at the beginning of the next line).)
+- Problem detecting false indent from files starting with a multi-line comment (e.g. well-documented Java files).  Ideal solution: Solve this alongside other issues, by doing our best to track when we are inside a multi-line comment.  (The plan was to do that in HelpfulReader, and for it to expose the state (in/out of a comment) of the parser after the current line has been read (at the beginning of the next line).)
 
-- Get HelpfulReader to track whether we are inside or outside a multi-line comment.
+- Get HelpfulReader to track whether we are inside or outside a multi-line comment.  (Consider how to deal with multiple mini comment blocks on one line.)
 
 - Argument parsing to set options from commandline
 
 - Refactor to tidy the code up into neat classes, and expose the tool for use in file-free environments.
 
-- Clear documentation, detection and warning of problematic code configurations.  (This will be a list of WONT_FIX examples.)
+- Clear documentation, detection and warning of problematic code configurations.  Easy to read definition of what is legal code structure, and list of the gotchas (common issues we cannot fix).
 
 - DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures "//" did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. "#" then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful $#, but we could demand a gap before the "#" to address that.)
 
