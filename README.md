@@ -18,7 +18,7 @@ into the more traditional style:
         output.writeString(currentLine + " {" + newline);
     }
 
-SWS is written in Haxe.  Currently we build a binary via cpp, but you may be able to export the tool to Java or Javascript.
+SWS is written in Haxe.  Currently we build an executable binary via Neko, but you may be able to export the tool to Java or Javascript.
 
 
 
@@ -65,6 +65,7 @@ Options are not yet parsed from command-line arguments, but can be changed by ed
 - sws sync
 - Better handling of else / catch blocks.
 - Better spacing of closing curlies.
+- Filthy regexps to find trailing comments without matching comment-like text in string literals.
 
 
 
@@ -76,7 +77,7 @@ Options are not yet parsed from command-line arguments, but can be changed by ed
 
 - On the radar: We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
 
-- We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures "//" did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. "#" then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful $#, but we could demand a gap before the "#" to address that.)
+- DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures "//" did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. "#" then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful $#, but we could demand a gap before the "#" to address that.)
 
 - We could ask HelpfulReader to attempt to track when we are inside a multi-line comment.
 

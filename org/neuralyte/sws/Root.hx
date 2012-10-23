@@ -4,10 +4,13 @@ import neko.io.File;
 import neko.io.FileInput;
 import neko.io.FileOutput;
 import neko.FileSystem;
+import neko.Sys;
 
 using Lambda;
 
 class Root {
+
+	// Options:
 
 	static var javaStyleCurlies : Bool = true;
 	static var addRemoveSemicolons : Bool = true;
@@ -15,54 +18,85 @@ class Root {
 	static var newline : String = "\r\n";
 	static var pathSeparator = "/";
 
-	public static var emptyOrBlank : EReg = ~/^\s*$/;
-	static var indentRE : EReg = ~/^\s*/;
-	static var commentRE : EReg = ~/(^\s*\/\/|^\s*\/\*|\*\/\s*$)/;
-	// Warning: Do not be tempted to search for "  //" mid-line.  Yes that could indicate an appended comment, but it could just as easily be part of a string on a line which requires semicolon injection!
-	static var couldbeRegexp : EReg = ~/=[ \t]*~?\/[^\/].*\*\/\s*$/;
-	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //
-
 	static var continuationKeywords = [ "else", "catch" ];
 
 	static var validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc" ];   // "jpp"
 
+	static var safeSyncMakeBackups  = true;
+	static var safeSyncCheckInverse = true;
+
+
+	// Constants:
+
+	public static var emptyOrBlank : EReg = ~/^\s*$/;
+	static var indentRE : EReg = ~/^\s*/;
+	static var commentRE : EReg = ~/(^\s*\/\/|^\s*\/\*|\*\/\s*$)/;
+	// Warning: Do not be tempted to search for "  //" mid-line.  Yes that could indicate an appended comment, but it could just as easily be part of a string on a line which requires semicolon injection!
+	// Sorry I really could not resist the temptation.
+	// This regexp throws an exception via nekotools: "An error occured while running pcre_exec"
+	// static var evenNumberOfQuotes = '([^"]*"[^"]*"[^"]*|[^"]*)*';
+	static var evenNumberOfQuotes = '(([^"]*"[^"]*"[^"]*)*|[^"]*)';
+	// TODO: This ensures an even number of " chars, but not an even number of ' chars.  Since one may contain the other, we really can't do this without a proper parser.
+	// static var forExample = "This \" will break";   // if we follow it with a comment
+	// The requirement that the line end in ; or } is optional, but may improve safety.
+	static var trailingCommentSafeRE = new EReg("^"+evenNumberOfQuotes+"[;}]\\s*//.*$",'');
+	// NOTE: trailingCommentSafeRE may need more checks if "//" can appear outside a string literal, e.g. inside a regexp literal.
+	static var couldbeRegexp : EReg = ~/=[ \t]*~?\/[^\/].*\*\/\s*$/;
+	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //
+
+
 	static function main() {
 
-		var args = neko.Sys.args();
+		try {
 
-		if (args[0] == "--help") {
+			var args = neko.Sys.args();
 
-			showHelp();
+			if (args[0] == "--help") {
 
-		} else if (args[0] == "curl") {
+				showHelp();
 
-			curl(args[1], args[2]);
+			} else if (args[0] == "curl") {
 
-		} else if (args[0] == "decurl") {
+				curl(args[1], args[2]);
 
-			decurl(args[1], args[2]);
+			} else if (args[0] == "decurl") {
 
-		} else if (args[0] == "sync") {
+				decurl(args[1], args[2]);
 
-			if (args[1] != null) {
-				doSync(args[1]);
+			} else if (args[0] == "sync") {
+
+				if (args[1] != null) {
+					doSync(args[1]);
+				} else {
+					doSync(".");
+				}
+
 			} else {
-				doSync(".");
+
+				showHelp();
+
 			}
 
-		} else {
-
-			showHelp();
-
+		} catch (ex : Dynamic) {
+			echo("Caught exception: "+ex);
+			return 5;
+			// TODO: This is not being set as the exit code ... we must use neko.Sys?
 		}
 
+		return 0;
+
+	}
+
+	static function echo(s : String) {
+		// trace(s);
+		File.stdout().writeString(s + newline);
 	}
 
 	static function showHelp() {
 		// Sys.out.
-		trace("sws curl <filename> <outname>");
-		trace("sws decurl <filename> <outname>");
-		trace("sws sync [<folder/filename>]");
+		echo("sws curl <filename> <outname>");
+		echo("sws decurl <filename> <outname>");
+		echo("sws sync [<folder/filename>]");
 	}
 
 	static function decurl(infile : String, outfile : String) {
@@ -85,7 +119,7 @@ class Root {
 
 				var line : String = input.readLine();
 
-				// trace("Read line: "+line);
+				// echo("Read line: "+line);
 
 				// We don't want to strip anything from comment lines
 				var isAComment = commentRE.match(line);
@@ -111,13 +145,13 @@ class Root {
 
 				}
 
-				// trace("Line: "+line);
+				// echo("Line: "+line);
 				output.writeString(line + newline);
 
 			}
 
 		} catch (ex : haxe.io.Eof) {
-			// trace("Reached the End Of the File.");
+			// echo("Reached the End Of the File.");
 		}
 
 		output.close();
@@ -143,9 +177,9 @@ class Root {
 
 		while ( (currentLine = helper.getNextLine()) != null) {
 
-			// trace("currentLine = "+currentLine);
+			// echo("currentLine = "+currentLine);
 
-			// TODO: Do not seek curlies on comment lines, such as this trouble-maker here:
+			// DONE: Do not seek curlies on comment lines, such as this trouble-maker here:
 			// if (!emptyOrBlank.match(currentLine)) {
 
 			if (!emptyOrBlank.match(currentLine)) {
@@ -161,17 +195,17 @@ class Root {
 				var indentPart = indentRE.matched(0);
 				if (indentPart != "") {
 					indentString = indentPart;
-					trace("Found first indent, length "+indentString.length);
+					echo("Found first indent, length "+indentString.length);
 				}
 			}
 
 			var indent_of_nextNonEmptyLine = countIndent(indentString, nextNonEmptyLine);
 
-			// trace("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
+			// echo("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
 
 			// We want to avoid semicolon addition on comment lines
 			// But we do want consider comment lines for indentation / bracing
-			var isAComment = commentRE.match(currentLine);
+			var isAComment = commentRE.match(currentLine) || trailingCommentSafeRE.match(currentLine);
 			if (isAComment) {
 				// Now a nasty fudge for lines ending */ because they are a Haxe EReg or Javascript RegExp literal, not a comment.
 				var lineCouldbeRegexp = couldbeRegexp.match(currentLine);
@@ -227,7 +261,7 @@ class Root {
 
 				var i = currentIndent - 1;   // We could actually just continue to use currentIndent instead of i.
 				while (i >= indent_of_nextNonEmptyLine) {
-					// trace("De-curlifying with i="+i);
+					// echo("De-curlifying with i="+i);
 
 					var indentAtThisLevel = repeatString(i,indentString);
 
@@ -374,7 +408,7 @@ class Root {
 		// Sometimes we will pick up a pair, but we merge them into one by canonicalisation.
 		var filesToDo : Array<String> = [];
 		forAllFilesBelow(root, function(f) {
-			// trace("Checking file: "+f);
+			// echo("Checking file: "+f);
 			var ext = getExtension(f);
 			if (validExtensions.has(ext)) {
 				// Canonicalise to the non-sws name
@@ -386,7 +420,7 @@ class Root {
 				if (!filesToDo.has(f)) {
 					filesToDo.push(f);
 				}
-				// trace("pushing: "+f);
+				// echo("pushing: "+f);
 			}
 		});
 
@@ -408,7 +442,7 @@ class Root {
 		} else {
 			var srcStat = FileSystem.stat(srcFile);
 			var swsStat = FileSystem.stat(swsFile);
-			// trace(srcStat + " <-> "+swsStat);
+			// echo(srcStat + " <-> "+swsStat);
 			if (srcStat.mtime.getTime() < swsStat.mtime.getTime()) {
 				direction = 2;
 			} else if (srcStat.mtime.getTime() > swsStat.mtime.getTime()) {
@@ -417,15 +451,15 @@ class Root {
 		}
 
 		if (direction == 1) {
-			trace("Decurling "+srcFile+" -> "+swsFile);
-			// traceCall(decurl(srcFile, swsFile));
+			echo("Decurling "+srcFile+" -> "+swsFile);
+			// echo(decurl(srcFile, swsFile));
 			// decurl(srcFile, swsFile);    // NOTE: safeCurl is now mandatory, because it deals with date updating
+			// DONE: safeCurl and safeDecurl, done via doSafely; much nicer.
 			doSafely(decurl, srcFile, swsFile, curl);
-			// TODO: safeCurl and safeDecurl
 			// After transformation, transform *back* (to a tempfile), and check if the result matches the original.  If not warn user, showing differences.  (If they are minor he may ignore them.)
 			// Also to be safe, we should store a backup of the target file before it is overwritten.
 		} else if (direction == 2) {
-			trace("Curling "+swsFile+" -> "+srcFile);
+			echo("Curling "+swsFile+" -> "+srcFile);
 			// traceCall(curl(swsFile, srcFile));
 			// curl(swsFile, srcFile);
 			doSafely(curl, swsFile, srcFile, decurl);
@@ -438,7 +472,7 @@ class Root {
 		for (child in children) {
 			var childPath = root + pathSeparator + child;
 			if (FileSystem.isDirectory(childPath)) {
-				// trace("Descending to folder: "+childPath);
+				// echo("Descending to folder: "+childPath);
 				forAllFilesBelow(childPath,fn);
 			} else {
 				fn(childPath);
@@ -446,26 +480,37 @@ class Root {
 		}
 	}
 
+	// Loving the first-order functions.
+	// However in this particular case, I wouldn't mind getting more specific, because this is really not applicable to all functions in general.
+	// E.g. we should only accept fn/class which implements "FileTransformer".
 	static function doSafely(fn : Dynamic, inFile : String, outFile : String, inverseFn : Dynamic) {
-		var backupFile = outFile + ".bak";
-		if (FileSystem.exists(outFile)) {
-			File.copy(outFile, backupFile);
+
+		if (safeSyncMakeBackups) {
+			var backupFile = outFile + ".bak";
+			if (FileSystem.exists(outFile)) {
+				File.copy(outFile, backupFile);
+			}
 		}
+
 		fn(inFile, outFile);
 		// Now we want to mark the outFile with identical modification time to the inFile, so that sws knows it need not translate between them.
 		// Unfortunately neko FileSystem does not expose this ability
 		// So we will simply try to touch the inFile ASAP, and if the time is a millisecond too late, accept the consequences (this source will be uneccessarily transformed again).
 		touchFile(inFile);
 		// Woop!  It worked!  (It might not work on very large files.)
-		var tempFile = inFile + ".inv";
-		inverseFn(outFile, tempFile);
-		// trace("Now compare "+inFile+" against "+tempFile);
-		if (File.getContent(inFile) != File.getContent(tempFile)) {
-			trace("Warning: Inverse differs from original.  Differences may or may not be cosmetic!");
-			// trace("Compare files: \""+inFile+"\" \""+tempFile+"\"");
-			trace("Compare: vimdiff \""+inFile+"\" \""+tempFile+"\"");
-			// trace("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
+
+		if (safeSyncCheckInverse) {
+			var tempFile = inFile + ".inv";
+			inverseFn(outFile, tempFile);
+			// echo("Now compare "+inFile+" against "+tempFile);
+			if (File.getContent(inFile) != File.getContent(tempFile)) {
+				echo("Warning: Inverse differs from original.  Differences may or may not be cosmetic!");
+				// echo("Compare files: \""+inFile+"\" \""+tempFile+"\"");
+				echo("Compare: vimdiff \""+inFile+"\" \""+tempFile+"\"");
+				// echo("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
+			}
 		}
+
 	}
 
 	static function touchFile(filename) {
@@ -474,7 +519,7 @@ class Root {
 	}
 
 	static function traceCall(fn : Dynamic, args : Array<Dynamic>) : Dynamic {
-		trace("Calling "+fn+" with args "+args);
+		echo("Calling "+fn+" with args "+args);
 		return fn(args);
 	}
 
@@ -503,6 +548,7 @@ class HelpfulReader {
 	}
 
 	public function getNextNonEmptyLine() : String {
+		// This could be rafactored to use peekLine
 		var i : Int;
 		for (i in 0...queue.length) {
 			if (!Root.emptyOrBlank.match(queue[i])) {
@@ -528,6 +574,8 @@ class HelpfulReader {
 		queue.unshift(line);
 	}
 
+	// peekLine provides lines from the stream's future, without actually consuming them.
+	// i starts from 1, not 0.  This may be a sub-optimal design.
 	public function peekLine(i : Int) : String {
 		while (queue.length < i) {
 			try {
