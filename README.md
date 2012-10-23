@@ -5,18 +5,31 @@ SWS is a preprocessor for traditional curly-brace languages (C, Java, Javascript
 
 In well-indented code the `{` and `}` block markers are effectively redundant.  SWS allows you to code without them, using indentation alone to indicate blocks, and adds the `{` and `}` markers in for you later.
 
-SWS is also able to strip / inject `;` semicolons, under favourable conditions.  Please be aware of the caveats below.  There are some situations which SWS cannot solve, so it only really works on a (nice clean) subset of parseable languages.
+SWS is also able to strip and inject `;` semicolons.
 
-As a simple example, SWS can turn code like this:
+As a simple example, SWS will be able to turn code like this:
 
-    if (indent_of_nextNonEmptyLine > currentIndent)
+    if indent_of_nextNonEmptyLine > currentIndent
         output.writeString(currentLine + " {" + newline)
+    else
+        output.writeString(currentLine)
+
+    if indent_of_nextNonEmptyLine < currentIndent
+        output.writeString("}")
 
 into the more traditional style:
 
     if (indent_of_nextNonEmptyLine > currentIndent) {
         output.writeString(currentLine + " {" + newline);
+    } else {
+        output.writeString(currentLine);
     }
+
+    if (indent_of_nextNonEmptyLine < currentIndent) {
+        output.writeString("}");
+    }
+
+Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.
 
 SWS is written in Haxe.  Currently we build an executable binary via Neko, but you may be able to export the tool to Java or Javascript.
 
