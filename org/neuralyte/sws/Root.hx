@@ -54,6 +54,7 @@ class Root {
 	static var trailingCommentSafeRE = new EReg("^("+evenNumberOfQuotes+")(\\s*//.*)$",'');
 	// Unfortunately this regexp is greedy and eats all the spaces in the first () leaving none in the last ().  This problem is addressed by splitLineAtComment.
 	// TODO: If // is a trailing comment then we should probably assume that /* is too.  Looking at this line right here, we can see we really want to match the first occurrence!
+	// In the general case, a line might contain any number of /*...*/ blocks, and then a // at the end, and maybe even a leading */ or trailing /*!  Can we handle that?  ^^
 	// This version is unsafe:
 	// static var trailingCommentSafeRE = new EReg("^(.*)(\\s*//.*)$",'');
 	// NOTE: trailingCommentSafeRE may need more checks if "//" can appear outside a string literal, e.g. inside a regexp literal.
