@@ -8,6 +8,17 @@ import neko.Sys;
 
 using Lambda;
 
+// Does it matter if we indent this line?  Yes!  Indent once and we get a curly block starting from the Lambda line; indent twice and the indent level is detected as two tabs!
+
+/*
+	If the comment line above is not indented, then the indent of this line is critical.
+	Both these problems should be addressed, or people will get annoyed.
+	They are only problematic for curling, not decurling.
+	We need to get HelpfulReader tracking whether or not we are inside a comment block.
+	And we should then ignore comments for indentation?
+	(That would invalidate our advice to use a comment to force curling of empty blocks.)
+*/
+
 class Root {
 
 	// Options:
