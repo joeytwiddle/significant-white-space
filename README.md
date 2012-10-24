@@ -163,30 +163,30 @@ Comment lines should not be stripped or injected into, or used for indentation. 
 
 SWS uses a simple text-processing algorithm to transform files; it does not properly lex/parse or understand your code.  Because of this, it will probably only work on a _subset_ of the language you are using.  In other words, you may need to restrict your code-style a little, to something that SWS can handle.  Notable examples are:
 
-    - Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented.  (You can get away with indenting 2 spaces in an otherwise 4-spaced file, but may face issues with semicolon-injection.)
+> - Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented.  (You can get away with indenting 2 spaces in an otherwise 4-spaced file, but may face issues with semicolon-injection.)
 
-    - You can still express short `{ ... }` blocks on-one-line if you want to, but don't mix things up.  Specifically do not follow a curly by text and then newline and indent.  That mid-line curly will not be stripped, whilst the indent will cause a new one to be injected.
+> - You can still express short `{ ... }` blocks on-one-line if you want to, but don't mix things up.  Specifically do not follow a curly by text and then newline and indent.  That mid-line curly will not be stripped, whilst the indent will cause a new one to be injected.
 
-    - Semicolon injection's inability to detect multi-line comments and trailing comments can cause them to appear unwantedly.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)  You can either stick with a strict single-line comment style, or try to stop caring about odd semicolons appearing in comments!
+> - Semicolon injection's inability to detect multi-line comments and trailing comments can cause them to appear unwantedly.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)  You can either stick with a strict single-line comment style, or try to stop caring about odd semicolons appearing in comments!
 
-    - Indentation of the original code must be correct for transformation to sws.  (E.g. this can be thrown up if you comment out the top and bottom lines of an if statement.)  A fix for this could be to parse `{` and `}`s and force correct indentation in the output.
+> - Indentation of the original code must be correct for transformation to sws.  (E.g. this can be thrown up if you comment out the top and bottom lines of an if statement.)  A fix for this could be to parse `{` and `}`s and force correct indentation in the output.
 
-    - Since indentation is required to create curlies `{` `}`, if you attempt to create a class or function (or any block) with an empty body, you had better add an indented dummy line too (e.g. a comment) or you won't get curlies (and with SCI you will get a semicolon).
+> - Since indentation is required to create curlies `{` `}`, if you attempt to create a class or function (or any block) with an empty body, you had better add an indented dummy line too (e.g. a comment) or you won't get curlies (and with SCI you will get a semicolon).
 
-    - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
+> - I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
 
 Let's also critique the sync algorithm:
 
-    - After syncing a pair of files we would like to set the modification time of the target file to match that of the source file, to indicate against syncing again on future runs.  Unfortunately Neko does not offer a way to set the stats of files directly.  Until we introduce C-specific code for this, as an alternative we "touch" the *source* file by cloning and replacing it.  That is only likely to match up the mtimes exactly on small/medium source files, and not on filesystems with fine-grained time-stamps.  (Although if the mtimes don't match, our approach will only cause the same transformation to be performed again on the next sync - not the end of the world.)  Another minor disadvantage of touching the source file is that your editor may think it has been updated when it hasn't.
+> - After syncing a pair of files we would like to set the modification time of the target file to match that of the source file, to indicate against syncing again on future runs.  Unfortunately Neko does not offer a way to set the stats of files directly.  Until we introduce C-specific code for this, as an alternative we "touch" the *source* file by cloning and replacing it.  That is only likely to match up the mtimes exactly on small/medium source files, and not on filesystems with fine-grained time-stamps.  (Although if the mtimes don't match, our approach will only cause the same transformation to be performed again on the next sync - not the end of the world.)  Another minor disadvantage of touching the source file is that your editor may think it has been updated when it hasn't.
 
-    - On filesystems with coarse-grained time-stamps, sync may not notice changes made to a source file very soon after it was synced (within 1 second).  This is rare, but could happen e.g. if a developer edits his file while sync is running in the background.
+> - On filesystems with coarse-grained time-stamps, sync may not notice changes made to a source file very soon after it was synced (within 1 second).  This is rare, but could happen e.g. if a developer edits his file while sync is running in the background.
 
 
 
 ------------------------------
 # Bugs:
 
-    - sync fails with exception `std@sys_file_type` if it encounters any broken symlinks in the scanned tree.
+> - sync fails with exception `std@sys_file_type` if it encounters any broken symlinks in the scanned tree.
 
 
 
@@ -224,39 +224,39 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 - "I like curly braces!"
 
-    - Don't use sws.  And also don't fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
+> - Don't use sws.  And also don't fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
 
 - "Why do you hate curlies?"
 
-    - I haven't really made up my mind on this yet, I'm just trying to keep my options open.
+> - I haven't really made up my mind on this yet, I'm just trying to keep my options open.
 
 - "Are there any advantages to coding without curlies?"
 
-    - If you aren't using an IDE, then it can save a little time and work for your fingers.
+> - If you aren't using an IDE, then it can save a little time and work for your fingers.
 
-    - The structure of your code is exhibited purely visually.  There is no need for the user to parse the symbols; they cannot be misled by incorrect indentation.
+> - The structure of your code is exhibited purely visually.  There is no need for the user to parse the symbols; they cannot be misled by incorrect indentation.
 
-    - Arguably without the chaff, other symbols such as `(`...`)` stand out more clearly, making method calls more visible and bringing you closer to your code.
+> - Arguably without the chaff, other symbols such as `(`...`)` stand out more clearly, making method calls more visible and bringing you closer to your code.
 
-    - Refactoring code with copy-paste can be easier if you only have to worry about the code and the indentation, not the code, the indentation *and* the curlies.
+> - Refactoring code with copy-paste can be easier if you only have to worry about the code and the indentation, not the code, the indentation *and* the curlies.
 
-    - Without the lonely closing curlies, which occupy a whole line each, you can fit more code on the screen!
+> - Without the lonely closing curlies, which occupy a whole line each, you can fit more code on the screen!
 
-    - We save a little disk-space.
+> - We save a little disk-space.
 
 - "Why were curlies ever introduced in the first place?"
 
-    - Meaningful indentation is actually quite difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Thus using these symbols is a good idea if you want to keep your parser and compiler simple.
+> - Meaningful indentation is actually quite difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Thus using these symbols is a good idea if you want to keep your parser and compiler simple.
   
-    We certainly do not recommend an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.  This keeps two different problems separate, in the great tradition of unix, and allows us to embrace a wide body of languages.
+> - We certainly do not recommend an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.  This keeps two different problems separate, in the great tradition of unix, and allows us to embrace a wide body of languages.
 
-    - Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
+> - Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
 
 - "What have you got against semicolons?"
 
-    - What have you got against newlines?
+> - What have you got against newlines?
 
 - "Why are some of the comments in the SWS source code longer than 80 chars?"
 
-    - Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
+> - Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
 
