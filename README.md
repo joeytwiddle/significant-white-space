@@ -9,7 +9,9 @@ SWS is also able to strip and inject `;` semicolons.
 
 As a simple example, SWS can turn code like this:
 
-```javascript
+```c
+    while (readNextLine())
+
         if (indent_of_nextNonEmptyLine > currentIndent)
             output.writeString(currentLine + " {" + newline)
         else
@@ -21,7 +23,9 @@ As a simple example, SWS can turn code like this:
 
 into the more traditional style:
 
-```javascript
+```js
+    while (readNextLine()) {
+
         if (indent_of_nextNonEmptyLine > currentIndent) {
             output.writeString(currentLine + " {" + newline);
         } else {
@@ -31,6 +35,8 @@ into the more traditional style:
         if (indent_of_nextNonEmptyLine < currentIndent) {
             output.writeString("}");
         }
+
+    }
 ```
 
 Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.
@@ -191,7 +197,7 @@ Some commands that can help when wrapping long lines:
 
 ```vim
     :set wrap
-    :let &showbreak="    \\\\ "
+    :let &showbreak='    \\ '
     :set nolist linebreak
     :set list
     :set nowrap
