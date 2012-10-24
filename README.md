@@ -248,7 +248,7 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
     > - Meaningful indentation is actually quite difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Thus using these symbols is a good idea if you want to keep your parser and compiler simple.
   
-    > We certainly do not recommend an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.  This keeps two different problems separate, in the great tradition of unix, and allows us to embrace a wide body of languages.
+    > We certainly do not recommend an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.  This keeps two different problems separate, in the great tradition of unix, and allows us to operate with a broad family of languages.
 
     > - Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
 
