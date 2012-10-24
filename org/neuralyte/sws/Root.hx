@@ -11,6 +11,7 @@ using Lambda;
 // Does it matter if we indent this line?  Yes!  Indent once and we get a curly block starting from the Lambda line; indent twice and the indent level is detected as two tabs!
 
 /*
+	FIXED!
 	If the comment line above is not indented, then the indent of this line is critical.
 	Both these problems are worth addressing, to avoid issues with comments in the wild.
 	They are only problematic for curling, not decurling.
@@ -20,6 +21,8 @@ using Lambda;
 	(Perhaps we should ignore multi-line comments for indentation, but still recognise one-line comments.)
 */
 
+// TODO: Uses of .insideComment may not deal well with cases of mixed comment/code lines.
+
 class Root {
 
 	// Options:
@@ -27,7 +30,8 @@ class Root {
 	static var javaStyleCurlies : Bool = true;
 	static var addRemoveSemicolons : Bool = true;
 
-	static var newline : String = "\r\n";
+	// static var newline : String = "\r\n";
+	static var newline : String = "\n";
 	static var pathSeparator = "/";
 
 	static var continuationKeywords = [ "else", "catch" ];
