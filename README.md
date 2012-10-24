@@ -212,26 +212,38 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 # Debate:
 
 - "I like curly braces!"
+
   - Don't use sws.  And also don't fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
 
 - "Why do you hate curlies?"
+
   - I haven't really made up my mind on this yet, I'm just trying to keep my options open.
 
 - "Are there any advantages to coding without curlies?"
+
   - If you aren't using an IDE, then it can save a little time and work for your fingers.
+
   - The structure of your code is exhibited purely visually.  There is no need for the user to parse the symbols; they cannot be misled by incorrect indentation.
+
   - Arguably without the chaff, other symbols such as `(`...`)` stand out more clearly, making method calls more visible and bringing you closer to your code.
+
   - Refactoring code with copy-paste can be easier if you only have to worry about the code and the indentation, not the code, the indentation *and* the curlies.
+
   - Without the lonely closing curlies, which occupy a whole line each, you can fit more code on the screen!
+
   - We save a little disk-space.
 
 - "Why were curlies ever introduced in the first place?"
+
   - Meaningful indentation is actually quite difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Note that we are not demanding an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.
+
   - Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
 
 - "What have you got against semicolons?"
+
   - What have you got against newlines?
 
 - "Why are some of the comments in the SWS source code longer than 80 chars?"
+
   - Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
 
