@@ -1,5 +1,5 @@
 # SWS - Significant Whitespace
-----------------------------
+------------------------------
 
 SWS is a preprocessor for traditional curly-brace languages (C, Java, Javascript, Haxe) which can perform transformation of source-code files to and from meaningful-indentation style (as seen in Coffescript and Python).
 
@@ -47,6 +47,7 @@ SWS is written in Haxe.  Currently we build an executable binary via Neko, but y
 
 
 # Usage
+------------------------------
 
 Available commands are:
 
@@ -79,6 +80,7 @@ Sync searches the current folder and subfolders for all sws or sws-able files (b
 
 
 # Status
+------------------------------
 
 Now able to transform its own source leaving only 2 minor differences.
 
@@ -89,6 +91,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 
 # Recent Changes
+------------------------------
 
 - sws sync
 - Better handling of else / catch blocks.
@@ -99,6 +102,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 
 # TODO
+------------------------------
 
 - Problem detecting false indent from files starting with a multi-line comment (e.g. well-documented Java files).  Ideal solution: Solve this alongside other issues, by doing our best to track when we are inside a multi-line comment.  (The plan was to do that in HelpfulReader, and for it to expose the state (in/out of a comment) of the parser after the current line has been read (at the beginning of the next line).)
 
@@ -125,6 +129,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 
 # How it works
+------------------------------
 
 ## Decurling
 
@@ -154,6 +159,7 @@ Comment lines should not be stripped or injected into, or used for indentation. 
 
 
 # Caveats
+------------------------------
 
 SWS uses a simple text-processing algorithm to transform files; it does not properly lex/parse or understand your code.  Because of this, it will probably only work on a _subset_ of the language you are using.  In other words, you may need to restrict your code-style a little, to something that SWS can handle.  Notable examples are:
 
@@ -178,12 +184,14 @@ Let's also critique the sync algorithm:
 
 
 # Bugs:
+------------------------------
 
   - sync fails with exception `std@sys_file_type` if it encounters any broken symlinks in the scanned tree.
 
 
 
 # Vim users
+------------------------------
 
 Vim users who want syntax highlighting and tags to work like normal when they are editing sws files, can inform vim of the correct filetype by adding to their .vimrc:
 
@@ -212,6 +220,7 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 
 # Debate:
+------------------------------
 
 - "I like curly braces!"
 
