@@ -173,7 +173,7 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
 - Since indentation is required to create curlies `{` `}`, if you attempt to create a class or function (or any block) with an empty body, you had better add an indented dummy line too (e.g. a comment) or you won't get curlies (and with SCI you will get a semicolon).
 
-- In Javascript, object and function definitions sometimes end with `};`.  When semicolon removal/injection is enabled, both these tokens will be stripped for the sws, and the semicolon will *not* be re-introduced on curling.  However the semicolon can be retained by wrapping the definition in brackets, leaving a third symbol on the last line: `} );`
+- In Javascript, object and function definitions sometimes end with `};`.  When semicolon removal/injection is enabled, both these tokens will be stripped when decurling to sws, and the semicolon will *not* be re-introduced on curling.  However the semicolon can be retained by wrapping the definition in brackets, leaving a third symbol on the last line: `} );`
 
 - I have not thought about how one would declare a typedef struct.  That should work fine, although the final outer text will get pushed onto its own line after the closing `}`.
 
@@ -181,7 +181,7 @@ Let's also critique the sync algorithm:
 
 - After syncing a pair of files we would like to set the modification time of the target file to match that of the source file, to indicate against syncing again on future runs.  Unfortunately Neko does not offer a way to set the stats of files directly.  Until we introduce C-specific code for this, as an alternative we "touch" the *source* file by cloning and replacing it.  That is only likely to match up the mtimes exactly on small/medium source files, and not on filesystems with fine-grained time-stamps.  (Although if the mtimes don't match, our approach will only cause the same transformation to be performed again on the next sync - not the end of the world.)  Another minor disadvantage of touching the source file is that your editor may think it has been updated when it hasn't.
 
-- On filesystems with coarse-grained time-stamps, sync may not notice changes made to a source file very soon after it was synced (within 1 second).  This is rare, but could happen e.g. if a developer edits his file while sync is running in the background.
+- On filesystems with coarse-grained time-stamps, sync may not notice changes made to a source file very soon after it was synced (within 1 second).  This is rare, but could happen e.g. if a developer edits and saves a file while sync is running in the background.
 
 
 
