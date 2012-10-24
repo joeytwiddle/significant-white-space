@@ -224,11 +224,11 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 - "I like curly braces!"
 
-    > - Don't use sws.  And also don't fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
+    - Don't use sws.  But also, try not to fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
 
 - "Why do you hate curlies?"
 
-    > - I haven't really made up my mind on this yet, I'm just trying to keep my options open.
+    > I haven't really made up my mind on this yet, I'm just trying to keep my options open.
 
 - "Are there any advantages to coding without curlies?"
 
@@ -254,9 +254,9 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 - "What have you got against semicolons?"
 
-    > - What have you got against newlines?
+    > What have you got against newlines?
 
 - "Why are some of the comments in the SWS source code longer than 80 chars?"
 
-    > - Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
+    > Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
 
