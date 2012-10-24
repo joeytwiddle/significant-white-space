@@ -233,15 +233,15 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 - We save a little disk-space.
 
--- "What have you got against semicolons?"
-
-- What have you got against newlines?
-
 -- "Why were curlies ever introduced in the first place?"
 
 - Meaningful indentation is actually quite difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Note that we are not demanding an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.
 
 - Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
+
+-- "What have you got against semicolons?"
+
+- What have you got against newlines?
 
 -- "Why are some of the comments in the SWS source code longer than 80 chars?"
 
