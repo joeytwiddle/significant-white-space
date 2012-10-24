@@ -211,7 +211,7 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 ### Debate:
 
--- "I like curlies!"
+-- "I like curly braces!"
 
 - Don't use sws.  And also don't fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
 
@@ -221,13 +221,15 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 -- "Are there any advantages to coding without curlies?"
 
-- If you aren't using an IDE, then it can save time and work for your fingers.
+- If you aren't using an IDE, then it can save a little time and work for your fingers.
 
-- Refactoring code with copy-paste can be easier if you only have to worry about the indentation, not the indentation *and* the curlies.
+- Refactoring code with copy-paste can be easier if you only have to worry about the code and the indentation, not the code, the indentation *and* the curlies.
 
 - Without ending curlies, you can fit more lines of actual code on the screen!
 
-- You save disk-space.
+- The flow of your code is exhibited purely visually.  There is no need for the user to check the symbols, and they cannot be confused by poor indentation.
+
+- We save a little disk-space.
 
 -- "What have you got against semicolons?"
 
