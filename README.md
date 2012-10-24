@@ -223,11 +223,13 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 - If you aren't using an IDE, then it can save a little time and work for your fingers.
 
+- The flow of your code is exhibited purely visually.  There is no need for the user to check the symbols, and they cannot be confused by poor indentation.
+
+- Arguably without the chaff, other symbols such as `(`...`)` stand out more clearly, making method calls stand out more easily and bringing you closer to your code.
+
 - Refactoring code with copy-paste can be easier if you only have to worry about the code and the indentation, not the code, the indentation *and* the curlies.
 
 - Without ending curlies, you can fit more lines of actual code on the screen!
-
-- The flow of your code is exhibited purely visually.  There is no need for the user to check the symbols, and they cannot be confused by poor indentation.
 
 - We save a little disk-space.
 
