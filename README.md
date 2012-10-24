@@ -9,6 +9,7 @@ SWS is also able to strip and inject `;` semicolons.
 
 As a simple example, SWS can turn code like this:
 
+```javascript
         if (indent_of_nextNonEmptyLine > currentIndent)
             output.writeString(currentLine + " {" + newline)
         else
@@ -16,9 +17,11 @@ As a simple example, SWS can turn code like this:
 
         if (indent_of_nextNonEmptyLine < currentIndent)
             output.writeString("}")
+```
 
 into the more traditional style:
 
+```javascript
         if (indent_of_nextNonEmptyLine > currentIndent) {
             output.writeString(currentLine + " {" + newline);
         } else {
@@ -28,6 +31,7 @@ into the more traditional style:
         if (indent_of_nextNonEmptyLine < currentIndent) {
             output.writeString("}");
         }
+```
 
 Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.
 
@@ -81,7 +85,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - sws sync
 - Better handling of else / catch blocks.
-- Better spacing of closing curlies.
+- Better spacing heuristics when closing curlies.
 - Filthy regexps to find trailing comments without matching comment-like text in string literals.
 - Better handling of trailing comments, by splitting and rejoining line.
 
@@ -174,21 +178,28 @@ Let's also critique the sync algorithm:
 
 Vim users who want syntax highlighting and tags to work like normal when they are editing sws files, can inform vim of the correct filetype by adding to their .vimrc:
 
+```vim
     au BufRead,BufNewFile {*.hx.sws}             set ft=haxe
     au BufRead,BufNewFile {*.java.sws}           set ft=java
     au BufRead,BufNewFile {*.c.sws}              set ft=c
     au BufRead,BufNewFile {*.cpp.sws}            set ft=cpp
+```
 
 Some strict syntax files may complain about missing semicolons and curlies, whilst others will be flexible enough to work fine.
 
-Also some Vim commands that help when wrapping long lines:
+Some commands that can help when wrapping long lines:
 
+```vim
     :set wrap
-    :set showbreak=\ \ \ \ \ \ \\\ 
-    :set linebreak nolist
+    :let &showbreak="    \\\\ "
+    :set nolist linebreak
     :set list
+    :set nowrap
+```
 
-It would be great if we could get the breakindent patch working again.
+Since Vim's breakindent patch no longer works, I wrote something similar:
+
+- http://hwi.ath.cx/code/home/.vim/plugin/breakindent_beta.vim
 
 
 ### Debate:

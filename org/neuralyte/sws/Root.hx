@@ -46,10 +46,13 @@ class Root {
 	// Warning: Do not be tempted to search for "  //" mid-line.  Yes that could indicate an appended comment, but it could just as easily be part of a string on a line which requires semicolon injection!
 
 	// Sorry I really could not resist the temptation.
-	// This regexp throws an exception via nekotools: "An error occured while running pcre_exec"
+	//// This regexp throws an exception via nekotools: "An error occured while running pcre_exec"
 	// static var evenNumberOfQuotes = '([^"]*"[^"]*"[^"]*|[^"]*)*';
+	//// This ensures an even number of " chars, but not an even number of ' chars.  Since one may contain the other, we really can't do this without a proper parser.
 	static var evenNumberOfQuotes = '(([^"]*"[^"]*"[^"]*)*|[^"]*)';
-	// TODO: This ensures an even number of " chars, but not an even number of ' chars.  Since one may contain the other, we really can't do this without a proper parser.
+	//// This is an attempt to catch an even number of both, but for some reason it works on "s but not 's.
+	//// Even if it did work on 's, it still doesn't work on escaped \" within a "..." string, or the equivalent for 's.
+	// static var evenNumberOfQuotes = '(('+"[^'\"]*'[^']*'[^'\"]*"+'|[^"\']*"[^"]*"[^"\']*'+')*|[^"]*)';
 	// static var forExample = "This \" will break";   // if we follow it with a comment
 	static var trailingCommentSafeRE = new EReg("^("+evenNumberOfQuotes+")(\\s*//.*)$",'');
 	// Unfortunately this regexp is greedy and eats all the spaces in the first () leaving none in the last ().  This problem is addressed by splitLineAtComment.
@@ -58,6 +61,8 @@ class Root {
 	// This version is unsafe:
 	// static var trailingCommentSafeRE = new EReg("^(.*)(\\s*//.*)$",'');
 	// NOTE: trailingCommentSafeRE may need more checks if "//" can appear outside a string literal, e.g. inside a regexp literal.
+
+	static var testStringTryingToCauseTrouble = "blah // ";
 
 	static var couldbeRegexp : EReg = ~/=[ \t]*~?\/[^\/].*\*\/\s*$/;
 	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //
