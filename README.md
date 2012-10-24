@@ -173,7 +173,9 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
 - Since indentation is required to create curlies `{` `}`, if you attempt to create a class or function (or any block) with an empty body, you had better add an indented dummy line too (e.g. a comment) or you won't get curlies (and with SCI you will get a semicolon).
 
-- I have not thought about how one would declare a typedef struct.  I suppose that might work fine.
+- In Javascript, object and function definitions sometimes end with `};`.  When semicolon removal/injection is disabled, both these tokens will be stripped for the sws, and the semicolon will *not* be re-introduced on curling.  However the semicolon can be retained by wrapping the definition in brackets, leaving a third symbol on the last line: `} );`
+
+- I have not thought about how one would declare a typedef struct.  That should work fine, although the final outer text will get pushed onto its own line after the closing `}`.
 
 Let's also critique the sync algorithm:
 
