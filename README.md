@@ -1,4 +1,4 @@
-### SWS - Significant Whitespace
+# SWS - Significant Whitespace
 ----------------------------
 
 SWS is a preprocessor for traditional curly-brace languages (C, Java, Javascript, Haxe) which can perform transformation of source-code files to and from meaningful-indentation style (as seen in Coffescript and Python).
@@ -46,7 +46,7 @@ SWS is written in Haxe.  Currently we build an executable binary via Neko, but y
 
 
 
-### Usage
+# Usage
 
 Available commands are:
 
@@ -78,7 +78,7 @@ Sync searches the current folder and subfolders for all sws or sws-able files (b
 
 
 
-### Status
+# Status
 
 Now able to transform its own source leaving only 2 minor differences.
 
@@ -88,7 +88,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 
 
-### Recent Changes
+# Recent Changes
 
 - sws sync
 - Better handling of else / catch blocks.
@@ -98,7 +98,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 
 
-### TODO
+# TODO
 
 - Problem detecting false indent from files starting with a multi-line comment (e.g. well-documented Java files).  Ideal solution: Solve this alongside other issues, by doing our best to track when we are inside a multi-line comment.  (The plan was to do that in HelpfulReader, and for it to expose the state (in/out of a comment) of the parser after the current line has been read (at the beginning of the next line).)
 
@@ -122,7 +122,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 
 
-### How it works
+# How it works
 
 ## Decurling
 
@@ -151,7 +151,7 @@ Comment lines should not be stripped or injected into, or used for indentation. 
 
 
 
-### Caveats
+# Caveats
 
 SWS uses a simple text-processing algorithm to transform files; it does not properly lex/parse or understand your code.  Because of this, it will probably only work on a _subset_ of the language you are using.  In other words, you may need to restrict your code-style a little, to something that SWS can handle.  Notable examples are:
 
@@ -175,13 +175,13 @@ Let's also critique the sync algorithm:
 
 
 
-### Bugs:
+# Bugs:
 
   - sync fails with exception `std@sys_file_type` if it encounters any broken symlinks in the scanned tree.
 
 
 
-### Vim users
+# Vim users
 
 Vim users who want syntax highlighting and tags to work like normal when they are editing sws files, can inform vim of the correct filetype by adding to their .vimrc:
 
@@ -209,41 +209,41 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 - http://hwi.ath.cx/code/home/.vim/plugin/breakindent_beta.vim
 
 
-### Debate:
+# Debate:
 
--- "I like curly braces!"
+- "I like curly braces!"
 
-- Don't use sws.  And also don't fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
+  - Don't use sws.  And also don't fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
 
--- "Why do you hate curlies?"
+- "Why do you hate curlies?"
 
-- I haven't really made up my mind on this yet, I'm just trying to keep my options open.
+  - I haven't really made up my mind on this yet, I'm just trying to keep my options open.
 
--- "Are there any advantages to coding without curlies?"
+- "Are there any advantages to coding without curlies?"
 
-- If you aren't using an IDE, then it can save a little time and work for your fingers.
+  - If you aren't using an IDE, then it can save a little time and work for your fingers.
 
-- The structure of your code is exhibited purely visually.  There is no need for the user to parse the symbols; they cannot be misled by incorrect indentation.
+  - The structure of your code is exhibited purely visually.  There is no need for the user to parse the symbols; they cannot be misled by incorrect indentation.
 
-- Arguably without the chaff, other symbols such as `(`...`)` stand out more clearly, making method calls more visible and bringing you closer to your code.
+  - Arguably without the chaff, other symbols such as `(`...`)` stand out more clearly, making method calls more visible and bringing you closer to your code.
 
-- Refactoring code with copy-paste can be easier if you only have to worry about the code and the indentation, not the code, the indentation *and* the curlies.
+  - Refactoring code with copy-paste can be easier if you only have to worry about the code and the indentation, not the code, the indentation *and* the curlies.
 
-- Without the lonely closing curlies, which occupy a whole line each, you can fit more code on the screen!
+  - Without the lonely closing curlies, which occupy a whole line each, you can fit more code on the screen!
 
-- We save a little disk-space.
+  - We save a little disk-space.
 
--- "Why were curlies ever introduced in the first place?"
+- "Why were curlies ever introduced in the first place?"
 
-- Meaningful indentation is actually quite difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Note that we are not demanding an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.
+  - Meaningful indentation is actually quite difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Note that we are not demanding an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.
 
-- Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
+  - Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
 
--- "What have you got against semicolons?"
+- "What have you got against semicolons?"
 
-- What have you got against newlines?
+  - What have you got against newlines?
 
--- "Why are some of the comments in the SWS source code longer than 80 chars?"
+- "Why are some of the comments in the SWS source code longer than 80 chars?"
 
-- Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
+  - Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
 
