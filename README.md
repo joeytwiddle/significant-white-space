@@ -224,7 +224,7 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 - "I like curly braces!"
 
-    - Don't use sws.  But also, try not to fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
+    > Don't use sws.  But also, try not to fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
 
 - "Why do you hate curlies?"
 
