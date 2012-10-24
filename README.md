@@ -13,12 +13,13 @@ As a simple example, SWS can turn code like this:
     while (readNextLine())
 
         if (indent_of_nextNonEmptyLine > currentIndent)
-            output.writeString(currentLine + " {" + newline)
+            writeLine(currentLine + " {")
         else
-            output.writeString(currentLine)
+            writeLine(currentLine)
 
         if (indent_of_nextNonEmptyLine < currentIndent)
-            output.writeString("}")
+            writeLine("}")
+
 ```
 
 into the more traditional style:
@@ -27,13 +28,13 @@ into the more traditional style:
     while (readNextLine()) {
 
         if (indent_of_nextNonEmptyLine > currentIndent) {
-            output.writeString(currentLine + " {" + newline);
+            writeLine(currentLine + " {");
         } else {
-            output.writeString(currentLine);
+            writeLine(currentLine);
         }
 
         if (indent_of_nextNonEmptyLine < currentIndent) {
-            output.writeString("}");
+            writeLine("}");
         }
 
     }
