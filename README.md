@@ -9,7 +9,7 @@ SWS is also able to strip and inject `;` semicolons.
 
 As a simple example, SWS can turn code like this:
 
-```c
+```js
     while (readNextLine())
 
         if (indent_of_nextNonEmptyLine > currentIndent)
