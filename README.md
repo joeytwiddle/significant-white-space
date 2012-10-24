@@ -223,13 +223,13 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 - If you aren't using an IDE, then it can save a little time and work for your fingers.
 
-- The flow of your code is exhibited purely visually.  There is no need for the user to check the symbols, and they cannot be confused by poor indentation.
+- The structure of your code is exhibited purely visually.  There is no need for the user to parse the symbols; they cannot be misled by incorrect indentation.
 
-- Arguably without the chaff, other symbols such as `(`...`)` stand out more clearly, making method calls stand out more easily and bringing you closer to your code.
+- Arguably without the chaff, other symbols such as `(`...`)` stand out more clearly, making method calls more visible and bringing you closer to your code.
 
 - Refactoring code with copy-paste can be easier if you only have to worry about the code and the indentation, not the code, the indentation *and* the curlies.
 
-- Without ending curlies, you can fit more lines of actual code on the screen!
+- Without the lonely closing curlies, which occupy a whole line each, you can fit more code on the screen!
 
 - We save a little disk-space.
 
@@ -239,7 +239,7 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 -- "Why were curlies ever introduced in the first place?"
 
-- Meaningful indentation is very difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Note that we are not demanding an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.
+- Meaningful indentation is actually quite difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Note that we are not demanding an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.
 
 - Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
 
