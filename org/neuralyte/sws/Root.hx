@@ -128,11 +128,12 @@ class Root {
 		var endsWithCurly : EReg = ~/\s*{\s*$/;
 		// And lines which start with a closing curly brace
 		var startsWithCurly : EReg = ~/^\s*}\s*/;
-		var startReplacer : EReg = ~/}\s*/;   // We don't want to strip the indent
+		var startsWithCurlyReplacer : EReg = ~/}\s*/;   // We don't want to strip the indent
 		// And sometimes lines ending in a semicolon.
 		var endsWithSemicolon : EReg = ~/\s*;\s*$/;
 
-		var input : FileInput = File.read(infile,false);
+		// var input : FileInput = File.read(infile,false);
+		var reader = new CommentTrackingReader(infile);
 
 		var output : FileOutput = File.write(outfile,false);
 
@@ -140,7 +141,10 @@ class Root {
 
 			while (true) {
 
-				var wholeLine : String = input.readLine();
+				var wholeLine : String = reader.getNextLine();
+				if (wholeLine == null) {   // Unlike input, our reader does not throw Eof.
+					break;
+				}
 
 				var res = splitLineAtComment(wholeLine);
 				var line = res[0];
@@ -152,10 +156,10 @@ class Root {
 				// var wholeLineIsComment = wholeLineIsCommentRE.match(line);
 				// DISABLED: splitLineAtComment can deal with this now
 				var wholeLineIsComment = false;
-				if (!wholeLineIsComment) {
+				if (!wholeLineIsComment && !reader.insideComment) {
 
 					if (startsWithCurly.match(line)) {
-						line = startReplacer.replace(line,"");
+						line = startsWithCurlyReplacer.replace(line,"");
 						if (emptyOrBlank.match(line + trailingComment)) {
 							continue;
 						}
@@ -194,7 +198,7 @@ class Root {
 
 		var currentLine : String;
 
-		var helper = new HelpfulReader(infile);
+		var helper = new CommentTrackingReader(infile);
 
 		var output : FileOutput = File.write(outfile,false);
 
@@ -204,7 +208,20 @@ class Root {
 
 		var currentIndent : Int = 0;
 
-		while ( (currentLine = helper.getNextLine()) != null) {
+		while (true) {
+
+			var wasInsideComment = helper.insideComment;
+
+			currentLine = helper.getNextLine();
+			if (currentLine == null) {
+				break;
+			}
+
+			// For the moment, just skip the entire line.
+			if (wasInsideComment) {
+				output.writeString(currentLine + newline);
+				continue;
+			}
 
 			// echo("currentLine = "+currentLine);
 
@@ -219,7 +236,10 @@ class Root {
 			nextNonEmptyLine = helper.getNextNonEmptyLine();
 			// NOTE: nextNonEmptyLine may be null which means EOF which should be understood as indent 0.
 
-			if (indentString == null && nextNonEmptyLine!=null) {
+			// We detect indent from the nextNonEmptyLine, rather than the currentLine, so we can get it sooner rather than later.
+			// But we can detect indent wrong if the nextNonEmptyLine is inside a comment.
+			// So currently we simply skip detection if our current line ends inside a comment.
+			if (indentString == null && nextNonEmptyLine!=null && !helper.insideComment) {
 				indentRE.match(nextNonEmptyLine);
 				var indentPart = indentRE.matched(0);
 				if (indentPart != "") {
@@ -240,6 +260,7 @@ class Root {
 				var lineCouldbeRegexp = couldbeRegexp.match(currentLine);
 				if (lineCouldbeRegexp) {
 					wholeLineIsComment = false;
+					// echo("Looked like a comment, but could be a regexp: "+currentLine);
 				}
 			}
 			// But it could be a regexp line with a trailing comment!
@@ -659,6 +680,30 @@ class HelpfulReader {
 			}
 		}
 		return queue[i - 1];
+	}
+
+}
+
+class CommentTrackingReader extends HelpfulReader {
+
+	// Currently completely noob yet still unreadable xD
+	public static var lineOpensCommentRE = ~/.*\/\*.*/;
+	public static var lineClosesCommentRE = ~/.*\*\/.*/;
+
+	public var insideComment : Bool; // = false;
+
+	public override function getNextLine() : String {
+		var line = super.getNextLine();
+		if (line == null) {
+			return line;
+		}
+		if (lineOpensCommentRE.match(line)) {
+			insideComment = true;
+		}
+		if (lineClosesCommentRE.match(line)) {
+			insideComment = false;
+		}
+		return line;
 	}
 
 }
