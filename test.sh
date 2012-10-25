@@ -22,6 +22,10 @@ then
 	exit 17
 fi
 
+## OK so we often encounter minor changes when decurling code for the first time.
+## If we want to see how we are performing on less-friendly code, we could compare the post-sync restuls against those of the last run, to indicate if we have made anything better or worse.
+## We should have a folder full of test files.
+
 # diff --side-by-side ./org/neuralyte/sws/Root.hx data/Root.hx
 
 # diff --side-by-side data/Root.hx.sws.1 data/Root.hx.sws.2

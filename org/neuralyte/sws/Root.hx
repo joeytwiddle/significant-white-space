@@ -44,9 +44,10 @@ class Root {
 	//           new {...} blocks should work fine provided they are in the middle of an otherwise unbroken line.  (They do require at least one trailing that is not '}' or ';'.)
 	static var doNotCurlMultiLineParentheses : Bool = false;
 
-	// Rename: useCoffeeFunctionSymbolForAnonymousFunctions
+	// Rename: useCoffeeFunctionSymbolForAnonymousFunctions?  Maybe not.
 	static var useCoffeeFunctions : Bool = true;
 
+	//// blockLeadSymbol is an entirely optional symbol used to indicate the start of certain blocks.  This works much like Python's ":" symbol, but with SWS we want fine-grained control over when they are used.
 	// static var blockLeadSymbol = null;
 	// static var blockLeadSymbol = ":";         // Like Python
 	// static var blockLeadSymbol = " :";        // But : looks rather odd in Haxe, where function lines may already end in ": Type"
@@ -57,16 +58,21 @@ class Root {
 	//// s/Indicated/Wanted/g ?
 
 	// static var blockLeadSymbolContraIndicatedRE = null;
-	// Catches non-anonymous function declarations in HaXe (e.g. within a class).  Anonymous functions differ in that they are handled by useCoffeeFunctions.
+	// Catches non-anonymous function declarations in HaXe (e.g. declaring a method within a class).  Anonymous functions differ in that they are handled by useCoffeeFunctions.
 	// The start ensures a word.  The end requires at least one name char, to distinguish "function (e) {" from "function myFunc(e)"
 	// TODO: What about Java?
+	// TODO: There is no indicator for Java ... no keyword!
 	static var blockLeadSymbolIndicatedRE = ~/(\s|^)function\s+[a-zA-Z_$]/;
 	// static var blockLeadSymbolIndicatedRE = ~/(\s|^)(if|while|.*)/;   // Not sure when Python users want their ":"s
 
 	// Use this blockLeadSymbolContraIndicatedRE if you only want blockLeadSymbol on function declarations (i.e. none of the things mentioned here).
 	// TODO: To suppress warnings, contra-indicate anonymous functions.
+	// These would be neater in a list, checked against the first word on the line.
 	static var blockLeadSymbolContraIndicatedRE = ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/;
+	static var blockLeadSymbolContraIndicatedRE2AnonymousFunctions = ~/(^|[^A-Za-z0-9_$@])function\s*[(]/;
 	// static var blockLeadSymbolContraIndicatedRE = null;   // Not sure when Python users want their ":"s
+	// TODO: DRY.  useCoffeeFunctions already detects anonymous functions, and therefore can contra-indicate them without the need for a repeat regexp.
+	// TODO: Java does not have anonymous functions, but we should check that inline interface implementations are working ok.
 
 	// static var newline : String = "\r\n";
 	static var newline : String = "\n";
@@ -108,8 +114,8 @@ class Root {
 	// static var evenNumberOfQuotes = '(('+"[^'\"]*'[^']*'[^'\"]*"+'|[^"\']*"[^"]*"[^"\']*'+')*|[^"]*)';
 	// static var forExample = "This \" will break";   // if we follow it with a comment
 	// DONE: We should also check the //s are outside of an even number of 's
-	static var trailingCommentOutsideQuotes = new EReg("^("+evenNumberOfQuotes+")(\\s*//.*)$",'');
-	static var trailingCommentOutsideApostrophes = new EReg("^("+evenNumberOfApostrophes+")(\\s*//.*)$",'');
+	static var trailingCommentOutsideQuotes = new EReg("^("+evenNumberOfQuotes+")(\\s*(//|/[*]).*)$",'');
+	static var trailingCommentOutsideApostrophes = new EReg("^("+evenNumberOfApostrophes+")(\\s*(//|/[*]).*)$",'');
 	// Unfortunately this regexp is greedy and eats all the spaces in the first () leaving none in the last ().  This problem is addressed by splitLineAtComment.
 	// TODO: If // is a trailing comment then we should probably assume that /* is too.  Looking at this line right here, we can see we really want to match the first occurrence!
 	// In the general case, a line might contain any number of /*...*/ blocks, and then a // at the end, and maybe even a leading */ or trailing /*!  Can we handle that?  ^^
@@ -124,15 +130,16 @@ class Root {
 	// static var testStringTryingToCauseTrouble = "blah // ";
 
 	//// Almost certainly a regexp literal (JS or Haxe) which ends in */ which is not a comment ending!
-	// public static var looksLikeRegexpLineWithEndComment : EReg = ~/=[ \t]*~?\/[^\/].*\*\/;?\s*$/;
+	// public static var looksLikeRegexpLineWithEndComment : EReg = ~/=[ \t]*~?\/[^*\/].*\*\/;?\s*$/;
 	//// Almost certainly a regexp literal assignment.
-	public static var looksLikeRegexpLine : EReg = ~/=[ \t]*~?\/[^\/].*\/;?\s*$/;
+	public static var looksLikeRegexpLine : EReg = ~/=[ \t]*~?\/[^*\/].*\/;?\s*$/;
 	//// Might be a regexp literal, not neccessarily assigned; uncertain.
-	public static var couldbeRegexp : EReg = ~/~?\/[^\/].*\//;
-	// public static var couldbeRegexpEndingSlashSlash : EReg = ~/~?\/[^\/].*\/\//;
+	public static var seemsToContainRegexp : EReg = ~/~?\/[^*\/].*\//;
+	// If you want to cause trouble, swap \/ and * like this: ~/~?\/[^\/*].*\//;  The line will fill with semicolons!
+	// public static var couldbeRegexpEndingSlashSlash : EReg = ~/~?\/[^*\/].*\/\//;
 	// We allow slash inside quotes.  We fail to check for an even number of 's, or mask /s inside them!
 	static var evenNumberOfQuotesWithNoSlashes = '(([^"/]*"[^"]*"[^"/]*)*|[^"/]*)';
-	public static var couldbeRegexpEndingSlashSlash : EReg = new EReg("^"+evenNumberOfQuotesWithNoSlashes+"~?\\/[^\\/].*\\/\\/",'');
+	public static var couldbeRegexpEndingSlashSlash : EReg = new EReg("^"+evenNumberOfQuotesWithNoSlashes+"~?\\/[^*\\/].*\\/\\/",'');
 	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //.  It does not notice regexps declares without assignment, e.g. passed immediately.
 
 	// The first char matched is to ensure function starts at a word boundary, i.e. not res = my_favourite_function(a,b,c);
@@ -252,6 +259,9 @@ class Root {
 						if (blockLeadSymbol != null) {
 							var indicated = blockLeadSymbolIndicatedRE!=null && blockLeadSymbolIndicatedRE.match(line);
 							var contraIndicated = blockLeadSymbolContraIndicatedRE!=null && blockLeadSymbolContraIndicatedRE.match(line);
+							if (blockLeadSymbolContraIndicatedRE2AnonymousFunctions.match(line)) {
+								contraIndicated = true;
+							}
 							// if (line.indexOf("function") == -1) {
 							if (!indicated && !contraIndicated) {
 								echo("Debug: blockLeadSymbol neither indicated or contra-indicated for: "+line);
@@ -739,6 +749,11 @@ class Root {
 			}
 		}
 
+		var originalResult = null;
+		if (FileSystem.exists(outFile)) {
+			originalResult = File.getContent(outFile);
+		}
+
 		fn(inFile, outFile);
 		// Now we want to mark the outFile with identical modification time to the inFile, so that sws knows it need not translate between them.
 		// Unfortunately neko FileSystem does not expose this ability
@@ -760,6 +775,15 @@ class Root {
 					echo("Exiting so user can inspect.  There may be more files which need processing...");
 					Sys.exit(5);
 				}
+			}
+		}
+
+		if (originalResult != null) {
+			var newResult = File.getContent(outFile);
+			if (newResult != originalResult) {
+				echo("There were changes since the last time ("+originalResult.length+" -> "+newResult.length);
+			} else {
+				echo("There were no changes since the last time ("+originalResult.length+" == "+newResult.length);
 			}
 		}
 
@@ -879,21 +903,21 @@ class CommentTrackingReader extends HelpfulReader {
 
 		if (lineOpensCommentRE.match(line)) {
 			if (Root.looksLikeRegexpLine.match(line)) {
-				// Root.echo("Looks like regexp literal; assuming not a comment start: "+line);
+				// Root.echo("Looks like regexp literal declaration; assuming not a comment start: "+line);
 			} else {
 				insideComment = true;
-				if (Root.couldbeRegexp.match(lineBeforeComment)) {
-					Root.echo("Warning: looks like start of comment block but could be regexp!  "+line);
+				if (Root.seemsToContainRegexp.match(lineBeforeComment)) {
+					Root.echo("Warning: looks like start of comment block but also like a regexp!  "+line);
 				}
 			}
 		}
 		if (lineClosesCommentRE.match(line)) {
 			if (Root.looksLikeRegexpLine.match(line)) {
-				// Root.echo("Looks like regexp literal; assuming not a comment end: "+line);
+				// Root.echo("Looks like regexp literal declaration; assuming not a comment end: "+line);
 			} else {
 				insideComment = false;
-				if (Root.couldbeRegexp.match(lineBeforeComment)) {
-					Root.echo("Warning: looks like end of comment block but could be regexp!  "+line);
+				if (Root.seemsToContainRegexp.match(lineBeforeComment)) {
+					Root.echo("Warning: looks like end of comment block but also like a regexp!  "+line);
 				}
 			}
 		}
@@ -906,7 +930,7 @@ class CommentTrackingReader extends HelpfulReader {
 			if (openBracketCount == closeBracketCount) {
 				// Let's not cause a fuss if we don't have to.
 			} else {
-				Root.echo("Debug: Not trusting the parentheses on this line: "+line);
+				Root.echo("Debug: Ignoring untrustworthy parentheses: "+line);
 			}
 			// TODO: Perhaps we can count how many are inside "s, how many are inside 's and thus deduce how many are left outside?
 			// Ofc we have also forgotten (s or )s inside Regexp literals.

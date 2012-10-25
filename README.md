@@ -87,7 +87,7 @@ This will probably change to something neater in the future:
 
     % sws --test decurl <curly_file> <sws_file>
 
-The checking it does is to invert the generated sws_file and see if it exactly matches the original curly file (which it rarely does the first time you try it!).
+The checking it does is to invert the generated sws_file and see if the result exactly matches the original curly file (which it rarely does the first time you try it!).
 
 
 
@@ -96,7 +96,27 @@ The checking it does is to invert the generated sws_file and see if it exactly m
 
 Now able to transform its own source leaving only 2 minor differences.
 
-Significant problem detecting indentation of files which start with multi-line comments.
+Seems to be working reasonably for a good subset of HaXe and Java code, with the exclusion of multi-line expressions.  Working less smoothly on Javascript files (but this is not really a target language - that has Coffeescript already).
+
+Multi-line expressions which introduce an anonymous function should work, provided only one level of indentation is used:
+
+    fs.readFile(options.input, function(err, contents)
+        if (err)
+            log(err)
+        else
+            input = contents
+    )
+
+The head of the function may not appear on its own line.  (Non-empty lines always receive a ; if they do not open a curly block.)
+
+But multi-line expressions in general are not supported.
+
+    // Illegal!
+    var result = a > 200
+              || b > 300
+              || c > 500
+
+They may be coerced to work by wrapping the whole expression in `(...)` and setting doNotCurlMultiLineParentheses, but this sacrifices passing of anonymous inline functions, as in the previous example.
 
 Options are not yet exposed as command-line arguments, but can be changed by editing Root.hx.
 
@@ -149,6 +169,8 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - Our options are: either *ban* multi-line expressions or write a proper lexer to find `{...}` nodes below `(...)`s.
 
+- We have not thought about other forms of multi-line expression, such as array literals.
+
 
 
 ------------------------------
@@ -200,7 +222,7 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
 - In Javascript, object and function definitions sometimes end with `};`.  When semicolon removal/injection is enabled, both these tokens will be stripped when decurling to sws, and the semicolon will *not* be re-introduced on curling.  However the semicolon can be retained by wrapping the definition in brackets, leaving a third symbol on the last line: `} );`
 
-- You must choose between allowing multi-line expressions (provided they are wrapped in `(`...`)`) or allowing the definition of new indented blocks within `(`...`)` expressions.  For languages where you often declare anonymous functions or implementations and pass them immediately, you probably want the latter.  The option is currently called doNotCurlMultiLineParentheses.  Perhaps we can track a stack of what nested blocks we are in (e.g. `"{{{(({"`), although since we have no `{`s in sws files, `{` must be always implied by indentation, but at least we can avoid semicolon injection in flat or only-partially-indented multi-line expressions.
+- You must choose between allowing multi-line expressions (provided they are wrapped in `(`...`)`) or allowing the definition of new indented blocks within `(`...`)` expressions.  For languages where you often declare anonymous functions or implementations and pass them immediately, you probably want the latter.  The option is currently called doNotCurlMultiLineParentheses.  Perhaps we can track a stack of what nested blocks we are in (e.g. `"{{{(({"`), although since we have no `{`s in sws files, `{` must be always implied by indentation, but at least we can avoid semicolon injection in flat or only-partially-indented multi-line expressions.  However this is not an easy task, we would need to correctly parse strings and *regexps* to discard non-structural `{ } ( )` symbols.
 
 - For the moment you will not have much joy with `#ifdef` preprocessor macros.  They will suffer from semicolon and experience curly insertion just like normal code if their bodies are indented. 
 
