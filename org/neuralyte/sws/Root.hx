@@ -34,6 +34,10 @@ class Root {
 	static var newline : String = "\n";
 	static var pathSeparator = "/";
 
+
+
+	// Sync options:
+
 	static var continuationKeywords = [ "else", "catch" ];
 
 	static var validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc" ];   // "jpp"
@@ -42,6 +46,8 @@ class Root {
 
 	static var safeSyncMakeBackups  = true;
 	static var safeSyncCheckInverse = true;
+
+	static var breakOnFirstFailedInverse = true;
 
 
 	// Constants:
@@ -233,8 +239,11 @@ class Root {
 				break;
 			}
 
+			var isInsideBrackets = helper.depthInsideParentheses > 0;
+
+			// If we are inside a multi-line /* ... */ block or if ( ... ) block, then we do not want to do any indent-based curling or semicolon insertion.  (TODO: That is not strictly true, in many languages we could open an inner block, e.g. in JS function(){ ... }, or inline anonymous implementation of interface in Java and Haxe.)
 			// For the moment, just skip the entire line.
-			if (wasInsideComment) {
+			if (wasInsideComment || isInsideBrackets) {
 				output.writeString(currentLine + newline);
 				continue;
 			}
@@ -629,6 +638,10 @@ class Root {
 				// echo("Compare files: \""+inFile+"\" \""+tempFile+"\"");
 				echo("Compare: vimdiff \""+inFile+"\" \""+tempFile+"\"");
 				// echo("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
+				if (breakOnFirstFailedInverse) {
+					echo("Exiting so user can inspect.  There may be more files which need processing...");
+					Sys.exit(5);
+				}
 			}
 		}
 
@@ -712,13 +725,24 @@ class HelpfulReader {
 
 }
 
+// This streamer maintains whether we are inside a /*...*/ comment, or how deep we are inside nested parentheses (...).  It is not a proper lexer and therefore might be fooled by clever comments, or string or regexp literals.
 class CommentTrackingReader extends HelpfulReader {
 
 	// Currently completely noob yet still unreadable xD
 	public static var lineOpensCommentRE = ~/.*\/\*.*/;
 	public static var lineClosesCommentRE = ~/.*\*\/.*/;
 
+	// Let's also track parenthesis noobishly
+
 	public var insideComment : Bool; // = false;
+
+	public var depthInsideParentheses : Int; // = false;
+
+	public function new(infile) {
+		super(infile);
+		insideComment = false;
+		depthInsideParentheses = 0;
+	}
 
 	public override function getNextLine() : String {
 		var line = super.getNextLine();
@@ -728,6 +752,7 @@ class CommentTrackingReader extends HelpfulReader {
 		var res = Root.splitLineAtComment(line);
 		var lineBeforeComment = res[0];
 		var trailingComment = res[1];
+
 		if (lineOpensCommentRE.match(line)) {
 			if (Root.looksLikeRegexpLine.match(line)) {
 				// Root.echo("Looks like regexp literal; assuming not a comment start: "+line);
@@ -748,7 +773,23 @@ class CommentTrackingReader extends HelpfulReader {
 				}
 			}
 		}
+
+		// TODO: We should really be counting parentheses *outside* string and regexp literals!
+		var openBracketCount = countInString(lineBeforeComment,"(".code);
+		var closeBracketCount = countInString(lineBeforeComment,")".code);
+		depthInsideParentheses += (openBracketCount - closeBracketCount);
+
 		return line;
+	}
+
+	function countInString(s : String, c) : Int {
+		var count = 0;
+		for (i in 0...s.length) {
+			if (s.charCodeAt(i) == c) {
+				count++;
+			}
+		}
+		return count;
 	}
 
 }
