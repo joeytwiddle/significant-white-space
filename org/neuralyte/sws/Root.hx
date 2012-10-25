@@ -40,6 +40,9 @@ class Root {
 	//          but you will not be able to create curly indented blocks within them
 	//   false - Multi-line expressions will be subject to curling and SCI, with or without (...)
 	//           new {...} blocks should work fine provided they are in the middle of an otherwise unbroken line.  (They do require at least one trailing that is not '}' or ';'.)
+	static var blockLeadSymbol = null;
+	// static var blockLeadSymbol = ":";         // Like Python
+	// static var blockLeadSymbol = " =>";       // Like Coffeescript
 
 	// static var newline : String = "\r\n";
 	static var newline : String = "\n";
@@ -220,6 +223,9 @@ class Root {
 
 					if (endsWithCurly.match(line)) {
 						line = endsWithCurly.replace(line,"");
+						if (blockLeadSymbol != null) {
+							line += blockLeadSymbol;
+						}
 						if (emptyOrBlank.match(line + trailingComment)) {
 							continue;
 						}
@@ -353,6 +359,14 @@ class Root {
 
 				if (indent_of_nextNonEmptyLine > currentIndent+1) {
 					echo("Error: Unexpected double indent on: "+nextNonEmptyLine);
+				}
+
+				// TODO: Should be done after splitLineAtComment and then we can check it should only appear at the end.
+				if (blockLeadSymbol != null) {
+					var i = currentLine.lastIndexOf(blockLeadSymbol);
+					if (i >= 0) {
+						currentLine = currentLine.substr(0,i) + currentLine.substr(i+blockLeadSymbol.length);
+					}
 				}
 
 				// Assumption: indent never increases by more than one
