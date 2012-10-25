@@ -40,9 +40,15 @@ class Root {
 	//          but you will not be able to create curly indented blocks within them
 	//   false - Multi-line expressions will be subject to curling and SCI, with or without (...)
 	//           new {...} blocks should work fine provided they are in the middle of an otherwise unbroken line.  (They do require at least one trailing that is not '}' or ';'.)
-	static var blockLeadSymbol = null;
+	// static var blockLeadSymbol = null;
 	// static var blockLeadSymbol = ":";         // Like Python
-	// static var blockLeadSymbol = " =>";       // Like Coffeescript
+	// static var blockLeadSymbol = " :";        // But looks rather odd in Haxe, which may already end : Type
+	// static var blockLeadSymbol = " =";
+	// static var blockLeadSymbol = " {";         // lol this actually works without error
+	static var blockLeadSymbol = " =>";
+	// Use blockLeadSymbolContraIndicatedRE if you only want blockLeadSymbol on function declarations (i.e. none of the things mentioned here).
+	static var blockLeadSymbolContraIndicatedRE = ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/;
+	// static var blockLeadSymbolContraIndicatedRE = null;
 
 	// static var newline : String = "\r\n";
 	static var newline : String = "\n";
@@ -223,8 +229,12 @@ class Root {
 
 					if (endsWithCurly.match(line)) {
 						line = endsWithCurly.replace(line,"");
-						if (blockLeadSymbol != null) {
+						if (blockLeadSymbol != null && (blockLeadSymbolContraIndicatedRE==null || !blockLeadSymbolContraIndicatedRE.match(line))) {
 							line += blockLeadSymbol;
+							if (line.indexOf("function") == -1) {
+								echo("Debug: Did not find blockLeadSymbolContraIndicated OR \"function\".  "+line);
+							}
+							// This may look rather if the "{" was on a line on its own, now the ":" will be too.  To avoid it, we would have to recall the last newline we emitted, so we can append to the previous line.  Although if javaStyleCurlies is set, that should cleanup after two runs.
 						}
 						if (emptyOrBlank.match(line + trailingComment)) {
 							continue;
@@ -361,11 +371,20 @@ class Root {
 					echo("Error: Unexpected double indent on: "+nextNonEmptyLine);
 				}
 
-				// TODO: Should be done after splitLineAtComment and then we can check it should only appear at the end.
+				// DONE: Should be done after splitLineAtComment and then we can check it should only appear at the end.
 				if (blockLeadSymbol != null) {
-					var i = currentLine.lastIndexOf(blockLeadSymbol);
+					var res = splitLineAtComment(currentLine);
+					var beforeComment = res[0];
+					var afterComment = res[1];
+					var i = beforeComment.lastIndexOf(blockLeadSymbol);
 					if (i >= 0) {
-						currentLine = currentLine.substr(0,i) + currentLine.substr(i+blockLeadSymbol.length);
+						var beforeSymbol = beforeComment.substr(0,i);
+						var afterSymbol = beforeComment.substr(i+blockLeadSymbol.length);
+						// We only strip the symbol if it is the last thing on the (comment split) line.
+						if (emptyOrBlank.match(afterSymbol)) {
+							beforeComment = beforeSymbol + afterSymbol;
+							currentLine = beforeComment + afterComment;
+						}
 					}
 				}
 
