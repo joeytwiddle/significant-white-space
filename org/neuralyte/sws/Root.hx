@@ -54,11 +54,16 @@ class Root {
 	static var blockLeadSymbol = " =>";          // I like this for HaXe
 
 	//// s/Indicated/Wanted/g ?
+
 	// static var blockLeadSymbolContraIndicatedRE = null;
-	static var blockLeadSymbolIndicatedRE = ~/(\s|^)function\s/;         // Catches non-anonymous function declarations in HaXe (e.g. within a class).  Anonymous functions differ in that they are handled by useCoffeeFunctions.  TODO: What about Java?;
+	// Catches non-anonymous function declarations in HaXe (e.g. within a class).  Anonymous functions differ in that they are handled by useCoffeeFunctions.
+	// The start ensures a word.  The end requires at least one name char, to distinguish "function (e) {" from "function myFunc(e)"
+	// TODO: What about Java?
+	static var blockLeadSymbolIndicatedRE = ~/(\s|^)function\s+[a-zA-Z_$]/;
 	// static var blockLeadSymbolIndicatedRE = ~/(\s|^)(if|while|.*)/;   // Not sure when Python users want their ":"s
 
-	// Use blockLeadSymbolContraIndicatedRE if you only want blockLeadSymbol on function declarations (i.e. none of the things mentioned here).
+	// Use this blockLeadSymbolContraIndicatedRE if you only want blockLeadSymbol on function declarations (i.e. none of the things mentioned here).
+	// TODO: To suppress warnings, contra-indicate anonymous functions.
 	static var blockLeadSymbolContraIndicatedRE = ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/;
 	// static var blockLeadSymbolContraIndicatedRE = null;   // Not sure when Python users want their ":"s
 
@@ -245,7 +250,7 @@ class Root {
 						line = endsWithCurly.replace(line,"");
 						if (blockLeadSymbol != null) {
 							var indicated = blockLeadSymbolIndicatedRE!=null && blockLeadSymbolIndicatedRE.match(line);
-							var contraIndicated = blockLeadSymbolContraIndicatedRE==null || blockLeadSymbolContraIndicatedRE.match(line);
+							var contraIndicated = blockLeadSymbolContraIndicatedRE!=null && blockLeadSymbolContraIndicatedRE.match(line);
 							// if (line.indexOf("function") == -1) {
 							if (!indicated && !contraIndicated) {
 								echo("Debug: blockLeadSymbol neither indicated or contra-indicated for: "+line);
@@ -747,8 +752,9 @@ class Root {
 			if (File.getContent(inFile) != File.getContent(tempFile)) {
 				echo("Warning: Inverse differs from original.  Differences may or may not be cosmetic!");
 				// echo("Compare files: \""+inFile+"\" \""+tempFile+"\"");
-				echo("Compare: vimdiff \""+inFile+"\" \""+tempFile+"\"");
 				// echo("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
+				echo("Compare:");
+				echo("  vimdiff \""+inFile+"\" \""+tempFile+"\"");
 				if (breakOnFirstFailedInverse) {
 					echo("Exiting so user can inspect.  There may be more files which need processing...");
 					Sys.exit(5);
