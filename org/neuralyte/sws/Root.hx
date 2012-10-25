@@ -48,7 +48,6 @@ class Root {
 
 	public static var emptyOrBlank : EReg = ~/^\s*$/;
 	static var indentRE : EReg = ~/^\s*/;
-	static var indentREJSTEST = "    = /^\\s*/";
 	static var wholeLineIsCommentRE : EReg = ~/(^\s*\/\/|^\s*\/\*|\*\/\s*$)/;
 	// Warning: Do not be tempted to search for "  //" mid-line.  Yes that could indicate an appended comment, but it could just as easily be part of a string on a line which requires semicolon injection!
 
@@ -69,7 +68,11 @@ class Root {
 	// static var trailingCommentSafeRE = new EReg("^(.*)(\\s*//.*)$",'');
 	// NOTE: trailingCommentSafeRE may need more checks if "//" can appear outside a string literal, e.g. inside a regexp literal.
 
-	static var testStringTryingToCauseTrouble = "blah // ";
+	//// Uncomment these to cause trouble!
+	// static var indentREJSTEST = "    = /^\\s*/";
+	// static var startsWithCurlyReplacer : EReg = ~/}\s*/;   // We don't want to strip the indent
+	//// Older problems which we have fixed:
+	// static var testStringTryingToCauseTrouble = "blah // ";
 
 	//// Almost certainly a regexp literal (JS or Haxe) which ends in */ which is not a comment ending!
 	// public static var looksLikeRegexpLineWithEndComment : EReg = ~/=[ \t]*~?\/[^\/].*\*\/;?\s*$/;
@@ -140,7 +143,8 @@ class Root {
 		var endsWithCurly : EReg = ~/\s*{\s*$/;
 		// And lines which start with a closing curly brace
 		var startsWithCurly : EReg = ~/^\s*}\s*/;
-		var startsWithCurlyReplacer : EReg = ~/}\s*/;   // We don't want to strip the indent
+		// We don't want to strip the indent
+		var startsWithCurlyReplacer : EReg = ~/}\s*/;
 		// And sometimes lines ending in a semicolon.
 		var endsWithSemicolon : EReg = ~/\s*;\s*$/;
 
