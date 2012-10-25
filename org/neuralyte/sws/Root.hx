@@ -38,6 +38,8 @@ class Root {
 
 	static var validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc" ];   // "jpp"
 
+	static var skipFoldersNamed = [ "CVS", ".git" ];
+
 	static var safeSyncMakeBackups  = true;
 	static var safeSyncCheckInverse = true;
 
@@ -46,6 +48,7 @@ class Root {
 
 	public static var emptyOrBlank : EReg = ~/^\s*$/;
 	static var indentRE : EReg = ~/^\s*/;
+	static var indentREJSTEST = "    = /^\\s*/";
 	static var wholeLineIsCommentRE : EReg = ~/(^\s*\/\/|^\s*\/\*|\*\/\s*$)/;
 	// Warning: Do not be tempted to search for "  //" mid-line.  Yes that could indicate an appended comment, but it could just as easily be part of a string on a line which requires semicolon injection!
 
@@ -68,8 +71,10 @@ class Root {
 
 	static var testStringTryingToCauseTrouble = "blah // ";
 
-	static var couldbeRegexp : EReg = ~/=[ \t]*~?\/[^\/].*\*\/\s*$/;
-	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //
+	// public static var looksLikeRegexpLineWithEndComment : EReg = ~/=[ \t]*~?\/[^\/].*\*\/\s*$/;
+	public static var looksLikeRegexpLine : EReg = ~/=[ \t]*~?\/[^\/].*\//;
+	public static var couldbeRegexp : EReg = ~/~?\/[^\/].*\//;
+	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //.  It does not notice regexps declares without assignment, e.g. passed immediately.
 
 
 	static function main() {
@@ -114,7 +119,7 @@ class Root {
 
 	}
 
-	static function echo(s : String) {
+	public static function echo(s : String) {
 		// trace(s);
 		File.stdout().writeString(s + newline);
 	}
@@ -261,8 +266,8 @@ class Root {
 			var wholeLineIsComment = wholeLineIsCommentRE.match(currentLine);
 			if (wholeLineIsComment) {
 				// Now a nasty fudge for lines ending */ because they are a Haxe EReg or Javascript RegExp literal, not a comment.
-				var lineCouldbeRegexp = couldbeRegexp.match(currentLine);
-				if (lineCouldbeRegexp) {
+				var lineLikelyToBeRegexpDefinition = looksLikeRegexpLine.match(currentLine);
+				if (lineLikelyToBeRegexpDefinition) {
 					wholeLineIsComment = false;
 					// echo("Looked like a comment, but could be a regexp: "+currentLine);
 				}
@@ -435,7 +440,11 @@ class Root {
 	}
 
 	// TODO: Does Haxe have a better way to return tuples, or use "out" arguments like UScript or &var pointers like C?
-	static function splitLineAtComment(line : String) {
+	public static function splitLineAtComment(line : String) {
+		// Regexps can end in ...\// - we do not want to split on that!
+		if (looksLikeRegexpLine.match(line)) {
+			return [line,""];
+		}
 		var hasTrailingComment = trailingCommentSafeRE.match(line);
 		// Actually it might only be trailing after indentation, no content!
 		if (!hasTrailingComment) {
@@ -569,8 +578,10 @@ class Root {
 		for (child in children) {
 			var childPath = root + pathSeparator + child;
 			if (FileSystem.isDirectory(childPath)) {
-				// echo("Descending to folder: "+childPath);
-				forAllFilesBelow(childPath,fn);
+				if (!skipFoldersNamed.has(child)) {
+					// echo("Descending to folder: "+childPath);
+					forAllFilesBelow(childPath,fn);
+				}
 			} else {
 				fn(childPath);
 			}
@@ -701,11 +712,28 @@ class CommentTrackingReader extends HelpfulReader {
 		if (line == null) {
 			return line;
 		}
+		var res = Root.splitLineAtComment(line);
+		var lineBeforeComment = res[0];
+		var trailingComment = res[1];
 		if (lineOpensCommentRE.match(line)) {
-			insideComment = true;
+			if (Root.looksLikeRegexpLine.match(line)) {
+				// Root.echo("Looks like regexp literal; assuming not a comment start: "+line);
+			} else {
+				insideComment = true;
+				if (Root.couldbeRegexp.match(lineBeforeComment)) {
+					Root.echo("Warning: looks like start of comment block but could be regexp!  "+line);
+				}
+			}
 		}
 		if (lineClosesCommentRE.match(line)) {
-			insideComment = false;
+			if (Root.looksLikeRegexpLine.match(line)) {
+				// Root.echo("Looks like regexp literal; assuming not a comment end: "+line);
+			} else {
+				insideComment = false;
+				if (Root.couldbeRegexp.match(lineBeforeComment)) {
+					Root.echo("Warning: looks like end of comment block but could be regexp!  "+line);
+				}
+			}
 		}
 		return line;
 	}

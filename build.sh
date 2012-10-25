@@ -11,5 +11,8 @@ set -x
 
 haxe -main org/neuralyte/sws/Root.hx -neko sws.n
 
-nekotools boot sws.n
+# nekotools boot sws.n
+if ! nekotools boot sws.n
+then errcode="$?" ; echo "Problem with nekotools" ; exit "$errcode"
+fi
 
