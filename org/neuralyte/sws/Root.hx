@@ -326,6 +326,10 @@ class Root {
 
 			if (indent_of_nextNonEmptyLine > currentIndent) {
 
+				if (indent_of_nextNonEmptyLine > currentIndent+1) {
+					echo("Warning: Unexpected double indent on: "+nextNonEmptyLine);
+				}
+
 				// Assumption: indent never increases by more than one
 				// Append open curly to current line
 				// Then write it
@@ -499,7 +503,7 @@ class Root {
 			if (couldbeRegexpEndingSlashSlash.match(line)) {
 				// Root.echo("Warning: looks like a // comment but could be regexp!  "+line);
 				// This regexp is less ambiguous now - let's trust it and do-the-right-thing by ignoring the //.
-				Root.echo("Warning: could be a // comment but probably actually a regexp!  "+line);
+				Root.echo("Debug: could be a // comment but probably actually a regexp!  "+line);
 				return [line,""];
 			}
 			// trace("Line has trailing comment!  "+line);
@@ -815,7 +819,7 @@ class CommentTrackingReader extends HelpfulReader {
 			if (openBracketCount == closeBracketCount) {
 				// Let's not cause a fuss if we don't have to.
 			} else {
-				Root.echo("Not trusting the parentheses on this line: "+line);
+				Root.echo("Debug: Not trusting the parentheses on this line: "+line);
 			}
 			// TODO: Perhaps we can count how many are inside "s, how many are inside 's and thus deduce how many are left outside?
 			// Ofc we have also forgotten (s or )s inside Regexp literals.
