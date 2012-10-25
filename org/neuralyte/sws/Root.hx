@@ -42,13 +42,14 @@ class Root {
 	//           new {...} blocks should work fine provided they are in the middle of an otherwise unbroken line.  (They do require at least one trailing that is not '}' or ';'.)
 	// static var blockLeadSymbol = null;
 	// static var blockLeadSymbol = ":";         // Like Python
-	// static var blockLeadSymbol = " :";        // But looks rather odd in Haxe, which may already end : Type
-	// static var blockLeadSymbol = " =";
-	// static var blockLeadSymbol = " {";         // lol this actually works without error
-	static var blockLeadSymbol = " =>";
+	// static var blockLeadSymbol = " :";        // But : looks rather odd in Haxe, where function lines may already end in ": Type"
+	// static var blockLeadSymbol = " =";        // Quite passable, although not as true as when CS defines functions this way.
+	// static var blockLeadSymbol = " {";        // hehe this actually works without error; of course no matching } is introduced
+	static var blockLeadSymbol = " =>";          // I like this for HaXe
 	// Use blockLeadSymbolContraIndicatedRE if you only want blockLeadSymbol on function declarations (i.e. none of the things mentioned here).
 	static var blockLeadSymbolContraIndicatedRE = ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/;
 	// static var blockLeadSymbolContraIndicatedRE = null;
+	static var blockLeadSymbolIndicatedRE = ~/(\s|^)function\s/;
 
 	// static var newline : String = "\r\n";
 	static var newline : String = "\n";
@@ -231,7 +232,8 @@ class Root {
 						line = endsWithCurly.replace(line,"");
 						if (blockLeadSymbol != null && (blockLeadSymbolContraIndicatedRE==null || !blockLeadSymbolContraIndicatedRE.match(line))) {
 							line += blockLeadSymbol;
-							if (line.indexOf("function") == -1) {
+							// if (line.indexOf("function") == -1) {
+							if (!blockLeadSymbolIndicatedRE.match(line)) {
 								echo("Debug: Did not find blockLeadSymbolContraIndicated OR \"function\".  "+line);
 							}
 							// This may look rather if the "{" was on a line on its own, now the ":" will be too.  To avoid it, we would have to recall the last newline we emitted, so we can append to the previous line.  Although if javaStyleCurlies is set, that should cleanup after two runs.
