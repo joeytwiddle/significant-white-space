@@ -31,6 +31,12 @@ class Root {
 
 	static var javaStyleCurlies : Bool = true;
 	static var addRemoveSemicolons : Bool = true;
+	static var doNotCurlMultiLineParentheses : Bool = false;
+	// doNotCurlMultiLineParentheses:
+	//   true - You can write multi-line expressions with (...)
+	//          but you will not be able to create curly indented blocks within them
+	//   false - Multi-line expressions will be subject to curling and SCI, with or without (...)
+	//           new {...} blocks should work fine provided they are in the middle of an otherwise unbroken line.  (They do require at least one trailing that is not '}' or ';'.)
 
 	// static var newline : String = "\r\n";
 	static var newline : String = "\n";
@@ -68,6 +74,7 @@ class Root {
 	//// Even if it did work on 's, it still doesn't work on escaped \" within a "..." string, or the equivalent for 's.
 	// static var evenNumberOfQuotes = '(('+"[^'\"]*'[^']*'[^'\"]*"+'|[^"\']*"[^"]*"[^"\']*'+')*|[^"]*)';
 	// static var forExample = "This \" will break";   // if we follow it with a comment
+	// TODO: We should also check the //s are outside of an even number of 's
 	static var trailingCommentSafeRE = new EReg("^("+evenNumberOfQuotes+")(\\s*//.*)$",'');
 	// Unfortunately this regexp is greedy and eats all the spaces in the first () leaving none in the last ().  This problem is addressed by splitLineAtComment.
 	// TODO: If // is a trailing comment then we should probably assume that /* is too.  Looking at this line right here, we can see we really want to match the first occurrence!
@@ -251,9 +258,12 @@ class Root {
 
 			var isInsideBrackets = helper.depthInsideParentheses > 0;
 
-			// If we are inside a multi-line /* ... */ block or if ( ... ) block, then we do not want to do any indent-based curling or semicolon insertion.  (TODO: That is not strictly true, in many languages we could open an inner block, e.g. in JS function(){ ... }, or inline anonymous implementation of interface in Java and Haxe.)
-			// For the moment, just skip the entire line.
-			if (wasInsideComment || isInsideBrackets) {
+			// If we are inside a multi-line /* ... */ block or if ( ... ) block, then we do not want to do any indent-based curling or semicolon insertion.
+			// BUG TODO: That is not strictly true, in many languages we can open blocks inside expressions, e.g. in JS function(){ ... }, or inline anonymous implementation of interface in Java and Haxe.  I'm sure you agree it will be pretty hard to detect that in decurled files.  This is something of a "show-stopper" for Javascript, where anonymous callback functions are often passed directly to function calls.  Therefore, probably for Javascript we should *reject* parentheses from affecting curling&SCI, pushing the problem back to multi-line expressions (indented or otherwise).
+			// It may be worth nothing that we hadn't fully solved multi-line expressions anyway, specifically any *not* wrapped in brackets (...).
+			// I feel so much better about this whole business having document doNotCurlMultiLineParentheses.  One feature or the other is a fair conclusion.
+			if (wasInsideComment || (isInsideBrackets && doNotCurlMultiLineParentheses)) {
+				// For the moment, just skip the entire line.
 				output.writeString(currentLine + newline);
 				continue;
 			}
@@ -348,11 +358,13 @@ class Root {
 				//   in either braces style, any blank lines between us and the next line can be outputted *before* the } we are about to write.
 				// I am not quite sure how this should work on multiple outdents - for now only trying delayLastCurly on the last.  Yes that is right.
 				// Other things which like to trail after closing } is the name following a "typedef struct { ... } Name;".  Since that name could be anything, we could look for just one word, but then that would misfire on other single words like "break" "continue" "debugger" and "i++"!
+				// Now added ')' and ',' as tokens for joining too.
 				if (nextNonEmptyLine != null) {
 					var tokens = leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
 					var firstToken = tokens[0];
-					if (continuationKeywords.has(firstToken) || firstToken.charAt(0)==')') {
+					if (continuationKeywords.has(firstToken) || firstToken.charAt(0)==')' || firstToken.charAt(0)==',') {
 						delayLastCurly = true;
+						// TODO: Certainly in the ',' and maybe in the ')' case, we do not really want to add a space after the curly when we print it later.  However in the "else" and "catch" cases we must.
 					}
 				}
 				// DONE: One other situation where we might want to join lines, is when the next symbol after the "}" is a ")".  (Consider restriction: Only if that ")" line has the same indent as our "}" line would?)
@@ -750,7 +762,7 @@ class CommentTrackingReader extends HelpfulReader {
 
 	public var insideComment : Bool; // = false;
 
-	// Let's also track parenthesis noobishly
+	// Let's also track parentheses noobishly
 
 	public static var parenthesisInsideQuotes = ~/[^"]*"[^"]*[()][^"]*"/;
 	public static var parenthesisInsideApostrophes = ~/[^']*'[^']*[()][^']*"/;
@@ -797,11 +809,11 @@ class CommentTrackingReader extends HelpfulReader {
 		var openBracketCount = countInString(lineBeforeComment,"(".code);
 		var closeBracketCount = countInString(lineBeforeComment,")".code);
 		if (parenthesisInsideQuotes.match(lineBeforeComment) || parenthesisInsideApostrophes.match(lineBeforeComment)) {
-			// Root.echo("I am not trusting the parenthesis on this line, although their could be some!");
+			// Root.echo("I am not trusting the parentheses on this line, although their could be some!");
 			if (openBracketCount == closeBracketCount) {
 				// Let's not cause a fuss if we don't have to.
 			} else {
-				Root.echo("Not trusting the parenthesis on this line: "+line);
+				Root.echo("Not trusting the parentheses on this line: "+line);
 			}
 			// TODO: Perhaps we can count how many are inside "s, how many are inside 's and thus deduce how many are left outside?
 			// Ofc we have also forgotten (s or )s inside Regexp literals.
