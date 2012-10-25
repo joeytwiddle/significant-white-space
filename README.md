@@ -77,6 +77,18 @@ If no argument is provided, sws sync will search everything below the current fo
 
 Sync searches the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This allows the user to edit files in either format, without having to worry about the direction in which changes will be propagated!  Thus a single project can be edited both through its sws files, and through its traditional files, for example using an IDE such as Eclipse.
 
+## Temporary
+
+Curl and decurl are minimal; they do their job and exit.  Sync however does some extra checking, and right now this checking is exposed in:
+
+    % sws safedecurl <curly_file> <sws_file>
+
+This will probably change to something neater in the future:
+
+    % sws --test decurl <curly_file> <sws_file>
+
+The checking it does is to invert the generated sws_file and see if it exactly matches the original curly file (which it rarely does the first time you try it!).
+
 
 
 ------------------------------
@@ -98,6 +110,9 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 - Better spacing heuristics when closing curlies.
 - Filthy regexps to find trailing comments without matching comment-like text in string literals.
 - Better handling of trailing comments, by splitting and rejoining line.
+
+- Rudimentary tracking of `/* ... */` blocks and `( ... )` blocks.
+- Multi-line expressions are now possible, but must be wrapped inside `( ... )` (otherwise they are likely to suffer semicolon injection or indent-based curlies).
 
 
 

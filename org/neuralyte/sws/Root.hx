@@ -23,6 +23,8 @@ using Lambda;
 
 // TODO: Uses of .insideComment may not deal well with cases of mixed comment/code lines.
 
+// TODO: Track input file line numbers, and use these when printing warnings.
+
 class Root {
 
 	// Options:
@@ -86,6 +88,10 @@ class Root {
 	public static var looksLikeRegexpLine : EReg = ~/=[ \t]*~?\/[^\/].*\/;?\s*$/;
 	//// Might be a regexp literal, not neccessarily assigned; uncertain.
 	public static var couldbeRegexp : EReg = ~/~?\/[^\/].*\//;
+	// public static var couldbeRegexpEndingSlashSlash : EReg = ~/~?\/[^\/].*\/\//;
+	// We allow slash inside quotes.  We fail to check for an even number of 's, or mask /s inside them!
+	static var evenNumberOfQuotesWithNoSlashes = '(([^"/]*"[^"]*"[^"/]*)*|[^"/]*)';
+	public static var couldbeRegexpEndingSlashSlash : EReg = new EReg("^"+evenNumberOfQuotesWithNoSlashes+"~?\\/[^\\/].*\\/\\/",'');
 	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //.  It does not notice regexps declares without assignment, e.g. passed immediately.
 
 
@@ -107,6 +113,10 @@ class Root {
 
 				decurl(args[1], args[2]);
 
+			} else if (args[0] == "safedecurl") {
+
+				doSafely(decurl, args[1], args[2], curl);
+
 			} else if (args[0] == "sync") {
 
 				if (args[1] != null) {
@@ -123,8 +133,8 @@ class Root {
 
 		} catch (ex : Dynamic) {
 			echo("Caught exception: "+ex);
-			return 5;
-			// TODO: This is not being set as the exit code ... we must use neko.Sys?
+			// TODO: Where do they keep the damn stacktrace?!  ex is just a string
+			return 5; // TODO: This is not being set as the exit code ... we must use neko.Sys?
 		}
 
 		return 0;
@@ -463,15 +473,21 @@ class Root {
 
 	// TODO: Does Haxe have a better way to return tuples, or use "out" arguments like UScript or &var pointers like C?
 	public static function splitLineAtComment(line : String) {
-		// Regexps can end in ...\// - we do not want to split on that!
-		if (looksLikeRegexpLine.match(line)) {
-			return [line,""];
-		}
 		var hasTrailingComment = trailingCommentSafeRE.match(line);
 		// Actually it might only be trailing after indentation, no content!
 		if (!hasTrailingComment) {
 			return [line,""];
 		} else {
+			// Regexps can end in ...\// - we do not want to split on that!
+			if (looksLikeRegexpLine.match(line)) {
+				return [line,""];
+			}
+			if (couldbeRegexpEndingSlashSlash.match(line)) {
+				// Root.echo("Warning: looks like a // comment but could be regexp!  "+line);
+				// This regexp is less ambiguous now - let's trust it and do-the-right-thing by ignoring the //.
+				Root.echo("Warning: could be a // comment but probably actually a regexp!  "+line);
+				return [line,""];
+			}
 			// trace("Line has trailing comment!  "+line);
 			var beforeComment = trailingCommentSafeRE.matched(1);
 			var afterComment = trailingCommentSafeRE.matched(4);
@@ -732,9 +748,12 @@ class CommentTrackingReader extends HelpfulReader {
 	public static var lineOpensCommentRE = ~/.*\/\*.*/;
 	public static var lineClosesCommentRE = ~/.*\*\/.*/;
 
+	public var insideComment : Bool; // = false;
+
 	// Let's also track parenthesis noobishly
 
-	public var insideComment : Bool; // = false;
+	public static var parenthesisInsideQuotes = ~/[^"]*"[^"]*[()][^"]*"/;
+	public static var parenthesisInsideApostrophes = ~/[^']*'[^']*[()][^']*"/;
 
 	public var depthInsideParentheses : Int; // = false;
 
@@ -777,7 +796,21 @@ class CommentTrackingReader extends HelpfulReader {
 		// TODO: We should really be counting parentheses *outside* string and regexp literals!
 		var openBracketCount = countInString(lineBeforeComment,"(".code);
 		var closeBracketCount = countInString(lineBeforeComment,")".code);
-		depthInsideParentheses += (openBracketCount - closeBracketCount);
+		if (parenthesisInsideQuotes.match(lineBeforeComment) || parenthesisInsideApostrophes.match(lineBeforeComment)) {
+			// Root.echo("I am not trusting the parenthesis on this line, although their could be some!");
+			if (openBracketCount == closeBracketCount) {
+				// Let's not cause a fuss if we don't have to.
+			} else {
+				Root.echo("Not trusting the parenthesis on this line: "+line);
+			}
+			// TODO: Perhaps we can count how many are inside "s, how many are inside 's and thus deduce how many are left outside?
+			// Ofc we have also forgotten (s or )s inside Regexp literals.
+			// And our "-pairing regexps cannot handle \" inside them, likewise for '...\'...'
+		} else {
+			depthInsideParentheses += (openBracketCount - closeBracketCount);
+		}
+
+		// Root.echo("["+depthInsideParentheses+"] "+line);
 
 		return line;
 	}
