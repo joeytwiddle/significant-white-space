@@ -44,6 +44,7 @@ class Root {
 	//           new {...} blocks should work fine provided they are in the middle of an otherwise unbroken line.  (They do require at least one trailing that is not '}' or ';'.)
 	static var doNotCurlMultiLineParentheses : Bool = false;
 
+	// Rename: useCoffeeFunctionSymbolForAnonymousFunctions
 	static var useCoffeeFunctions : Bool = true;
 
 	// static var blockLeadSymbol = null;
