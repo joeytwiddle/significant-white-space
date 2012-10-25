@@ -27,33 +27,46 @@ using Lambda;
 
 // TODO: We could suppress warnings for JS regexps if we know we're working in Haxe or Java.
 
+// TODO: We are still stripping ;s from commented lines with extra trailing comments (see blockLeadSymbol)
+
 class Root {
 
-	// Options:
+	// Options {{{
 
 	static var javaStyleCurlies : Bool = true;
+
 	static var addRemoveSemicolons : Bool = true;
-	static var doNotCurlMultiLineParentheses : Bool = false;
-	static var useCoffeeFunctions : Bool = true;
+
 	// doNotCurlMultiLineParentheses:
 	//   true - You can write multi-line expressions with (...)
 	//          but you will not be able to create curly indented blocks within them
 	//   false - Multi-line expressions will be subject to curling and SCI, with or without (...)
 	//           new {...} blocks should work fine provided they are in the middle of an otherwise unbroken line.  (They do require at least one trailing that is not '}' or ';'.)
+	static var doNotCurlMultiLineParentheses : Bool = false;
+
+	static var useCoffeeFunctions : Bool = true;
+
 	// static var blockLeadSymbol = null;
 	// static var blockLeadSymbol = ":";         // Like Python
 	// static var blockLeadSymbol = " :";        // But : looks rather odd in Haxe, where function lines may already end in ": Type"
 	// static var blockLeadSymbol = " =";        // Quite passable, although not as true as when CS defines functions this way.
 	// static var blockLeadSymbol = " {";        // hehe this actually works without error; of course no matching } is introduced
 	static var blockLeadSymbol = " =>";          // I like this for HaXe
+
+	//// s/Indicated/Wanted/g ?
+	// static var blockLeadSymbolContraIndicatedRE = null;
+	static var blockLeadSymbolIndicatedRE = ~/(\s|^)function\s/;         // Catches non-anonymous function declarations in HaXe (e.g. within a class).  Anonymous functions differ in that they are handled by useCoffeeFunctions.  TODO: What about Java?;
+	// static var blockLeadSymbolIndicatedRE = ~/(\s|^)(if|while|.*)/;   // Not sure when Python users want their ":"s
+
 	// Use blockLeadSymbolContraIndicatedRE if you only want blockLeadSymbol on function declarations (i.e. none of the things mentioned here).
 	static var blockLeadSymbolContraIndicatedRE = ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/;
-	// static var blockLeadSymbolContraIndicatedRE = null;
-	static var blockLeadSymbolIndicatedRE = ~/(\s|^)function\s/;
+	// static var blockLeadSymbolContraIndicatedRE = null;   // Not sure when Python users want their ":"s
 
 	// static var newline : String = "\r\n";
 	static var newline : String = "\n";
 	static var pathSeparator = "/";
+
+	// }}}
 
 
 
@@ -240,7 +253,7 @@ class Root {
 							if (indicated) {
 								line += blockLeadSymbol;
 							}
-							// This may look rather if the "{" was on a line on its own, now the ":" will be too.  To avoid it, we would have to recall the last newline we emitted, so we can append to the previous line.  Although if javaStyleCurlies is set, that should cleanup after two runs.
+							// This may look rather odd if the "{" was on a line on its own, now the ":" will be too.  To avoid it, we would have to recall the last newline we emitted, so we can append to the previous line.  Although if javaStyleCurlies is set, this may clean itself up after two runs.
 						}
 						if (emptyOrBlank.match(line + trailingComment)) {
 							continue;
