@@ -71,10 +71,10 @@ class Root {
 
 	static var testStringTryingToCauseTrouble = "blah // ";
 
-	//// Almost certainly a regexp literal (JS or Haxe) which contains a */ which is not a comment ending!
-	// public static var looksLikeRegexpLineWithEndComment : EReg = ~/=[ \t]*~?\/[^\/].*\*\/\s*$/;
+	//// Almost certainly a regexp literal (JS or Haxe) which ends in */ which is not a comment ending!
+	// public static var looksLikeRegexpLineWithEndComment : EReg = ~/=[ \t]*~?\/[^\/].*\*\/;?\s*$/;
 	//// Almost certainly a regexp literal assignment.
-	public static var looksLikeRegexpLine : EReg = ~/=[ \t]*~?\/[^\/].*\//;
+	public static var looksLikeRegexpLine : EReg = ~/=[ \t]*~?\/[^\/].*\/;?\s*$/;
 	//// Might be a regexp literal, not neccessarily assigned; uncertain.
 	public static var couldbeRegexp : EReg = ~/~?\/[^\/].*\//;
 	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //.  It does not notice regexps declares without assignment, e.g. passed immediately.
