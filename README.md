@@ -113,7 +113,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - Rudimentary tracking of `/* ... */` blocks and `( ... )` blocks.  Multi-line comments should now cause fewer issues.
 - Multi-line expressions are now possible, but must be wrapped inside `( ... )` (otherwise they are likely to suffer semicolon injection or indent-based curlies).
-- You can now enable useCoffeeFunctions, to convert between JS/Haxe anonymous functions `function(a,b) { ... }` and Coffeescript style functions `(a,b) -> ...` in the sws file.  One-line function declarations may work in HaXe which does not require `{...}`, but in Javascript sws they must be newlined and indented, in order to receive their `{...}` wrappers on curling.
+- You can now enable useCoffeeFunctions, to convert between *anonymous* JS/Haxe functions `function(a,b) { ... }` and Coffeescript style functions `(a,b) -> ...` in the sws file.  When declaring a single-line function in JS, curlies must be retained in the sws, e.g. `(x) ->{ return 2*x; }` whilst Haxe does not need these.
 
 
 
