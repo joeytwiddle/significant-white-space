@@ -70,18 +70,20 @@ class Root {
 	// static var evenNumberOfQuotes = '([^"]*"[^"]*"[^"]*|[^"]*)*';
 	//// This ensures an even number of " chars, but not an even number of ' chars.  Since one may contain the other, we really can't do this without a proper parser.
 	static var evenNumberOfQuotes = '(([^"]*"[^"]*"[^"]*)*|[^"]*)';
+	static var evenNumberOfApostrophes = (~/"/g).replace(evenNumberOfQuotes,"'");
 	//// This is an attempt to catch an even number of both, but for some reason it works on "s but not 's.
 	//// Even if it did work on 's, it still doesn't work on escaped \" within a "..." string, or the equivalent for 's.
 	// static var evenNumberOfQuotes = '(('+"[^'\"]*'[^']*'[^'\"]*"+'|[^"\']*"[^"]*"[^"\']*'+')*|[^"]*)';
 	// static var forExample = "This \" will break";   // if we follow it with a comment
-	// TODO: We should also check the //s are outside of an even number of 's
-	static var trailingCommentSafeRE = new EReg("^("+evenNumberOfQuotes+")(\\s*//.*)$",'');
+	// DONE: We should also check the //s are outside of an even number of 's
+	static var trailingCommentOutsideQuotes = new EReg("^("+evenNumberOfQuotes+")(\\s*//.*)$",'');
+	static var trailingCommentOutsideApostrophes = new EReg("^("+evenNumberOfApostrophes+")(\\s*//.*)$",'');
 	// Unfortunately this regexp is greedy and eats all the spaces in the first () leaving none in the last ().  This problem is addressed by splitLineAtComment.
 	// TODO: If // is a trailing comment then we should probably assume that /* is too.  Looking at this line right here, we can see we really want to match the first occurrence!
 	// In the general case, a line might contain any number of /*...*/ blocks, and then a // at the end, and maybe even a leading */ or trailing /*!  Can we handle that?  ^^
 	// This version is unsafe:
-	// static var trailingCommentSafeRE = new EReg("^(.*)(\\s*//.*)$",'');
-	// NOTE: trailingCommentSafeRE may need more checks if "//" can appear outside a string literal, e.g. inside a regexp literal.
+	// static var trailingCommentOutsideQuotes = new EReg("^(.*)(\\s*//.*)$",'');
+	// NOTE: trailingCommentOutsideQuotes may need more checks if "//" can appear outside a string literal, e.g. inside a regexp literal.
 
 	//// Uncomment these to cause trouble!
 	// static var indentREJSTEST = "    = /^\\s*/";
@@ -311,7 +313,7 @@ class Root {
 			// But it could be a regexp line with a trailing comment!
 			/*
 			if (!wholeLineIsComment) {
-				var containsTrailingComment = trailingCommentSafeRE.match(currentLine);
+				var containsTrailingComment = trailingCommentOutsideQuotes.match(currentLine);
 				if (containsTrailingComment) {
 					// trace("Found trailing comment on: "+currentLine);
 					// wholeLineIsComment = true;
@@ -485,7 +487,7 @@ class Root {
 
 	// TODO: Does Haxe have a better way to return tuples, or use "out" arguments like UScript or &var pointers like C?
 	public static function splitLineAtComment(line : String) {
-		var hasTrailingComment = trailingCommentSafeRE.match(line);
+		var hasTrailingComment = trailingCommentOutsideQuotes.match(line) && trailingCommentOutsideApostrophes.match(line);
 		// Actually it might only be trailing after indentation, no content!
 		if (!hasTrailingComment) {
 			return [line,""];
@@ -501,8 +503,8 @@ class Root {
 				return [line,""];
 			}
 			// trace("Line has trailing comment!  "+line);
-			var beforeComment = trailingCommentSafeRE.matched(1);
-			var afterComment = trailingCommentSafeRE.matched(4);
+			var beforeComment = trailingCommentOutsideQuotes.matched(1);
+			var afterComment = trailingCommentOutsideQuotes.matched(4);
 			// trace("beforeComment = "+beforeComment);
 			// trace("afterComment="+afterComment);
 			// Deal with annoying greediness: move the spaces from the end of beforeComment into the front of afterComment.
