@@ -392,7 +392,13 @@ class Root {
 						}
 						for (j in 0...numEmptyLinesRequired) {
 							var peekLine = helper.peekLine(j+1);
-							if (peekLine == null || !emptyOrBlank.match(peekLine)) {
+							if (peekLine == null) {
+								// An exception.  EOF pretends to be 1 blank line.
+								if (j < numEmptyLinesRequired - 1) {
+									spaceCurly = false;
+								}
+								break;
+							} else if (!emptyOrBlank.match(peekLine)) {
 								spaceCurly = false;
 								break;
 							}
