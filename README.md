@@ -1,7 +1,7 @@
 # SWS - Significant Whitespace
 ==============================
 
-SWS is a preprocessor for traditional curly-brace languages (C, Java, Javascript, Haxe) which can perform transformation of source-code files to and from meaningful-indentation style (as seen in Coffescript and Python).
+SWS is a preprocessor for traditional curly-brace languages (C, Java, Javascript, HaXe) which can perform transformation of source-code files to and from meaningful-indentation style (as seen in Coffescript and Python).
 
 In well-indented code the `{` and `}` block markers are effectively redundant.  SWS allows you to code without them, using indentation alone to indicate blocks, and adds the curly braces in for you later.
 
@@ -42,7 +42,7 @@ into the more traditional style:
 
 Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.
 
-SWS is written in Haxe.  Currently we build an executable binary via Neko, but you may be able to export the tool to Java or Javascript.
+SWS is written in HaXe.  Currently we build an executable binary via Neko, but you may be able to export the tool to Java or Javascript.
 
 
 
@@ -111,8 +111,9 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 - Filthy regexps to find trailing comments without matching comment-like text in string literals.
 - Better handling of trailing comments, by splitting and rejoining line.
 
-- Rudimentary tracking of `/* ... */` blocks and `( ... )` blocks.
+- Rudimentary tracking of `/* ... */` blocks and `( ... )` blocks.  Multi-line comments should now cause fewer issues.
 - Multi-line expressions are now possible, but must be wrapped inside `( ... )` (otherwise they are likely to suffer semicolon injection or indent-based curlies).
+- You can now enable useCoffeeFunctions, to convert between JS/Haxe anonymous functions `function(a,b) { ... }` and Coffeescript style functions `(a,b) -> ...` in the sws file.  One-line function declarations may work in HaXe which does not require `{...}`, but in Javascript sws they must be newlined and indented, in order to receive their `{...}` wrappers on curling.
 
 
 
@@ -140,6 +141,12 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 - We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
 
 - The header line of a block (e.g. class and function declarations) are stripped of all symbols, and this looks a bit odd.  In Python indented blocks are always preceeded by a `:`, and in Coffeescript either a `:` or an `=` (not true of classes).  We could give users the option of initialising blocks with a `:`.  Although one might still argue that such symbols are as redundant as curly braces, given significant indenting whitespace!
+
+- The double-indent problem could be addressed by *expecting* multi-line `(...)` to cause an indent.
+
+- We could allow multi-line expression in sws source with a \ at the end of the line, which could be stripped for languages that won't accept it.  But this would leave the problem of when to introduce \s on the decurling to sws.
+
+- Our options are: either *ban* multi-line expressions or write a proper lexer to find `{...}` nodes below `(...)`s.
 
 
 
@@ -191,6 +198,10 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 - Since indentation is required to create curlies `{` `}`, if you attempt to create a class or function (or any block) with an empty body, you had better add an indented dummy line too (e.g. a comment) or you won't get curlies (and with SCI you will get a semicolon).
 
 - In Javascript, object and function definitions sometimes end with `};`.  When semicolon removal/injection is enabled, both these tokens will be stripped when decurling to sws, and the semicolon will *not* be re-introduced on curling.  However the semicolon can be retained by wrapping the definition in brackets, leaving a third symbol on the last line: `} );`
+
+- You must choose between allowing multi-line expressions (provided they are wrapped in `(`...`)`) or allowing the definition of new indented blocks within `(`...`)` expressions.  For languages where you often declare anonymous functions or implementations and pass them immediately, you probably want the latter.  The option is currently called doNotCurlMultiLineParentheses.  Perhaps we can track a stack of what nested blocks we are in (e.g. `"{{{(({"`), although since we have no `{`s in sws files, `{` must be always implied by indentation, but at least we can avoid semicolon injection in flat or only-partially-indented multi-line expressions.
+
+- For the moment you will not have much joy with `#ifdef` preprocessor macros.  They will suffer from semicolon and experience curly insertion just like normal code if their bodies are indented. 
 
 - I have not thought about how one would declare a typedef struct.  That should work fine, although the final outer text will get pushed onto its own line after the closing `}`.
 

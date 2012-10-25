@@ -25,6 +25,8 @@ using Lambda;
 
 // TODO: Track input file line numbers, and use these when printing warnings.
 
+// TODO: We could suppress warnings for JS regexps if we know we're working in Haxe or Java.
+
 class Root {
 
 	// Options:
@@ -32,6 +34,7 @@ class Root {
 	static var javaStyleCurlies : Bool = true;
 	static var addRemoveSemicolons : Bool = true;
 	static var doNotCurlMultiLineParentheses : Bool = false;
+	static var useCoffeeFunctions : Bool = true;
 	// doNotCurlMultiLineParentheses:
 	//   true - You can write multi-line expressions with (...)
 	//          but you will not be able to create curly indented blocks within them
@@ -48,7 +51,7 @@ class Root {
 
 	static var continuationKeywords = [ "else", "catch" ];
 
-	static var validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc" ];   // "jpp"
+	static var validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ];   // "jpp"
 
 	static var skipFoldersNamed = [ "CVS", ".git" ];
 
@@ -102,6 +105,13 @@ class Root {
 	static var evenNumberOfQuotesWithNoSlashes = '(([^"/]*"[^"]*"[^"/]*)*|[^"/]*)';
 	public static var couldbeRegexpEndingSlashSlash : EReg = new EReg("^"+evenNumberOfQuotesWithNoSlashes+"~?\\/[^\\/].*\\/\\/",'');
 	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //.  It does not notice regexps declares without assignment, e.g. passed immediately.
+
+	// The first char matched is to ensure function starts at a word boundary, i.e. not res = my_favourite_function(a,b,c);
+	public static var anonymousFunctionRE = ~/([^a-zA-Z0-9])function\s*([(][a-zA-Z0-9@$_, 	]*[)])/g;
+	public static var anonymousFunctionReplace = "$1$2 ->";
+
+	public static var anonymousCoffeeFunctionRE = ~/([(][a-zA-Z0-9@$_, 	]*[)])\s*->/g;
+	public static var anonymousCoffeeFunctionReplace = "function $1";
 
 
 	static function main() {
@@ -164,6 +174,8 @@ class Root {
 
 	static function decurl(infile : String, outfile : String) {
 
+		// TODO: Count number of in/out curlies swallowed, and compare them against indent.  Warn when they do not look right!
+
 		// We detect lines which end with an opening curly brace
 		var endsWithCurly : EReg = ~/\s*{\s*$/;
 		// And lines which start with a closing curly brace
@@ -215,6 +227,12 @@ class Root {
 
 					if (addRemoveSemicolons && endsWithSemicolon.match(line)) {
 						line = endsWithSemicolon.replace(line,"");
+					}
+
+					if (useCoffeeFunctions) {
+						if (anonymousFunctionRE.match(line)) {
+							line = anonymousFunctionRE.replace(line,anonymousFunctionReplace);
+						}
 					}
 
 				}
@@ -324,10 +342,17 @@ class Root {
 			// wholeLineIsComment = false; // Let splitLineAtComment handle this concern.  This approach fails with current code below - it adds semicolons on lines containing only a comment, because semicolon injection checks the whole line for emptiness, not the split part of the line!  The split is only done inside appendToLine at the moment.  :f
 			// This only affects semicolon injection, which is just where we need it.  :)
 
+			// TODO: Should really be done after splitLineAtComment
+			if (useCoffeeFunctions) {
+				if (anonymousCoffeeFunctionRE.match(currentLine)) {
+					currentLine = anonymousCoffeeFunctionRE.replace(currentLine,anonymousCoffeeFunctionReplace);
+				}
+			}
+
 			if (indent_of_nextNonEmptyLine > currentIndent) {
 
 				if (indent_of_nextNonEmptyLine > currentIndent+1) {
-					echo("Warning: Unexpected double indent on: "+nextNonEmptyLine);
+					echo("Error: Unexpected double indent on: "+nextNonEmptyLine);
 				}
 
 				// Assumption: indent never increases by more than one
@@ -760,6 +785,9 @@ class HelpfulReader {
 }
 
 // This streamer maintains whether we are inside a /*...*/ comment, or how deep we are inside nested parentheses (...).  It is not a proper lexer and therefore might be fooled by clever comments, or string or regexp literals.
+
+// TODO: Multi-line comments can nest in Dart, but not in most older languages.  We can implement this similarly to parentheses but should offer an option to switch between the two schemes.
+
 class CommentTrackingReader extends HelpfulReader {
 
 	// Currently completely noob yet still unreadable xD
