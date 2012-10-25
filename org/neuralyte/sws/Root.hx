@@ -231,11 +231,11 @@ class Root {
 					if (endsWithCurly.match(line)) {
 						line = endsWithCurly.replace(line,"");
 						if (blockLeadSymbol != null && (blockLeadSymbolContraIndicatedRE==null || !blockLeadSymbolContraIndicatedRE.match(line))) {
-							line += blockLeadSymbol;
 							// if (line.indexOf("function") == -1) {
 							if (!blockLeadSymbolIndicatedRE.match(line)) {
 								echo("Debug: Did not find blockLeadSymbolContraIndicated OR \"function\".  "+line);
 							}
+							line += blockLeadSymbol;
 							// This may look rather if the "{" was on a line on its own, now the ":" will be too.  To avoid it, we would have to recall the last newline we emitted, so we can append to the previous line.  Although if javaStyleCurlies is set, that should cleanup after two runs.
 						}
 						if (emptyOrBlank.match(line + trailingComment)) {
