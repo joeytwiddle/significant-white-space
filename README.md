@@ -24,7 +24,7 @@ As a simple example, SWS can turn code like this (in this case HaXe-sws code):
 
 ```
 
-into the more traditional style (in this case HaXe code):
+into the more traditional style that HaXe requires for compilation:
 
 ```js
     static function curl(infile, outfile) {
@@ -46,7 +46,11 @@ into the more traditional style (in this case HaXe code):
     }
 ```
 
-Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.
+And SWS can also convert the code back again!
+
+Options can be tweaked to replace that `=>` symbol with your own preference, to retain brackets around `if` conditionals rather than remove them, and to enable/disable conversion of inline functions to Coffeescript's `->` form.
+
+Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.  It was written in a quick-and-dirty fashion to work on 99% of valid code, with heuristics and warnings to mitigate the edge-cases.  This allows us to use SWS on a variety of languages, without having to use a number of different lexers for language-specific String and Regexp literals.
 
 SWS is written in HaXe.  Currently we build an executable binary via Neko, but you may be able to export the tool to Java or Javascript.
 
@@ -178,6 +182,10 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - We have not thought about other forms of multi-line expression, such as array literals.
 
+- Some people might want a different blockLeadSymbol depending on the hint in the opening line, e.g. `=` for a class, `=>` for a function, `::` for a static function, `:` for a typedef struct (note this last is two tokens!).  To offer that kind of customisation, we could expose an editable map from hint to symbol.
+
+- Are there any relevant curly languages which use different comment symbols?  If so we should make that switch easy to access.
+
 
 
 ------------------------------
@@ -215,9 +223,15 @@ Comment lines should not be stripped or injected into, or used for indentation. 
 
 SWS uses a simple text-processing algorithm to transform files; it does not properly lex/parse or understand your code.  Because of this, it will probably only work on a _subset_ of the language you are using.  In other words, you may need to restrict your code-style a little, to something that SWS can handle.  Notable examples are:
 
-- Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented.  (You can get away with indenting 2 spaces in an otherwise 4-spaced file, but then face issues with semicolon-injection.)
+- Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented, and will also suffer from semicolon-insertion.  (You can get away with indenting 2 spaces in an otherwise 4-spaced file, but then face issues with semicolon-injection.)
 
-- Indentation of single-line comments is meaningful.  If you have `//`s which look like outdent, curlies will be generated!
+- SWS does not parse the code in a strict manner.  It uses a simple line-based approach for crling, with some extras tacked on.  Specifically, most of the time it does not know when it is inside or outside a String or Regexp literal, and can get confused with comments.  For example:
+
+    log("It looks like /* I am starting a multi-line comment, but I'm not!")
+
+  Common problem cases (some of which can be found in the SWS source code) are identified by heuristic regexps, and warnings are emitted when SWS is unsure how to correctly handle them.  However, heuristics only push the horizon, but fail to cover all cases.  In future we hope to present a clear description of the coding style and options neccessary to stay safe.  (For example, we might end up recommending that users at NASA never use `/* ... */` blocks, always put `//` comments on their own line, and set the options to take advantage of these conditions and warn if they are breached.)
+
+- Indentation of single-line comments is meaningful.  If you have `//`s which look like outdent, curlies will be generated!  This may change in future, but at the moment it is considered a feature, allowing us to indicate empty blocks in the code (we need *something* to indent, or curlies cannot be generated).
 
 - You can still express short `{ ... }` blocks on-one-line if you want to, but don't mix things up.  Specifically do not follow a curly by text and then newline and indent.  That mid-line curly will not be stripped, whilst the indent will cause a new one to be injected.
 
