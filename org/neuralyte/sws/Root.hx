@@ -29,6 +29,8 @@ using Lambda;
 
 // TODO: We are still stripping ;s from commented lines with extra trailing comments (see blockLeadSymbol)
 
+// Recommend config file do like HaXe and MPlayer, just put cmdline args there, and parse them the same way.
+
 class Root {
 
 	// Options {{{
@@ -36,6 +38,10 @@ class Root {
 	static var javaStyleCurlies : Bool = true;
 
 	static var addRemoveSemicolons : Bool = true;
+
+	// TODO:
+	static var addRemoveCurlies = true;
+	static var trackSlashStarCommentBlocks = true;   // can be disabled if they will never be used
 
 	// doNotCurlMultiLineParentheses:
 	//   true - You can write multi-line expressions with (...).

@@ -1,7 +1,7 @@
 # SWS - Significant Whitespace
 ==============================
 
-SWS is a preprocessor for traditional curly-brace languages (C, Java, Javascript, HaXe) which can perform transformation of source-code files to and from meaningful-indentation style (as seen in Coffescript and Python).
+SWS is a preprocessor for traditional curly-brace languages (C, Java, HaXe, Javascript) which can perform transformation of source-code files to and from meaningful-indentation style (as seen in Coffescript and Python).
 
 In well-indented code the `{` and `}` block markers are effectively redundant.  SWS allows you to code without them, using indentation alone to indicate blocks, and adds the curly braces in for you later.
 
@@ -50,7 +50,7 @@ And SWS can also convert the code back again!
 
 Options can be tweaked to rename or remove that `=>` symbol, generate Java or C-style curlies, retain brackets around `if` conditionals rather than remove them, and enable conversion of inline functions to Coffeescript's `->` form.  Python lovers may place `:`s at block starts if they wish.
 
-Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.  It was written in a quick-and-dirty fashion to work on 99% of valid code, with heuristics and warnings to mitigate the edge-cases.  This allows us to use SWS on a variety of languages, without having to use a number of different lexers for language-specific String and Regexp literals.
+Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.  It was written in a quick-and-dirty fashion to work on 99% of valid code, with heuristics and warnings to mitigate the edge-cases.  This allows us to employ SWS on a wide variety of languages, without having to use a number of different lexers for language-specific String and Regexp literals.
 
 SWS is written in HaXe.  Currently we build an executable binary via Neko, but you may be able to export the tool to Java or Javascript.
 
@@ -162,6 +162,8 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - Clear documentation, detection and warning of problematic code configurations.  Easy to read definition of what is legal code structure, and list of the gotchas (common issues we cannot fix).
 
+  The best form for this might be to list all the options.  When disabled, SWS should do nothing to the code, simply clone it.  As each option is listed, we can explain its features and any the problems that it may cause.
+
 - If some problems we decide do not want to attempt to solve, because we do not want to increase complexity that far (e.g. situations where we really should parse string, char and regexp literals, comment blocks, etc.), then we should instead provide a covering set of tests/regexps that can look for potentially problematic situations and warn the user "I am not sure if this is bad or not, perhaps you could re-jigger it for me so I can regain confidence"; then a little escaping or reformatting (or option/warning toggling) may eliminate the issue.  This would be far preferable to ploughing onward as if the problems do not exist and can never occur, then producing some unrelated error (e.g. from a later compiler) when they do.
 
 - DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures `//` did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. `#` then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful `$#`, but we could demand a gap before the `#` to address that.)
@@ -225,13 +227,13 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
 - Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented, and will also suffer from semicolon-insertion.  (You can get away with indenting 2 spaces in an otherwise 4-spaced file, but then face issues with semicolon-injection.)  Unindented multi-line expressions should work fine if semicolonInsertion is disabled.
 
-- SWS does not parse the code in a strict manner.  It uses a simple line-based approach for curling, with some extras tacked on.  Specifically, most of the time it does not know when it is inside or outside a String or Regexp literal, and can get confused with comments.  For example:
+- SWS does not parse the code in a strict manner.  It uses a simple line-based approach for curling, with some extras tacked on.  Specifically, most of the time it does not track when it is inside or outside a String or Regexp literal, and as a result can get confused with regard to multi-line comments.  For example, the following was a problem before we introduced heuristics for it:
 
 ```
     log("It looks like /* I am starting a multi-line comment, but I'm not!")
 ```
 
-  Common problem cases (some of which can be found in the SWS source code) are identified by heuristic regexps, and warnings are emitted when SWS is unsure how to correctly handle them.  However, heuristics only push the horizon, but fail to cover all cases.  In future we hope to present a clear description of the coding style and options neccessary to stay safe.  (For example, we might end up recommending that users at NASA never use `/* ... */` blocks, always put `//` comments on their own line, and set the options to take advantage of these conditions and warn if they are breached.)
+  Common problem cases (some of which can be found in the SWS source code) are identified by heuristic regexps, and warnings are emitted if SWS is unsure how to correctly handle them.  However, heuristics only push the horizon; they usually fail to cover all cases.  In future we hope to present a clear description of the coding style and options neccessary to stay safe.  (For example, we might end up recommending that users at NASA never use `/* ... */` blocks, always put `//` comments on their own line, and set the options to take advantage of these simplified conditions and warn if they are breached.)
 
 - Indentation of single-line comments is meaningful.  If you have `//`s which look like outdent, curlies will be generated!  This may change in future, but at the moment it is considered a feature, allowing us to indicate empty blocks in the code (we need *something* to indent, or curlies cannot be generated).
 
