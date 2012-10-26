@@ -5,9 +5,9 @@ SWS is a preprocessor for traditional curly-brace languages (C, Java, Javascript
 
 In well-indented code the `{` and `}` block markers are effectively redundant.  SWS allows you to code without them, using indentation alone to indicate blocks, and adds the curly braces in for you later.
 
-SWS is also able to strip and inject `;` semicolons.
+SWS can also strip and inject `;` semicolons, and comes with a few more minor features.
 
-As a simple example, SWS can turn code like this (in this case HaXe-sws code):
+As a simple example, SWS can turn code of the following form (in this case decurled HaXe code):
 
 ```js
     static function curl(infile, outfile) =>
@@ -48,7 +48,7 @@ into the more traditional style that HaXe requires for compilation:
 
 And SWS can also convert the code back again!
 
-Options can be tweaked to rename or remove that `=>` symbol, to retain brackets around `if` conditionals rather than remove them, and to enable/disable conversion of inline functions to Coffeescript's `->` form.  Python lovers may place `:`s at block starts if they wish.
+Options can be tweaked to rename or remove that `=>` symbol, generate Java or C-style curlies, retain brackets around `if` conditionals rather than remove them, and enable conversion of inline functions to Coffeescript's `->` form.  Python lovers may place `:`s at block starts if they wish.
 
 Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.  It was written in a quick-and-dirty fashion to work on 99% of valid code, with heuristics and warnings to mitigate the edge-cases.  This allows us to use SWS on a variety of languages, without having to use a number of different lexers for language-specific String and Regexp literals.
 
@@ -223,11 +223,13 @@ Comment lines should not be stripped or injected into, or used for indentation. 
 
 SWS uses a simple text-processing algorithm to transform files; it does not properly lex/parse or understand your code.  Because of this, it will probably only work on a _subset_ of the language you are using.  In other words, you may need to restrict your code-style a little, to something that SWS can handle.  Notable examples are:
 
-- Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented, and will also suffer from semicolon-insertion.  (You can get away with indenting 2 spaces in an otherwise 4-spaced file, but then face issues with semicolon-injection.)
+- Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented, and will also suffer from semicolon-insertion.  (You can get away with indenting 2 spaces in an otherwise 4-spaced file, but then face issues with semicolon-injection.)  Unindented multi-line expressions should work fine if semicolonInsertion is disabled.
 
-- SWS does not parse the code in a strict manner.  It uses a simple line-based approach for crling, with some extras tacked on.  Specifically, most of the time it does not know when it is inside or outside a String or Regexp literal, and can get confused with comments.  For example:
+- SWS does not parse the code in a strict manner.  It uses a simple line-based approach for curling, with some extras tacked on.  Specifically, most of the time it does not know when it is inside or outside a String or Regexp literal, and can get confused with comments.  For example:
 
+```
     log("It looks like /* I am starting a multi-line comment, but I'm not!")
+```
 
   Common problem cases (some of which can be found in the SWS source code) are identified by heuristic regexps, and warnings are emitted when SWS is unsure how to correctly handle them.  However, heuristics only push the horizon, but fail to cover all cases.  In future we hope to present a clear description of the coding style and options neccessary to stay safe.  (For example, we might end up recommending that users at NASA never use `/* ... */` blocks, always put `//` comments on their own line, and set the options to take advantage of these conditions and warn if they are breached.)
 
