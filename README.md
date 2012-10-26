@@ -48,7 +48,7 @@ into the more traditional style that HaXe requires for compilation:
 
 And SWS can also convert the code back again!
 
-Options can be tweaked to replace that `=>` symbol with your own preference, to retain brackets around `if` conditionals rather than remove them, and to enable/disable conversion of inline functions to Coffeescript's `->` form.
+Options can be tweaked to rename or remove that `=>` symbol, to retain brackets around `if` conditionals rather than remove them, and to enable/disable conversion of inline functions to Coffeescript's `->` form.  Python lovers may place `:`s at block starts if they wish.
 
 Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.  It was written in a quick-and-dirty fashion to work on 99% of valid code, with heuristics and warnings to mitigate the edge-cases.  This allows us to use SWS on a variety of languages, without having to use a number of different lexers for language-specific String and Regexp literals.
 
