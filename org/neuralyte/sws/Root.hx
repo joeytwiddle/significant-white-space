@@ -38,14 +38,18 @@ class Root {
 	static var addRemoveSemicolons : Bool = true;
 
 	// doNotCurlMultiLineParentheses:
-	//   true - You can write multi-line expressions with (...)
-	//          but you will not be able to create curly indented blocks within them
+	//   true - You can write multi-line expressions with (...).
+	//          But you will not be able to create curly indented blocks within them.
+	//          The contents of (...) will remain unchanged.  Doesn't that mean we *can* put curlies inside, but they won't be de/re-curled?
 	//   false - Multi-line expressions will be subject to curling and SCI, with or without (...)
 	//           new {...} blocks should work fine provided they are in the middle of an otherwise unbroken line.  (They do require at least one trailing that is not '}' or ';'.)
 	static var doNotCurlMultiLineParentheses : Bool = false;
 
 	// Rename: useCoffeeFunctionSymbolForAnonymousFunctions?  Maybe not.
 	static var useCoffeeFunctions : Bool = true;
+
+	// NOTE: Current implementation will *not* unbrace or re-brace if(...) - because we peek the first symbol, a space is required: if (...)
+	static var unwrapParenthesesForCommands = [ "if", "while", "for", "catch", "switch" ];
 
 	//// blockLeadSymbol is an entirely optional symbol used to indicate the start of certain blocks.  This works much like Python's ":" symbol, but with SWS we want fine-grained control over when they are used.
 	// static var blockLeadSymbol = null;
@@ -108,14 +112,16 @@ class Root {
 	// static var evenNumberOfQuotes = '([^"]*"[^"]*"[^"]*|[^"]*)*';
 	//// This ensures an even number of " chars, but not an even number of ' chars.  Since one may contain the other, we really can't do this without a proper parser.
 	static var evenNumberOfQuotes = '(([^"]*"[^"]*"[^"]*)*|[^"]*)';
-	static var evenNumberOfApostrophes = (~/"/g).replace(evenNumberOfQuotes,"'");
+	// static var evenNumberOfApostrophes = (~/"/g).replace(evenNumberOfQuotes,"'");
 	//// This is an attempt to catch an even number of both, but for some reason it works on "s but not 's.
 	//// Even if it did work on 's, it still doesn't work on escaped \" within a "..." string, or the equivalent for 's.
 	// static var evenNumberOfQuotes = '(('+"[^'\"]*'[^']*'[^'\"]*"+'|[^"\']*"[^"]*"[^"\']*'+')*|[^"]*)';
 	// static var forExample = "This \" will break";   // if we follow it with a comment
 	// DONE: We should also check the //s are outside of an even number of 's
-	static var trailingCommentOutsideQuotes = new EReg("^("+evenNumberOfQuotes+")(\\s*(//|/[*]).*)$",'');
-	static var trailingCommentOutsideApostrophes = new EReg("^("+evenNumberOfApostrophes+")(\\s*(//|/[*]).*)$",'');
+	static var evenNumberOfQuotesDislikeSlashes = '(([^"/]*"[^"]*"[^"/]*)*|[^"/]*|[^"/]*/)';
+	static var evenNumberOfApostrophesDislikeSlashes = (~/"/g).replace(evenNumberOfQuotesDislikeSlashes,"'");
+	static var trailingCommentOutsideQuotes = new EReg("^("+evenNumberOfQuotesDislikeSlashes+")(\\s*(//|/[*]).*)$",'');
+	static var trailingCommentOutsideApostrophes = new EReg("^("+evenNumberOfApostrophesDislikeSlashes+")(\\s*(//|/[*]).*)$",'');
 	// Unfortunately this regexp is greedy and eats all the spaces in the first () leaving none in the last ().  This problem is addressed by splitLineAtComment.
 	// TODO: If // is a trailing comment then we should probably assume that /* is too.  Looking at this line right here, we can see we really want to match the first occurrence!
 	// In the general case, a line might contain any number of /*...*/ blocks, and then a // at the end, and maybe even a leading */ or trailing /*!  Can we handle that?  ^^
@@ -147,7 +153,7 @@ class Root {
 	public static var anonymousFunctionReplace = "$1$2 ->";
 
 	public static var anonymousCoffeeFunctionRE = ~/([(][a-zA-Z0-9@$_, 	]*[)])\s*->/g;
-	public static var anonymousCoffeeFunctionReplace = "function $1";
+	public static var anonymousCoffeeFunctionReplace = "function$1";
 
 
 	static function main() {
@@ -286,6 +292,19 @@ class Root {
 						}
 					}
 
+					if (unwrapParenthesesForCommands != null) {
+						var firstToken = getFirstWord(line);
+						if (unwrapParenthesesForCommands.has(firstToken)) {
+							var res = splitLineAtComment(line);
+							var beforeComment = res[0];
+							var afterComment = res[1];
+							var replacementRE = new EReg(firstToken+"\\s*[(](.*)[)]\\s*$",'');
+							// Root.echo("Trying "+replacementRE+" on "+beforeComment);
+							beforeComment = replacementRE.replace(beforeComment,firstToken+" $1");
+							line = beforeComment + afterComment;
+						}
+					}
+
 				}
 
 				wholeLine = line + trailingComment;
@@ -399,6 +418,17 @@ class Root {
 					currentLine = anonymousCoffeeFunctionRE.replace(currentLine,anonymousCoffeeFunctionReplace);
 				}
 			}
+			if (unwrapParenthesesForCommands != null) {
+				var firstToken = getFirstWord(currentLine);
+				if (unwrapParenthesesForCommands.has(firstToken)) {
+					var res = splitLineAtComment(currentLine);
+					var beforeComment = res[0];
+					var afterComment = res[1];
+					var replacementRE = new EReg(firstToken+"\\s*",'');
+					beforeComment = replacementRE.replace(beforeComment,firstToken+" (") + ")";
+					currentLine = beforeComment + afterComment;
+				}
+			}
 
 			if (indent_of_nextNonEmptyLine > currentIndent) {
 
@@ -459,8 +489,9 @@ class Root {
 				// Other things which like to trail after closing } is the name following a "typedef struct { ... } Name;".  Since that name could be anything, we could look for just one word, but then that would misfire on other single words like "break" "continue" "debugger" and "i++"!
 				// Now added ')' and ',' as tokens for joining too.
 				if (nextNonEmptyLine != null) {
-					var tokens = leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
-					var firstToken = tokens[0];
+					// var tokens = leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
+					// var firstToken = tokens[0];
+					var firstToken = getFirstWord(nextNonEmptyLine);
 					if (continuationKeywords.has(firstToken) || firstToken.charAt(0)==')' || firstToken.charAt(0)==',') {
 						delayLastCurly = true;
 						// TODO: Certainly in the ',' and maybe in the ')' case, we do not really want to add a space after the curly when we print it later.  However in the "else" and "catch" cases we must.
@@ -589,8 +620,12 @@ class Root {
 		if (!hasTrailingComment) {
 			return [line,""];
 		} else {
+			if (trailingCommentOutsideQuotes.matched(1) != trailingCommentOutsideApostrophes.matched(1)) {
+				Root.echo("Warning: trailingCommentOutsideQuotes and trailingCommentOutsideApostrophes could not agree where the comment boundary is: "+line);
+			}
 			// Regexps can end in ...\// - we do not want to split on that!
 			if (looksLikeRegexpLine.match(line)) {
+				// No logging - we have confidence in this?
 				return [line,""];
 			}
 			if (couldbeRegexpEndingSlashSlash.match(line)) {
@@ -600,6 +635,10 @@ class Root {
 				return [line,""];
 			}
 			// trace("Line has trailing comment!  "+line);
+			// This regexp finds the *last* occurrence of // on the line.  But sometimes a // comment contains // inside it!
+			// We really want the first // which is not inside a string (or a regexp - unlikely).
+			// Unfortunately we can't tell our evenNumberOfQuotes regexp to stop on /s, because a single / is a valid division operator.
+			// OK managed to squeeze them.
 			var beforeComment = trailingCommentOutsideQuotes.matched(1);
 			var afterComment = trailingCommentOutsideQuotes.matched(4);
 			// trace("beforeComment = "+beforeComment);
@@ -611,6 +650,15 @@ class Root {
 				beforeComment = trailingSpaces.replace(beforeComment,'');
 			}
 			return [beforeComment,afterComment];
+		}
+	}
+
+	static var firstTokenRE = ~/^\s*([^\s]*)/;
+	static function getFirstWord(line) {
+		if (firstTokenRE.match(line)) {
+			return firstTokenRE.matched(1);
+		} else {
+			return "";
 		}
 	}
 

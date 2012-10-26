@@ -135,6 +135,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 - Multi-line expressions are now possible, but must be wrapped inside `( ... )` (otherwise they are likely to suffer semicolon injection or indent-based curlies).
 - You can now enable `useCoffeeFunctions`, to convert between *anonymous* JS/Haxe functions `function(a,b) { ... }` and Coffeescript style functions `(a,b) -> ...` in the sws file.  When declaring a single-line function in JS, curlies must be retained in the sws, e.g. `(x) ->{ return 2*x; }` whilst Haxe does not need these.
 - Added optional `blockLeadSymbol` which when set to `:` outputs sws files which look rather like Python.  Personally I would prefer something like `=>` but *only* on function declarations, perhaps `:` on classes, and nothing on if, while, for, try and other in-code indents.
+- Added `unwrapParenthesesForCommands`, which can remove the `(...)` parentheses around `if` and `while` conditions, and reintroduce them on curling.  (You can set the list of keywords you want this to work on, or just empty it.  (Personally I find the visual effect of `(...)` symbols useful if I have no syntax highlighting for the given language, but redundant if branch statements already stand out by colour.)
 
 
 
@@ -159,7 +160,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 ## On the radar
 
-- We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
+- DONE in `unwrapParenthesesForCommands`: We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
 
 - The header line of a block (e.g. class and function declarations) are stripped of all symbols, and this looks a bit odd.  In Python indented blocks are always preceeded by a `:`, and in Coffeescript either a `:` or an `=` (not true of classes).  We could give users the option of initialising blocks with a `:`.  Although one might still argue that such symbols are as redundant as curly braces, given significant indenting whitespace!  (Started work on this, see `blockLeadSymbol`.)
 
