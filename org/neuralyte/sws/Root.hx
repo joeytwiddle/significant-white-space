@@ -418,17 +418,8 @@ class Root {
 					currentLine = anonymousCoffeeFunctionRE.replace(currentLine,anonymousCoffeeFunctionReplace);
 				}
 			}
-			if (unwrapParenthesesForCommands != null) {
-				var firstToken = getFirstWord(currentLine);
-				if (unwrapParenthesesForCommands.has(firstToken)) {
-					var res = splitLineAtComment(currentLine);
-					var beforeComment = res[0];
-					var afterComment = res[1];
-					var replacementRE = new EReg(firstToken+"\\s*",'');
-					beforeComment = replacementRE.replace(beforeComment,firstToken+" (") + ")";
-					currentLine = beforeComment + afterComment;
-				}
-			}
+
+			currentLine = doUnwrapping(currentLine);
 
 			if (indent_of_nextNonEmptyLine > currentIndent) {
 
@@ -521,6 +512,9 @@ class Root {
 							}
 							// nextLine should be === nextNonEmptyLine now
 						}
+
+						nextLine = doUnwrapping(nextLine);
+
 						var updatedLine;
 						if (javaStyleCurlies) {
 							// Join the next line to the curly
@@ -602,6 +596,24 @@ class Root {
 		}
 
 		output.close();
+
+	}
+
+	static function doUnwrapping(currentLine) {
+
+		if (unwrapParenthesesForCommands != null) {
+			var firstToken = getFirstWord(currentLine);
+			if (unwrapParenthesesForCommands.has(firstToken)) {
+				var res = splitLineAtComment(currentLine);
+				var beforeComment = res[0];
+				var afterComment = res[1];
+				var replacementRE = new EReg(firstToken+"\\s*",'');
+				beforeComment = replacementRE.replace(beforeComment,firstToken+" (") + ")";
+				currentLine = beforeComment + afterComment;
+			}
+		}
+
+		return currentLine;
 
 	}
 
