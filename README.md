@@ -7,34 +7,40 @@ In well-indented code the `{` and `}` block markers are effectively redundant.  
 
 SWS is also able to strip and inject `;` semicolons.
 
-As a simple example, SWS can turn code like this:
+As a simple example, SWS can turn code like this (in this case HaXe-sws code):
 
 ```js
-    while (readNextLine())
+    static function curl(infile, outfile) =>
 
-        if (indent_of_nextNonEmptyLine > currentIndent)
-            writeLine(currentLine + " {")
-        else
-            writeLine(currentLine)
+        while readNextLine()
 
-        if (indent_of_nextNonEmptyLine < currentIndent)
-            writeLine("}")
+            if indent_of_nextNonEmptyLine > currentIndent
+                writeLine(currentLine + " {")
+            else
+                writeLine(currentLine)
+
+            if indent_of_nextNonEmptyLine < currentIndent
+                writeLine("}")
 
 ```
 
-into the more traditional style:
+into the more traditional style (in this case HaXe code):
 
 ```js
-    while (readNextLine()) {
+    static function curl(infile, outfile) {
 
-        if (indent_of_nextNonEmptyLine > currentIndent) {
-            writeLine(currentLine + " {");
-        } else {
-            writeLine(currentLine);
-        }
-
-        if (indent_of_nextNonEmptyLine < currentIndent) {
-            writeLine("}");
+        while (readNextLine()) {
+    
+            if (indent_of_nextNonEmptyLine > currentIndent) {
+                writeLine(currentLine + " {");
+            } else {
+                writeLine(currentLine);
+            }
+    
+            if (indent_of_nextNonEmptyLine < currentIndent) {
+                writeLine("}");
+            }
+    
         }
 
     }
