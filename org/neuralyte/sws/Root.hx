@@ -29,6 +29,10 @@ using Lambda;
 
 // TODO: We are still stripping ;s from commented lines with extra trailing comments (see blockLeadSymbol)
 
+// TODO: using blockLeadSymbol only for functions, we may as well adapt useCoffeeFunctions to handle anonymous and not anonymous
+
+// TODO: Complete refactoring into file-free tool.
+
 // Recommend config file do like HaXe and MPlayer, just put cmdline args there, and parse them the same way.
 
 
@@ -99,7 +103,26 @@ class Root {
 
 	}
 
-	public static var defaultOptions : Options = cast { debugging: true, javaStyleCurlies: true, addRemoveSemicolons: true, doNotCurlMultiLineParentheses: false, useCoffeeFunctions: true, unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ], blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/, blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/, blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/, newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true, retainLineNumbers: true };
+	// public static var defaultOptions : Options = cast { debugging: true, javaStyleCurlies: true, addRemoveSemicolons: true, doNotCurlMultiLineParentheses: false, useCoffeeFunctions: true, unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ], blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/, blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/, blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/, newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true, retainLineNumbers: true }
+
+	public static var defaultOptions : Options = cast ( {
+		debugging: true,
+		javaStyleCurlies: true,
+		addRemoveSemicolons: true,
+		doNotCurlMultiLineParentheses: false,
+		useCoffeeFunctions: true,
+		unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ],
+		blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/,
+		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/,
+		blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/,
+		newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true,
+		retainLineNumbers: true
+	} );
+
+	// Recently: Decurl adds trailing ' \' when semicolon was expected but not found.
+	//           Curl removes trailing ' \' and does not add semicolon when encountered.
+	//
+	// GONE: This has pushed a problem with the commented line looksLikeRegexpLineWithEndComment back up to the surface.  I think before those ambiguous lines (splitLineAtComment) were getting semicolons stripped and reinjected?  New ' \' may be avoiding stripping a bit more heavily.  Perhaps it too should check ambiguity?
 
 }
 
@@ -198,12 +221,17 @@ class SyncOptions {
 
 class Reporter {
 
+	// Try not to use echo!  info is preferred.
 	public function echo(s : String) {
 		File.stdout().writeString(s + "\n");
 	}
 
 	public function debug(s : String) {
 		echo("[Debug] "+s);
+	}
+
+	public function info(s : String) {
+		echo("[Info] "+s);
 	}
 
 	public function warn(s : String) {
@@ -315,9 +343,9 @@ class SWS {
 	// static var testStringTryingToCauseTrouble = "blah // ";
 
 	//// Almost certainly a regexp literal (JS or Haxe) which ends in */ which is not a comment ending!
-	// public static var looksLikeRegexpLineWithEndComment : EReg = ~/=[ \t]*~?\/[^*\/].*\*\/;?\s*$/;
-	//// Almost certainly a regexp literal assignment.
-	public static var looksLikeRegexpLine : EReg = ~/=[ \t]*~?\/[^*\/].*\/;?\s*$/;
+	// public static var looksLikeRegexpLineWithEndComment : EReg = ~/=[ \t]*~?\/[^*\/].*\*\/;?\s*$/
+	//// Almost certainly a regexp literal assignment, not in a comment
+	public static var looksLikeRegexpLine : EReg = ~/^[^\/]*=\s*~?\/[^*\/].*\/;?\s*$/;
 	//// Might be a regexp literal, not neccessarily assigned; uncertain.
 	public static var seemsToContainRegexp : EReg = ~/~?\/[^*\/].*\//;
 	// If you want to cause trouble, swap \/ and * like this: ~/~?\/[^\/*].*\//;  The line will fill with semicolons!
@@ -358,6 +386,8 @@ class SWS {
 
 			while (true) {
 
+				var wasInsideComment = reader.insideComment;
+
 				var wholeLine : String = reader.getNextLine();
 				if (wholeLine == null) {   // Unlike input, our reader does not throw Eof.
 					break;
@@ -370,10 +400,11 @@ class SWS {
 				// reporter.debug("Read line: "+line);
 
 				// We don't want to strip anything from comment lines
-				// var wholeLineIsComment = wholeLineIsCommentRE.match(line);
+				var wholeLineIsComment = wholeLineIsCommentRE.match(line);
 				// DISABLED: splitLineAtComment can deal with this now
-				var wholeLineIsComment = false;
-				if (!wholeLineIsComment && !reader.insideComment) {
+				// var wholeLineIsComment = false
+				// if true    // TODO BUG: Put the commented if line below the live one, and it will interfere with curling!
+				if (!wholeLineIsComment && !wasInsideComment) {
 
 					if (startsWithCurly.match(line)) {
 						line = startsWithCurlyReplacer.replace(line,"");
@@ -402,10 +433,18 @@ class SWS {
 						if (emptyOrBlank.match(line + trailingComment)) {
 							continue;
 						}
-					}
 
-					if (options.addRemoveSemicolons && endsWithSemicolon.match(line)) {
-						line = endsWithSemicolon.replace(line,"");
+					} else {
+
+						if (!wholeLineIsComment && !reader.insideComment && !emptyOrBlank.match(line)) {
+							if (options.addRemoveSemicolons) {
+								if (endsWithSemicolon.match(line)) {
+									line = endsWithSemicolon.replace(line,"");
+								} else {
+									line += " \\";
+								}
+							}
+						}
 					}
 
 					if (options.useCoffeeFunctions) {
@@ -446,6 +485,7 @@ class SWS {
 
 		var leadingIndentRE : EReg = ~/^\s*/;
 		var whitespaceRE : EReg = ~/\s+/;
+		var endsWithBackslash : EReg = ~/\s?\\$/;
 
 		var currentLine : String;
 
@@ -520,7 +560,8 @@ class SWS {
 				var lineLikelyToBeRegexpDefinition = looksLikeRegexpLine.match(currentLine);
 				if (lineLikelyToBeRegexpDefinition) {
 					wholeLineIsComment = false;
-					// reporter.warn("Looked like a comment, but could be a regexp: "+currentLine);
+					//// No need to warn, this regexp imbues confidence
+					// reporter.warn("Looked like a comment, but could be a regexp: "+currentLine)
 				}
 			}
 			// But it could be a regexp line with a trailing comment!
@@ -593,7 +634,11 @@ class SWS {
 				// TODO: DRY - this is a clone of later code!
 				// DONE: We should not act on comment lines!
 				if (options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
-					currentLine = appendToLine(currentLine,";");
+					if (endsWithBackslash.match(currentLine)) {
+						currentLine = endsWithBackslash.replace(currentLine,"");
+					} else {
+						currentLine = appendToLine(currentLine,";");
+					}
 				}
 				out.writeLine(currentLine);
 
@@ -714,7 +759,11 @@ class SWS {
 			// TODO: DRY - this is a clone of earlier code!
 			// DONE: We should not act on comment lines!
 			if (options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
-				currentLine = appendToLine(currentLine,";");
+				if (endsWithBackslash.match(currentLine)) {
+					currentLine = endsWithBackslash.replace(currentLine,"");
+				} else {
+					currentLine = appendToLine(currentLine,";");
+				}
 			}
 			out.writeLine(currentLine);
 
@@ -763,6 +812,7 @@ class SWS {
 			// Regexps can end in ...\// - we do not want to split on that!
 			if (looksLikeRegexpLine.match(line)) {
 				// No logging - we have confidence in this?
+				reporter.debug("could be a comment line but could equally be a regexp literal!  "+line);
 				return [line,""];
 			}
 			if (couldbeRegexpEndingSlashSlash.match(line)) {
@@ -887,11 +937,11 @@ class Sync {
 			inverseFn(outFile, tempFile);
 			// echo("Now compare "+inFile+" against "+tempFile);
 			if (File.getContent(inFile) != File.getContent(tempFile)) {
-				echo("Warning: Inverse differs from original.  Differences may or may not be cosmetic!");
+				warn("Warning: Inverse differs from original.  Differences may or may not be cosmetic!");
 				// echo("Compare files: \""+inFile+"\" \""+tempFile+"\"");
 				// echo("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
-				echo("Compare:");
-				echo("  vimdiff \""+inFile+"\" \""+tempFile+"\"");
+				warn("Compare:");
+				pureEcho("  vimdiff \""+inFile+"\" \""+tempFile+"\"");
 				if (syncOptions.breakOnFirstFailedInverse) {
 					echo("Exiting so user can inspect.  There may be more files which need processing...");
 					Sys.exit(5);
@@ -902,9 +952,9 @@ class Sync {
 		if (originalResult != null) {
 			var newResult = File.getContent(outFile);
 			if (newResult != originalResult) {
-				echo("There were changes since the last time ("+originalResult.length+" -> "+newResult.length+")");
+				info("There were changes to "+inFile+" since the last time ("+originalResult.length+" -> "+newResult.length+")");
 			} else {
-				echo("There were no changes since the last time ("+originalResult.length+" == "+newResult.length+")");
+				// info("There were no changes since the last time ("+originalResult.length+" == "+newResult.length+")")
 			}
 		}
 	}
@@ -1012,6 +1062,18 @@ class Sync {
 
 	function echo(s) {
 		sws.reporter.echo("[Sync] "+s);
+	}
+
+	function pureEcho(s) {
+		sws.reporter.echo(s);
+	}
+
+	function info(s) {
+		sws.reporter.info(s);
+	}
+
+	function warn(s) {
+		sws.reporter.warn(s);
 	}
 
 }
@@ -1155,6 +1217,8 @@ class CommentTrackingReader extends HelpfulReader {
 			// TODO: Perhaps we can count how many are inside "s, how many are inside 's and thus deduce how many are left outside?
 			// Ofc we have also forgotten (s or )s inside Regexp literals.
 			// And our "-pairing regexps cannot handle \" inside them, likewise for '...\'...'
+			// For now, this is likely to fail on lines such as:
+			//   if (myString.charAt(0) == "(")      // blah blah
 		} else {
 			depthInsideParentheses += (openBracketCount - closeBracketCount);
 		}

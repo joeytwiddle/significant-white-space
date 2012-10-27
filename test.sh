@@ -1,12 +1,22 @@
 #!/bin/sh
 
+export PS4="[$0] "
+
 set -e
 
 ./build.sh
-echo "Build successful."
+# echo "Build successful."
 
 mkdir -p data
 cp -f ./org/neuralyte/sws/Root.hx data/
+
+if [ -n "$ZSH_NAME" ]
+then export PS4="(%?)%L%{`cursegreen`$}%c%{`cursemagenta`%}[%{`cursered``cursebold`%}%1N:%i%{`cursemagenta`%}]%{`curseyellow`%}%_%{`cursenorm`%}% # "
+elif [ -n "$BASH" ]
+then export PS4="+[\[`cursered;cursebold`\]\s\[`cursenorm`\]]\[`cursegreen`\]\W\[`cursenorm`\]\$ "
+else export PS4="[sh $0] "
+fi
+set -x
 
 ./sws safe-decurl data/Root.hx data/Root.hx.sws
 exit
