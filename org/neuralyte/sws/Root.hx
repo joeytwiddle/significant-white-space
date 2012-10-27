@@ -31,17 +31,149 @@ using Lambda;
 
 // Recommend config file do like HaXe and MPlayer, just put cmdline args there, and parse them the same way.
 
+
 class Root {
 
-	// Options {{{
+	static function main() {
+
+		try {
+
+			var args = neko.Sys.args();
+
+			var sws = new SWS();
+
+			if (args[0] == "--help") {
+
+				showHelp();
+
+			} else if (args[0] == "curl") {
+
+				sws.curl(args[1], args[2]);
+
+			} else if (args[0] == "decurl") {
+
+				sws.decurl(args[1], args[2]);
+
+			} else if (args[0] == "safe-curl") {
+
+				sws.safeCurl(args[1], args[2]);
+
+			} else if (args[0] == "safe-decurl") {
+
+				sws.safeDecurl(args[1], args[2]);
+
+			} else if (args[0] == "sync") {
+
+				if (args[1] != null) {
+					Sync.doSync(args[1]);
+				} else {
+					Sync.doSync(".");
+				}
+
+			} else {
+
+				showHelp();
+			}
+
+		} catch (ex : Dynamic) {
+			sws.echo("Caught exception: "+ex);
+			// TODO: Where do they keep the damn stacktrace?!  ex is just a string
+			return 5; // TODO: This is not being set as the exit code ... we must use neko.Sys?
+		}
+
+		return 0;
+	}
+
+	static function showHelp() {
+		// Sys.out.
+		SWS.echo("sws curl <filename> <outname>");
+		SWS.echo("sws decurl <filename> <outname>");
+		SWS.echo("sws sync [<folder/filename>]");
+
+	}
+
+}
+
+class Options {
+
+	static var pathSeparator = "/";
+
+	public var debugging : Bool;
 
 	static var javaStyleCurlies : Bool = true;
-
-	static var addRemoveSemicolons : Bool = true;
 
 	// TODO:
 	static var addRemoveCurlies = true;
 	static var trackSlashStarCommentBlocks = true;   // can be disabled if they will never be used
+	static var retainLineNumbers = true;    // retains whitespace chars
+
+	public function new() {
+		//
+		debugging = false;
+
+	}
+
+}
+
+class SyncOptions {
+
+	public static var validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ];   // "jpp"
+
+	public static var skipFoldersNamed = [ "CVS", ".git" ];
+
+	public static var safeSyncMakeBackups  = true;
+	public static var safeSyncCheckInverse = true;
+
+	public static var breakOnFirstFailedInverse = true;
+
+}
+
+
+interface Reporter {
+
+	public function echo(s : String) : Void;
+
+	public function debug(s : String) : Void;
+
+}
+
+
+class OptionalReporter implements Reporter {
+
+	var options : Options;
+
+	new(_options) {
+		options = _options;
+	}
+
+	public function echo(s : String) {
+		// trace(s);
+		File.stdout().writeString(s + newline);
+	}
+
+	public function debug(s : String) {
+ {		// if debugging
+			// echo("[Debug] "+s)
+		}
+
+	}
+
+}
+
+class SWS {
+
+	var options : Options;
+
+	var reporter : Reporter;
+
+	public function new(_options) {
+		options = new Options();
+		reporter = new OptionalReporter(options);
+	}
+
+	// Options {{{
+
+	static var addRemoveSemicolons : Bool = true;
 
 	// doNotCurlMultiLineParentheses:
 	//   true - You can write multi-line expressions with (...).
@@ -86,7 +218,6 @@ class Root {
 
 	// static var newline : String = "\r\n";
 	static var newline : String = "\n";
-	static var pathSeparator = "/";
 
 	// }}}
 
@@ -95,15 +226,6 @@ class Root {
 	// Sync options:
 
 	static var continuationKeywords = [ "else", "catch" ];
-
-	static var validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ];   // "jpp"
-
-	static var skipFoldersNamed = [ "CVS", ".git" ];
-
-	static var safeSyncMakeBackups  = true;
-	static var safeSyncCheckInverse = true;
-
-	static var breakOnFirstFailedInverse = true;
 
 
 	// Constants:
@@ -161,66 +283,7 @@ class Root {
 	public static var anonymousCoffeeFunctionRE = ~/([(][a-zA-Z0-9@$_, 	]*[)])\s*->/g;
 	public static var anonymousCoffeeFunctionReplace = "function$1";
 
-
-	static function main() {
-
-		try {
-
-			var args = neko.Sys.args();
-
-			if (args[0] == "--help") {
-
-				showHelp();
-
-			} else if (args[0] == "curl") {
-
-				curl(args[1], args[2]);
-
-			} else if (args[0] == "decurl") {
-
-				decurl(args[1], args[2]);
-
-			} else if (args[0] == "safedecurl") {
-
-				doSafely(decurl, args[1], args[2], curl);
-
-			} else if (args[0] == "sync") {
-
-				if (args[1] != null) {
-					doSync(args[1]);
-				} else {
-					doSync(".");
-				}
-
-			} else {
-
-				showHelp();
-
-			}
-
-		} catch (ex : Dynamic) {
-			echo("Caught exception: "+ex);
-			// TODO: Where do they keep the damn stacktrace?!  ex is just a string
-			return 5; // TODO: This is not being set as the exit code ... we must use neko.Sys?
-		}
-
-		return 0;
-
-	}
-
-	public static function echo(s : String) {
-		// trace(s);
-		File.stdout().writeString(s + newline);
-	}
-
-	static function showHelp() {
-		// Sys.out.
-		echo("sws curl <filename> <outname>");
-		echo("sws decurl <filename> <outname>");
-		echo("sws sync [<folder/filename>]");
-	}
-
-	static function decurl(infile : String, outfile : String) {
+	public static function decurl(infile : String, outfile : String) {
 
 		// TODO: Count number of in/out curlies swallowed, and compare them against indent.  Warn when they do not look right!
 
@@ -234,7 +297,7 @@ class Root {
 		var endsWithSemicolon : EReg = ~/\s*;\s*$/;
 
 		// var input : FileInput = File.read(infile,false);
-		var reader = new CommentTrackingReader(infile);
+		var reader = new CommentTrackingReader(infile,options);
 
 		var output : FileOutput = File.write(outfile,false);
 
@@ -305,7 +368,7 @@ class Root {
 							var beforeComment = res[0];
 							var afterComment = res[1];
 							var replacementRE = new EReg(firstToken+"\\s*[(](.*)[)]\\s*$",'');
-							// Root.echo("Trying "+replacementRE+" on "+beforeComment);
+							// SWS.echo("Trying "+replacementRE+" on "+beforeComment);
 							beforeComment = replacementRE.replace(beforeComment,firstToken+" $1");
 							line = beforeComment + afterComment;
 						}
@@ -326,14 +389,14 @@ class Root {
 
 	}
 
-	static function curl(infile : String, outfile : String) {
+	public static function curl(infile : String, outfile : String) {
 
 		var leadingIndentRE : EReg = ~/^\s*/;
 		var whitespaceRE : EReg = ~/\s+/;
 
 		var currentLine : String;
 
-		var helper = new CommentTrackingReader(infile);
+		var helper = new CommentTrackingReader(infile,options);
 
 		var output : FileOutput = File.write(outfile,false);
 
@@ -371,7 +434,8 @@ class Root {
 
 			if (!emptyOrBlank.match(currentLine)) {
 				currentIndent = countIndent(indentString, currentLine);
-			} // otherwise we keep last indent
+			}
+			 // otherwise we keep last indent
 
 			var nextNonEmptyLine : String;
 			nextNonEmptyLine = helper.getNextNonEmptyLine();
@@ -453,7 +517,7 @@ class Root {
 				// Assumption: indent never increases by more than one
 				// Append open curly to current line
 				// Then write it
-				if (javaStyleCurlies) {
+				if (options.javaStyleCurlies) {
 					output.writeString(appendToLine(currentLine," {") + newline);
 				} else {
 					output.writeString(currentLine + newline);
@@ -522,7 +586,7 @@ class Root {
 						nextLine = doUnwrapping(nextLine);
 
 						var updatedLine;
-						if (javaStyleCurlies) {
+						if (options.javaStyleCurlies) {
 							// Join the next line to the curly
 							updatedLine = indentAtThisLevel + "} " + leadingIndentRE.replace(nextLine,"");
 							// output.writeString(updatedLine + newline);
@@ -639,7 +703,7 @@ class Root {
 			return [line,""];
 		} else {
 			if (trailingCommentOutsideQuotes.matched(1) != trailingCommentOutsideApostrophes.matched(1)) {
-				Root.echo("Warning: trailingCommentOutsideQuotes and trailingCommentOutsideApostrophes could not agree where the comment boundary is: "+line);
+				SWS.echo("Warning: trailingCommentOutsideQuotes and trailingCommentOutsideApostrophes could not agree where the comment boundary is: "+line);
 			}
 			// Regexps can end in ...\// - we do not want to split on that!
 			if (looksLikeRegexpLine.match(line)) {
@@ -647,9 +711,9 @@ class Root {
 				return [line,""];
 			}
 			if (couldbeRegexpEndingSlashSlash.match(line)) {
-				// Root.echo("Warning: looks like a // comment but could be regexp!  "+line);
+				// SWS.echo("Warning: looks like a // comment but could be regexp!  "+line);
 				// This regexp is less ambiguous now - let's trust it and do-the-right-thing by ignoring the //.
-				Root.echo("Debug: could be a // comment but probably actually a regexp!  "+line);
+				SWS.echo("Debug: could be a // comment but probably actually a regexp!  "+line);
 				return [line,""];
 			}
 			// trace("Line has trailing comment!  "+line);
@@ -714,101 +778,20 @@ class Root {
 		return sb.toString();
 	}
 
-	static function getExtension(filename : String) {
-		var words = filename.split(".");
-		if (words.length > 1) {
-			return words[words.length-1];
-		} else {
-			return "";
-		}
+	public static function safeDecurl(infile, outfile) {
+		doSafely(decurl, infile, outfile, curl);
 	}
 
-	static function doSync(root : String) {
-
-		// We want to collect all files ending with ".sws" or with a valid source extension.
-		// Sometimes we will pick up a pair, but we merge them into one by canonicalisation.
-		var filesToDo : Array<String> = [];
-		forAllFilesBelow(root, function(f) {
-			// echo("Checking file: "+f);
-			var ext = getExtension(f);
-			if (validExtensions.has(ext)) {
-				// Canonicalise to the non-sws name
-				if (ext == "sws") {
-					var words = f.split(".");
-					words = words.slice(0,words.length-1);
-					f = words.join(".");
-				}
-				if (!filesToDo.has(f)) {
-					filesToDo.push(f);
-				}
-				// echo("pushing: "+f);
-			}
-		});
-
-		for (srcFile in filesToDo) {
-			syncFile(srcFile);
-		}
-
-	}
-
-	static function syncFile(srcFile) {
-
-		var swsFile = srcFile + ".sws";
-
-		var direction : Int = 0;   // 0=none, 1=to_sws, 2=from_sws
-		if (!FileSystem.exists(swsFile)) {
-			direction = 1;
-		} else if (!FileSystem.exists(srcFile)) {
-			direction = 2;
-		} else {
-			var srcStat = FileSystem.stat(srcFile);
-			var swsStat = FileSystem.stat(swsFile);
-			// echo(srcStat + " <-> "+swsStat);
-			if (srcStat.mtime.getTime() < swsStat.mtime.getTime()) {
-				direction = 2;
-			} else if (srcStat.mtime.getTime() > swsStat.mtime.getTime()) {
-				direction = 1;
-			}
-		}
-
-		if (direction == 1) {
-			echo("Decurling "+srcFile+" -> "+swsFile);
-			// echo(decurl(srcFile, swsFile));
-			// decurl(srcFile, swsFile);    // NOTE: safeCurl is now mandatory, because it deals with date updating
-			// DONE: safeCurl and safeDecurl, done via doSafely; much nicer.
-			doSafely(decurl, srcFile, swsFile, curl);
-			// After transformation, transform *back* (to a tempfile), and check if the result matches the original.  If not warn user, showing differences.  (If they are minor he may ignore them.)
-			// Also to be safe, we should store a backup of the target file before it is overwritten.
-		} else if (direction == 2) {
-			echo("Curling "+swsFile+" -> "+srcFile);
-			// traceCall(curl(swsFile, srcFile));
-			// curl(swsFile, srcFile);
-			doSafely(curl, swsFile, srcFile, decurl);
-		}
-
-	}
-
-	static function forAllFilesBelow<ResType>(root : String, fn : String -> ResType) {
-		var children = FileSystem.readDirectory(root);
-		for (child in children) {
-			var childPath = root + pathSeparator + child;
-			if (FileSystem.isDirectory(childPath)) {
-				if (!skipFoldersNamed.has(child)) {
-					// echo("Descending to folder: "+childPath);
-					forAllFilesBelow(childPath,fn);
-				}
-			} else {
-				fn(childPath);
-			}
-		}
+	public static function safeCurl(infile, outfile) {
+		doSafely(curl, infile, outfile, decurl);
 	}
 
 	// Loving the first-order functions.
 	// However in this particular case, I wouldn't mind getting more specific, because this is really not applicable to all functions in general.
 	// E.g. we should only accept fn/class which implements "FileTransformer".
-	static function doSafely(fn : Dynamic, inFile : String, outFile : String, inverseFn : Dynamic) {
+	public static function doSafely(fn : Dynamic, inFile : String, outFile : String, inverseFn : Dynamic) {
 
-		if (safeSyncMakeBackups) {
+		if (SyncOptions.safeSyncMakeBackups) {
 			var backupFile = outFile + ".bak";
 			if (FileSystem.exists(outFile)) {
 				File.copy(outFile, backupFile);
@@ -827,7 +810,7 @@ class Root {
 		touchFile(inFile);
 		// Woop!  It worked!  (It might not work on very large files, or fine-grained filesystems.)
 
-		if (safeSyncCheckInverse) {
+		if (SyncOptions.safeSyncCheckInverse) {
 			var tempFile = inFile + ".inv";
 			inverseFn(outFile, tempFile);
 			// echo("Now compare "+inFile+" against "+tempFile);
@@ -837,7 +820,7 @@ class Root {
 				// echo("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
 				echo("Compare:");
 				echo("  vimdiff \""+inFile+"\" \""+tempFile+"\"");
-				if (breakOnFirstFailedInverse) {
+				if (SyncOptions.breakOnFirstFailedInverse) {
 					echo("Exiting so user can inspect.  There may be more files which need processing...");
 					Sys.exit(5);
 				}
@@ -852,7 +835,6 @@ class Root {
 				echo("There were no changes since the last time ("+originalResult.length+" == "+newResult.length);
 			}
 		}
-
 	}
 
 	static function touchFile(filename) {
@@ -863,6 +845,99 @@ class Root {
 	static function traceCall(fn : Dynamic, args : Array<Dynamic>) : Dynamic {
 		echo("Calling "+fn+" with args "+args);
 		return fn(args);
+	}
+
+}
+
+class Sync extends Options {
+
+	static function getExtension(filename : String) {
+		var words = filename.split(".");
+		if (words.length > 1) {
+			return words[words.length-1];
+		} else {
+			return "";
+		}
+	}
+
+	public static function doSync(root : String) {
+
+		// We want to collect all files ending with ".sws" or with a valid source extension.
+		// Sometimes we will pick up a pair, but we merge them into one by canonicalisation.
+		var filesToDo : Array<String> = [];
+		forAllFilesBelow(root, function(f) {
+			// echo("Checking file: "+f);
+			var ext = getExtension(f);
+			if (SyncOptions.validExtensions.has(ext)) {
+				// Canonicalise to the non-sws name
+				if (ext == "sws") {
+					var words = f.split(".");
+					words = words.slice(0,words.length-1);
+					f = words.join(".");
+				}
+				if (!filesToDo.has(f)) {
+					filesToDo.push(f);
+				}
+				// echo("pushing: "+f);
+			}
+		} );
+
+		for (curlyFile in filesToDo) {
+			syncFile(curlyFile);
+		}
+	}
+
+	static function syncFile(curlyFile) {
+
+		var swsFile = curlyFile + ".sws";
+
+		var direction : Int = 0;   // 0=none, 1=to_sws, 2=from_sws
+		if (!FileSystem.exists(swsFile)) {
+			direction = 1;
+		} else if (!FileSystem.exists(curlyFile)) {
+			direction = 2;
+		} else {
+			var srcStat = FileSystem.stat(curlyFile);
+			var swsStat = FileSystem.stat(swsFile);
+			// echo(srcStat + " <-> "+swsStat);
+			if (srcStat.mtime.getTime() < swsStat.mtime.getTime()) {
+				direction = 2;
+			} else if (srcStat.mtime.getTime() > swsStat.mtime.getTime()) {
+				direction = 1;
+			}
+		}
+
+		if (direction == 1) {
+			SWS.echo("Decurling "+curlyFile+" -> "+swsFile);
+			// echo(decurl(curlyFile, swsFile));
+			// decurl(curlyFile, swsFile);    // NOTE: safeCurl is now mandatory, because it deals with date updating
+			// DONE: safeCurl and safeDecurl, done via doSafely; much nicer.
+			// doSafely(decurl, curlyFile, swsFile, curl)
+			SWS.safeDecurl(curlyFile, swsFile);
+			// After transformation, transform *back* (to a tempfile), and check if the result matches the original.  If not warn user, showing differences.  (If they are minor he may ignore them.)
+			// Also to be safe, we should store a backup of the target file before it is overwritten.
+		} else if (direction == 2) {
+			SWS.echo("Curling "+swsFile+" -> "+curlyFile);
+			// traceCall(curl(swsFile, curlyFile));
+			// curl(swsFile, curlyFile);
+			// doSafely(curl, swsFile, curlyFile, decurl)
+			SWS.safeCurl(swsFile, curlyFile);
+		}
+	}
+
+	static function forAllFilesBelow<ResType>(root : String, fn : String -> ResType) {
+		var children = FileSystem.readDirectory(root);
+		for (child in children) {
+			var childPath = root + Options.pathSeparator + child;
+			if (FileSystem.isDirectory(childPath)) {
+				if (!SyncOptions.skipFoldersNamed.has(child)) {
+					// echo("Descending to folder: "+childPath);
+					forAllFilesBelow(childPath,fn);
+				}
+			} else {
+				fn(childPath);
+			}
+		}
 	}
 
 }
@@ -893,7 +968,7 @@ class HelpfulReader {
 		// This could be rafactored to use peekLine
 		var i : Int;
 		for (i in 0...queue.length) {
-			if (!Root.emptyOrBlank.match(queue[i])) {
+			if (!SWS.emptyOrBlank.match(queue[i])) {
 				return queue[i];
 			}
 		}
@@ -902,7 +977,7 @@ class HelpfulReader {
 			try {
 				var line = input.readLine();
 				queue.push(line);
-				if (!Root.emptyOrBlank.match(line)) {
+				if (!SWS.emptyOrBlank.match(line)) {
 					return line;
 				}
 			} catch (ex: haxe.io.Eof) {
@@ -952,8 +1027,11 @@ class CommentTrackingReader extends HelpfulReader {
 
 	public var depthInsideParentheses : Int; // = false;
 
-	public function new(infile) {
+	var reporter : Reporter;
+
+	public function new(infile,_reporter) {
 		super(infile);
+		reporter = _reporter;
 		insideComment = false;
 		depthInsideParentheses = 0;
 	}
@@ -963,27 +1041,27 @@ class CommentTrackingReader extends HelpfulReader {
 		if (line == null) {
 			return line;
 		}
-		var res = Root.splitLineAtComment(line);
+		var res = SWS.splitLineAtComment(line);
 		var lineBeforeComment = res[0];
 		var trailingComment = res[1];
 
 		if (lineOpensCommentRE.match(line)) {
-			if (Root.looksLikeRegexpLine.match(line)) {
-				// Root.echo("Looks like regexp literal declaration; assuming not a comment start: "+line);
+			if (SWS.looksLikeRegexpLine.match(line)) {
+				// reporter.echo("Looks like regexp literal declaration; assuming not a comment start: "+line);
 			} else {
 				insideComment = true;
-				if (Root.seemsToContainRegexp.match(lineBeforeComment)) {
-					Root.echo("Warning: looks like start of comment block but also like a regexp!  "+line);
+				if (SWS.seemsToContainRegexp.match(lineBeforeComment)) {
+					reporter.echo("Warning: looks like start of comment block but also like a regexp!  "+line);
 				}
 			}
 		}
 		if (lineClosesCommentRE.match(line)) {
-			if (Root.looksLikeRegexpLine.match(line)) {
-				// Root.echo("Looks like regexp literal declaration; assuming not a comment end: "+line);
+			if (SWS.looksLikeRegexpLine.match(line)) {
+				// reporter.echo("Looks like regexp literal declaration; assuming not a comment end: "+line);
 			} else {
 				insideComment = false;
-				if (Root.seemsToContainRegexp.match(lineBeforeComment)) {
-					Root.echo("Warning: looks like end of comment block but also like a regexp!  "+line);
+				if (SWS.seemsToContainRegexp.match(lineBeforeComment)) {
+					reporter.echo("Warning: looks like end of comment block but also like a regexp!  "+line);
 				}
 			}
 		}
@@ -992,11 +1070,11 @@ class CommentTrackingReader extends HelpfulReader {
 		var openBracketCount = countInString(lineBeforeComment,"(".code);
 		var closeBracketCount = countInString(lineBeforeComment,")".code);
 		if (parenthesisInsideQuotes.match(lineBeforeComment) || parenthesisInsideApostrophes.match(lineBeforeComment)) {
-			// Root.echo("I am not trusting the parentheses on this line, although their could be some!");
 			if (openBracketCount == closeBracketCount) {
 				// Let's not cause a fuss if we don't have to.
 			} else {
-				Root.echo("Debug: Ignoring untrustworthy parentheses: "+line);
+				// reporter.echo("I am not trusting the parentheses on this line, although their could be some!");
+				SWS.debug("Debug: Ignoring untrustworthy parentheses: "+line);
 			}
 			// TODO: Perhaps we can count how many are inside "s, how many are inside 's and thus deduce how many are left outside?
 			// Ofc we have also forgotten (s or )s inside Regexp literals.
@@ -1005,7 +1083,7 @@ class CommentTrackingReader extends HelpfulReader {
 			depthInsideParentheses += (openBracketCount - closeBracketCount);
 		}
 
-		// Root.echo("["+depthInsideParentheses+"] "+line);
+		// reporter.echo("["+depthInsideParentheses+"] "+line);
 
 		return line;
 	}
@@ -1018,7 +1096,7 @@ class CommentTrackingReader extends HelpfulReader {
 			}
 		}
 		return count;
+
 	}
 
 }
-
