@@ -36,11 +36,15 @@ class Root {
 
 	static function main() {
 
+		var args = neko.Sys.args();
+
+		var options = Root.defaultOptions;
+		var syncOptions = new SyncOptions();
+
+		var sws = new SWS(options);
+		var sync = new Sync(options,syncOptions);
+
 		try {
-
-			var args = neko.Sys.args();
-
-			var sws = new SWS();
 
 			if (args[0] == "--help") {
 
@@ -56,18 +60,18 @@ class Root {
 
 			} else if (args[0] == "safe-curl") {
 
-				sws.safeCurl(args[1], args[2]);
+				sync.safeCurl(args[1], args[2]);
 
 			} else if (args[0] == "safe-decurl") {
 
-				sws.safeDecurl(args[1], args[2]);
+				sync.safeDecurl(args[1], args[2]);
 
 			} else if (args[0] == "sync") {
 
 				if (args[1] != null) {
-					Sync.doSync(args[1]);
+					sync.doSync(args[1]);
 				} else {
-					Sync.doSync(".");
+					sync.doSync(".");
 				}
 
 			} else {
@@ -76,7 +80,7 @@ class Root {
 			}
 
 		} catch (ex : Dynamic) {
-			sws.echo("Caught exception: "+ex);
+			echo("Caught exception: "+ex);
 			// TODO: Where do they keep the damn stacktrace?!  ex is just a string
 			return 5; // TODO: This is not being set as the exit code ... we must use neko.Sys?
 		}
@@ -85,95 +89,29 @@ class Root {
 	}
 
 	static function showHelp() {
-		// Sys.out.
-		SWS.echo("sws curl <filename> <outname>");
-		SWS.echo("sws decurl <filename> <outname>");
-		SWS.echo("sws sync [<folder/filename>]");
+		echo("sws curl <filename> <outname>");
+		echo("sws decurl <filename> <outname>");
+		echo("sws sync [<folder/filename>]");
+	}
+
+	static function echo(s:String) {
+		File.stdout().writeString("[Root] " + s + "\n");
 
 	}
+
+	static var defaultOptions : Options = cast { debugging: true, javaStyleCurlies: true, addRemoveSemicolons: true, doNotCurlMultiLineParentheses: false, useCoffeeFunctions: true, unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ], blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/, blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/, blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/, newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true, retainLineNumbers: true };
 
 }
 
 class Options {
 
-	static var pathSeparator = "/";
-
 	public var debugging : Bool;
-
-	static var javaStyleCurlies : Bool = true;
-
-	// TODO:
-	static var addRemoveCurlies = true;
-	static var trackSlashStarCommentBlocks = true;   // can be disabled if they will never be used
-	static var retainLineNumbers = true;    // retains whitespace chars
-
-	public function new() {
-		//
-		debugging = false;
-
-	}
-
-}
-
-class SyncOptions {
-
-	public static var validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ];   // "jpp"
-
-	public static var skipFoldersNamed = [ "CVS", ".git" ];
-
-	public static var safeSyncMakeBackups  = true;
-	public static var safeSyncCheckInverse = true;
-
-	public static var breakOnFirstFailedInverse = true;
-
-}
-
-
-interface Reporter {
-
-	public function echo(s : String) : Void;
-
-	public function debug(s : String) : Void;
-
-}
-
-
-class OptionalReporter implements Reporter {
-
-	var options : Options;
-
-	new(_options) {
-		options = _options;
-	}
-
-	public function echo(s : String) {
-		// trace(s);
-		File.stdout().writeString(s + newline);
-	}
-
-	public function debug(s : String) {
- {		// if debugging
-			// echo("[Debug] "+s)
-		}
-
-	}
-
-}
-
-class SWS {
-
-	var options : Options;
-
-	var reporter : Reporter;
-
-	public function new(_options) {
-		options = new Options();
-		reporter = new OptionalReporter(options);
-	}
 
 	// Options {{{
 
-	static var addRemoveSemicolons : Bool = true;
+	public var javaStyleCurlies : Bool;
+
+	public var addRemoveSemicolons : Bool;
 
 	// doNotCurlMultiLineParentheses:
 	//   true - You can write multi-line expressions with (...).
@@ -181,13 +119,13 @@ class SWS {
 	//          The contents of (...) will remain unchanged.  Doesn't that mean we *can* put curlies inside, but they won't be de/re-curled?
 	//   false - Multi-line expressions will be subject to curling and SCI, with or without (...)
 	//           new {...} blocks should work fine provided they are in the middle of an otherwise unbroken line.  (They do require at least one trailing that is not '}' or ';'.)
-	static var doNotCurlMultiLineParentheses : Bool = false;
+	public var doNotCurlMultiLineParentheses : Bool;
 
 	// Rename: useCoffeeFunctionSymbolForAnonymousFunctions?  Maybe not.
-	static var useCoffeeFunctions : Bool = true;
+	public var useCoffeeFunctions : Bool;
 
 	// NOTE: Current implementation will *not* unbrace or re-brace if(...) - because we peek the first symbol, a space is required: if (...)
-	static var unwrapParenthesesForCommands = [ "if", "while", "for", "catch", "switch" ];
+	public var unwrapParenthesesForCommands : Array<String>;
 
 	//// blockLeadSymbol is an entirely optional symbol used to indicate the start of certain blocks.  This works much like Python's ":" symbol, but with SWS we want fine-grained control over when they are used.
 	// static var blockLeadSymbol = null;
@@ -195,7 +133,8 @@ class SWS {
 	// static var blockLeadSymbol = " :";        // But : looks rather odd in Haxe, where function lines may already end in ": Type"
 	// static var blockLeadSymbol = " =";        // Quite passable, although not as true as when CS defines functions this way.
 	// static var blockLeadSymbol = " {";        // hehe this actually works without error; of course no matching } is introduced
-	static var blockLeadSymbol = " =>";          // I like this for HaXe
+	// public var blockLeadSymbol = " =>"          // I like this for HaXe
+	public var blockLeadSymbol : String;
 
 	//// s/Indicated/Wanted/g ?
 
@@ -204,23 +143,132 @@ class SWS {
 	// The start ensures a word.  The end requires at least one name char, to distinguish "function (e) {" from "function myFunc(e)"
 	// TODO: What about Java?
 	// TODO: There is no indicator for Java ... no keyword!
-	static var blockLeadSymbolIndicatedRE = ~/(\s|^)function\s+[a-zA-Z_$]/;
+	public var blockLeadSymbolIndicatedRE : EReg;
 	// static var blockLeadSymbolIndicatedRE = ~/(\s|^)(if|while|.*)/;   // Not sure when Python users want their ":"s
 
 	// Use this blockLeadSymbolContraIndicatedRE if you only want blockLeadSymbol on function declarations (i.e. none of the things mentioned here).
 	// TODO: To suppress warnings, contra-indicate anonymous functions.
 	// These would be neater in a list, checked against the first word on the line.
-	static var blockLeadSymbolContraIndicatedRE = ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/;
-	static var blockLeadSymbolContraIndicatedRE2AnonymousFunctions = ~/(^|[^A-Za-z0-9_$@])function\s*[(]/;
+	public var blockLeadSymbolContraIndicatedRE : EReg;
+	public var blockLeadSymbolContraIndicatedRE2AnonymousFunctions : EReg;
 	// static var blockLeadSymbolContraIndicatedRE = null;   // Not sure when Python users want their ":"s
 	// TODO: DRY.  useCoffeeFunctions already detects anonymous functions, and therefore can contra-indicate them without the need for a repeat regexp.
 	// TODO: Java does not have anonymous functions, but we should check that inline interface implementations are working ok.
 
 	// static var newline : String = "\r\n";
-	static var newline : String = "\n";
+	public var newline : String;
 
 	// }}}
 
+	// TODO:
+	public var addRemoveCurlies : Bool;
+	public var trackSlashStarCommentBlocks : Bool;   // can be disabled if they will never be used
+	public var retainLineNumbers : Bool;             // retains whitespace chars
+
+	public function new() {
+		//
+	}
+
+}
+
+class SyncOptions {
+
+	public var validExtensions : Array<String>;
+
+	public var skipFoldersNamed : Array<String>;
+
+	public var safeSyncMakeBackups : Bool;
+	public var safeSyncCheckInverse : Bool;
+
+	public var breakOnFirstFailedInverse : Bool;
+
+	public var pathSeparator : String;
+
+	public function new() {
+		validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ];   // "jpp"
+		skipFoldersNamed = [ "CVS", ".git" ];
+		safeSyncMakeBackups  = true;
+		safeSyncCheckInverse = true;
+		breakOnFirstFailedInverse = true;
+		pathSeparator = "/";
+
+	}
+
+}
+
+class Reporter {
+
+	public function echo(s : String) {
+		File.stdout().writeString(s + "\n");
+	}
+
+	public function debug(s : String) {
+		echo("[Debug] "+s);
+	}
+
+	public function warn(s : String) {
+		echo("[Warning] "+s);
+	}
+
+	public function error(s : String) {
+		echo("[Error] "+s);
+
+	}
+
+}
+
+class OptionalReporter extends Reporter {
+
+	var options : Options;
+
+	public function new(_options) {
+		options = _options;
+	}
+
+	public override function echo(s : String) {
+		// trace(s);
+		File.stdout().writeString(s + options.newline);
+	}
+
+	public override function debug(s : String) {
+		if (options.debugging) {
+			echo("[Debug] "+s);
+		}
+
+	}
+
+}
+
+class Outputter {
+
+	var output : FileOutput;      // (for now)
+	var options : Options;
+
+	public function new(_output,_options) {
+		output = _output;
+		options = _options;
+	}
+
+	public function writeLine(str) {
+		output.writeString(str + options.newline);
+	}
+
+	public function close() {
+		output.close();
+	}
+}
+
+class SWS {
+
+	public var options : Options;
+
+	public var reporter : Reporter;
+
+	public function new(?_options) {
+		options = new Options();
+		reporter = new OptionalReporter(options);
+
+	}
 
 
 	// Sync options:
@@ -283,7 +331,7 @@ class SWS {
 	public static var anonymousCoffeeFunctionRE = ~/([(][a-zA-Z0-9@$_, 	]*[)])\s*->/g;
 	public static var anonymousCoffeeFunctionReplace = "function$1";
 
-	public static function decurl(infile : String, outfile : String) {
+	public function decurl(infile : String, outfile : String) {
 
 		// TODO: Count number of in/out curlies swallowed, and compare them against indent.  Warn when they do not look right!
 
@@ -297,9 +345,11 @@ class SWS {
 		var endsWithSemicolon : EReg = ~/\s*;\s*$/;
 
 		// var input : FileInput = File.read(infile,false);
-		var reader = new CommentTrackingReader(infile,options);
+		var reader = new CommentTrackingReader(infile,this);
 
 		var output : FileOutput = File.write(outfile,false);
+
+		var out = new Outputter(output,options);
 
 		try {
 
@@ -314,7 +364,7 @@ class SWS {
 				var line = res[0];
 				var trailingComment = res[1];
 
-				// echo("Read line: "+line);
+				// reporter.debug("Read line: "+line);
 
 				// We don't want to strip anything from comment lines
 				// var wholeLineIsComment = wholeLineIsCommentRE.match(line);
@@ -331,18 +381,18 @@ class SWS {
 
 					if (endsWithCurly.match(line)) {
 						line = endsWithCurly.replace(line,"");
-						if (blockLeadSymbol != null) {
-							var indicated = blockLeadSymbolIndicatedRE!=null && blockLeadSymbolIndicatedRE.match(line);
-							var contraIndicated = blockLeadSymbolContraIndicatedRE!=null && blockLeadSymbolContraIndicatedRE.match(line);
-							if (blockLeadSymbolContraIndicatedRE2AnonymousFunctions.match(line)) {
+						if (options.blockLeadSymbol != null) {
+							var indicated = options.blockLeadSymbolIndicatedRE!=null && options.blockLeadSymbolIndicatedRE.match(line);
+							var contraIndicated = options.blockLeadSymbolContraIndicatedRE!=null && options.blockLeadSymbolContraIndicatedRE.match(line);
+							if (options.blockLeadSymbolContraIndicatedRE2AnonymousFunctions.match(line)) {
 								contraIndicated = true;
 							}
 							// if (line.indexOf("function") == -1) {
 							if (!indicated && !contraIndicated) {
-								echo("Debug: blockLeadSymbol neither indicated or contra-indicated for: "+line);
+								reporter.debug("blockLeadSymbol neither indicated or contra-indicated for: "+line);
 							}
 							if (indicated) {
-								line += blockLeadSymbol;
+								line += options.blockLeadSymbol;
 							}
 							// This may look rather odd if the "{" was on a line on its own, now the ":" will be too.  To avoid it, we would have to recall the last newline we emitted, so we can append to the previous line.  Although if javaStyleCurlies is set, this may clean itself up after two runs.
 						}
@@ -351,24 +401,24 @@ class SWS {
 						}
 					}
 
-					if (addRemoveSemicolons && endsWithSemicolon.match(line)) {
+					if (options.addRemoveSemicolons && endsWithSemicolon.match(line)) {
 						line = endsWithSemicolon.replace(line,"");
 					}
 
-					if (useCoffeeFunctions) {
+					if (options.useCoffeeFunctions) {
 						if (anonymousFunctionRE.match(line)) {
 							line = anonymousFunctionRE.replace(line,anonymousFunctionReplace);
 						}
 					}
 
-					if (unwrapParenthesesForCommands != null) {
+					if (options.unwrapParenthesesForCommands != null) {
 						var firstToken = getFirstWord(line);
-						if (unwrapParenthesesForCommands.has(firstToken)) {
+						if (options.unwrapParenthesesForCommands.has(firstToken)) {
 							var res = splitLineAtComment(line);
 							var beforeComment = res[0];
 							var afterComment = res[1];
 							var replacementRE = new EReg(firstToken+"\\s*[(](.*)[)]\\s*$",'');
-							// SWS.echo("Trying "+replacementRE+" on "+beforeComment);
+							// reporter.debug("Trying "+replacementRE+" on "+beforeComment);
 							beforeComment = replacementRE.replace(beforeComment,firstToken+" $1");
 							line = beforeComment + afterComment;
 						}
@@ -377,26 +427,26 @@ class SWS {
 				}
 
 				wholeLine = line + trailingComment;
-				output.writeString(wholeLine + newline);
+				out.writeLine(wholeLine);
 
 			}
 
 		} catch (ex : haxe.io.Eof) {
-			// echo("Reached the End Of the File.");
+			// reporter.debug("Reached the End Of the File.");
 		}
 
-		output.close();
+		out.close();
 
 	}
 
-	public static function curl(infile : String, outfile : String) {
+	public function curl(infile : String, outfile : String) {
 
 		var leadingIndentRE : EReg = ~/^\s*/;
 		var whitespaceRE : EReg = ~/\s+/;
 
 		var currentLine : String;
 
-		var helper = new CommentTrackingReader(infile,options);
+		var helper = new CommentTrackingReader(infile,this);
 
 		var output : FileOutput = File.write(outfile,false);
 
@@ -405,6 +455,8 @@ class SWS {
 		var indentString : String = null;
 
 		var currentIndent : Int = 0;
+
+		var out = new Outputter(output,options);
 
 		while (true) {
 
@@ -421,13 +473,13 @@ class SWS {
 			// BUG TODO: That is not strictly true, in many languages we can open blocks inside expressions, e.g. in JS function(){ ... }, or inline anonymous implementation of interface in Java and Haxe.  I'm sure you agree it will be pretty hard to detect that in decurled files.  This is something of a "show-stopper" for Javascript, where anonymous callback functions are often passed directly to function calls.  Therefore, probably for Javascript we should *reject* parentheses from affecting curling&SCI, pushing the problem back to multi-line expressions (indented or otherwise).
 			// It may be worth nothing that we hadn't fully solved multi-line expressions anyway, specifically any *not* wrapped in brackets (...).
 			// I feel so much better about this whole business having document doNotCurlMultiLineParentheses.  One feature or the other is a fair conclusion.
-			if (wasInsideComment || (isInsideBrackets && doNotCurlMultiLineParentheses)) {
+			if (wasInsideComment || (isInsideBrackets && options.doNotCurlMultiLineParentheses)) {
 				// For the moment, just skip the entire line.
-				output.writeString(currentLine + newline);
+				out.writeLine(currentLine);
 				continue;
 			}
 
-			// echo("currentLine = "+currentLine);
+			// reporter.debug("currentLine = "+currentLine);
 
 			// DONE: Do not seek curlies on comment lines, such as this trouble-maker here:
 			// if (!emptyOrBlank.match(currentLine)) {
@@ -449,13 +501,13 @@ class SWS {
 				var indentPart = indentRE.matched(0);
 				if (indentPart != "") {
 					indentString = indentPart;
-					echo("Found first indent, length "+indentString.length);
+					reporter.debug("Found first indent, length "+indentString.length);
 				}
 			}
 
 			var indent_of_nextNonEmptyLine = countIndent(indentString, nextNonEmptyLine);
 
-			// echo("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
+			// reporter.debug("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
 
 			// We want to avoid semicolon addition on comment lines
 			// But we do want consider comment lines for indentation / bracing
@@ -465,7 +517,7 @@ class SWS {
 				var lineLikelyToBeRegexpDefinition = looksLikeRegexpLine.match(currentLine);
 				if (lineLikelyToBeRegexpDefinition) {
 					wholeLineIsComment = false;
-					// echo("Looked like a comment, but could be a regexp: "+currentLine);
+					// reporter.warn("Looked like a comment, but could be a regexp: "+currentLine);
 				}
 			}
 			// But it could be a regexp line with a trailing comment!
@@ -483,7 +535,7 @@ class SWS {
 			// This only affects semicolon injection, which is just where we need it.  :)
 
 			// TODO: Should really be done after splitLineAtComment
-			if (useCoffeeFunctions) {
+			if (options.useCoffeeFunctions) {
 				if (anonymousCoffeeFunctionRE.match(currentLine)) {
 					currentLine = anonymousCoffeeFunctionRE.replace(currentLine,anonymousCoffeeFunctionReplace);
 				}
@@ -494,18 +546,18 @@ class SWS {
 			if (indent_of_nextNonEmptyLine > currentIndent) {
 
 				if (indent_of_nextNonEmptyLine > currentIndent+1) {
-					echo("Error: Unexpected double indent on: "+nextNonEmptyLine);
+					reporter.error("Unexpected double indent on: "+nextNonEmptyLine);
 				}
 
 				// DONE: Should be done after splitLineAtComment and then we can check it should only appear at the end.
-				if (blockLeadSymbol != null) {
+				if (options.blockLeadSymbol != null) {
 					var res = splitLineAtComment(currentLine);
 					var beforeComment = res[0];
 					var afterComment = res[1];
-					var i = beforeComment.lastIndexOf(blockLeadSymbol);
+					var i = beforeComment.lastIndexOf(options.blockLeadSymbol);
 					if (i >= 0) {
 						var beforeSymbol = beforeComment.substr(0,i);
-						var afterSymbol = beforeComment.substr(i+blockLeadSymbol.length);
+						var afterSymbol = beforeComment.substr(i+options.blockLeadSymbol.length);
 						// We only strip the symbol if it is the last thing on the (comment split) line.
 						if (emptyOrBlank.match(afterSymbol)) {
 							beforeComment = beforeSymbol + afterSymbol;
@@ -518,10 +570,10 @@ class SWS {
 				// Append open curly to current line
 				// Then write it
 				if (options.javaStyleCurlies) {
-					output.writeString(appendToLine(currentLine," {") + newline);
+					out.writeLine(appendToLine(currentLine," {"));
 				} else {
-					output.writeString(currentLine + newline);
-					output.writeString(repeatString(currentIndent,indentString) + "{" + newline);
+					out.writeLine(currentLine);
+					out.writeLine(repeatString(currentIndent,indentString) + "{");
 				}
 				currentIndent++;
 				continue;
@@ -537,10 +589,10 @@ class SWS {
 				// DONE: We need to check/apply addRemoveSemicolons rule to currentLine before we output it.
 				// TODO: DRY - this is a clone of later code!
 				// DONE: We should not act on comment lines!
-				if (addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
+				if (options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
 					currentLine = appendToLine(currentLine,";");
 				}
-				output.writeString(currentLine + newline);
+				out.writeLine(currentLine);
 
 				var delayLastCurly = false;
 				// DONE: If the next non-empty line starts with the "else" or "catch" keyword, then:
@@ -562,7 +614,7 @@ class SWS {
 
 				var i = currentIndent - 1;   // We could actually just continue to use currentIndent instead of i.
 				while (i >= indent_of_nextNonEmptyLine) {
-					// echo("De-curlifying with i="+i);
+					// reporter.debug("De-curlifying with i="+i);
 
 					var indentAtThisLevel = repeatString(i,indentString);
 
@@ -576,7 +628,7 @@ class SWS {
 						while (true) {
 							nextLine = helper.getNextLine();
 							if (emptyOrBlank.match(nextLine)) {
-								output.writeString(nextLine + newline);
+								out.writeLine(nextLine);
 							} else {
 								break;
 							}
@@ -589,12 +641,12 @@ class SWS {
 						if (options.javaStyleCurlies) {
 							// Join the next line to the curly
 							updatedLine = indentAtThisLevel + "} " + leadingIndentRE.replace(nextLine,"");
-							// output.writeString(updatedLine + newline);
+							// out.writeLine(updatedLine);
 							// But now we want to consider this line for opening an indent :O
 							// Feck!  Oh ... hmmm ... Managed that using pushBackLine.  :)
 						} else {
 							// Write the curly on its own line
-							output.writeString(indentAtThisLevel + "}" + newline);
+							out.writeLine(indentAtThisLevel + "}");
 							// Handle the next line normally
 							updatedLine = nextLine;
 						}
@@ -633,10 +685,10 @@ class SWS {
 							// Do not write the '}' just yet ...
 							// Consume and write the blank line now, and the '}' right after.
 							var nextLine = helper.getNextLine();
-							output.writeString(nextLine + newline);
+							out.writeLine(nextLine);
 						}
 
-						output.writeString(indentAtThisLevel + "}" + newline);
+						out.writeLine(indentAtThisLevel + "}");
 
 					}
 
@@ -658,22 +710,22 @@ class SWS {
 
 			// TODO: DRY - this is a clone of earlier code!
 			// DONE: We should not act on comment lines!
-			if (addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
+			if (options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
 				currentLine = appendToLine(currentLine,";");
 			}
-			output.writeString(currentLine + newline);
+			out.writeLine(currentLine);
 
 		}
 
-		output.close();
+		out.close();
 
 	}
 
-	static function doUnwrapping(currentLine) {
+	function doUnwrapping(currentLine) {
 
-		if (unwrapParenthesesForCommands != null) {
+		if (options.unwrapParenthesesForCommands != null) {
 			var firstToken = getFirstWord(currentLine);
-			if (unwrapParenthesesForCommands.has(firstToken)) {
+			if (options.unwrapParenthesesForCommands.has(firstToken)) {
 				var res = splitLineAtComment(currentLine);
 				var beforeComment = res[0];
 				var afterComment = res[1];
@@ -688,7 +740,7 @@ class SWS {
 	}
 
 	// appends the string to the line, except if there is a trailing comment on the line, the append is done *before* the comment.
-	static function appendToLine(line : String, toAppend : String) {
+	function appendToLine(line : String, toAppend : String) {
 		var res = splitLineAtComment(line);
 		var beforeComment = res[0];
 		var afterComment = res[1];
@@ -696,14 +748,14 @@ class SWS {
 	}
 
 	// TODO: Does Haxe have a better way to return tuples, or use "out" arguments like UScript or &var pointers like C?
-	public static function splitLineAtComment(line : String) {
+	public function splitLineAtComment(line : String) {
 		var hasTrailingComment = trailingCommentOutsideQuotes.match(line) && trailingCommentOutsideApostrophes.match(line);
 		// Actually it might only be trailing after indentation, no content!
 		if (!hasTrailingComment) {
 			return [line,""];
 		} else {
 			if (trailingCommentOutsideQuotes.matched(1) != trailingCommentOutsideApostrophes.matched(1)) {
-				SWS.echo("Warning: trailingCommentOutsideQuotes and trailingCommentOutsideApostrophes could not agree where the comment boundary is: "+line);
+				reporter.warn("trailingCommentOutsideQuotes and trailingCommentOutsideApostrophes could not agree where the comment boundary is: "+line);
 			}
 			// Regexps can end in ...\// - we do not want to split on that!
 			if (looksLikeRegexpLine.match(line)) {
@@ -711,9 +763,9 @@ class SWS {
 				return [line,""];
 			}
 			if (couldbeRegexpEndingSlashSlash.match(line)) {
-				// SWS.echo("Warning: looks like a // comment but could be regexp!  "+line);
+				// reporter.warn("looks like a // comment but could be regexp!  "+line);
 				// This regexp is less ambiguous now - let's trust it and do-the-right-thing by ignoring the //.
-				SWS.echo("Debug: could be a // comment but probably actually a regexp!  "+line);
+				reporter.debug("could be a // comment but probably actually a regexp!  "+line);
 				return [line,""];
 			}
 			// trace("Line has trailing comment!  "+line);
@@ -778,20 +830,37 @@ class SWS {
 		return sb.toString();
 	}
 
-	public static function safeDecurl(infile, outfile) {
-		doSafely(decurl, infile, outfile, curl);
+	function echo(str) {
+		reporter.echo("[Rest] "+str);
 	}
 
-	public static function safeCurl(infile, outfile) {
-		doSafely(curl, infile, outfile, decurl);
+}
+
+class Sync {
+
+	var sws : SWS;
+
+	var syncOptions : SyncOptions;
+
+	public function new(_options, _syncOptions) {
+		sws = new SWS(_options);
+		syncOptions = _syncOptions;
+	}
+
+	public function safeDecurl(infile, outfile) {
+		doSafely(sws.decurl, infile, outfile, sws.curl);
+	}
+
+	public function safeCurl(infile, outfile) {
+		doSafely(sws.curl, infile, outfile, sws.decurl);
 	}
 
 	// Loving the first-order functions.
 	// However in this particular case, I wouldn't mind getting more specific, because this is really not applicable to all functions in general.
 	// E.g. we should only accept fn/class which implements "FileTransformer".
-	public static function doSafely(fn : Dynamic, inFile : String, outFile : String, inverseFn : Dynamic) {
+	public function doSafely(fn : Dynamic, inFile : String, outFile : String, inverseFn : Dynamic) {
 
-		if (SyncOptions.safeSyncMakeBackups) {
+		if (syncOptions.safeSyncMakeBackups) {
 			var backupFile = outFile + ".bak";
 			if (FileSystem.exists(outFile)) {
 				File.copy(outFile, backupFile);
@@ -810,7 +879,7 @@ class SWS {
 		touchFile(inFile);
 		// Woop!  It worked!  (It might not work on very large files, or fine-grained filesystems.)
 
-		if (SyncOptions.safeSyncCheckInverse) {
+		if (syncOptions.safeSyncCheckInverse) {
 			var tempFile = inFile + ".inv";
 			inverseFn(outFile, tempFile);
 			// echo("Now compare "+inFile+" against "+tempFile);
@@ -820,7 +889,7 @@ class SWS {
 				// echo("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
 				echo("Compare:");
 				echo("  vimdiff \""+inFile+"\" \""+tempFile+"\"");
-				if (SyncOptions.breakOnFirstFailedInverse) {
+				if (syncOptions.breakOnFirstFailedInverse) {
 					echo("Exiting so user can inspect.  There may be more files which need processing...");
 					Sys.exit(5);
 				}
@@ -842,14 +911,10 @@ class SWS {
 		FileSystem.rename(filename+".touch",filename);
 	}
 
-	static function traceCall(fn : Dynamic, args : Array<Dynamic>) : Dynamic {
+	function traceCall(fn : Dynamic, args : Array<Dynamic>) : Dynamic {
 		echo("Calling "+fn+" with args "+args);
 		return fn(args);
 	}
-
-}
-
-class Sync extends Options {
 
 	static function getExtension(filename : String) {
 		var words = filename.split(".");
@@ -860,7 +925,9 @@ class Sync extends Options {
 		}
 	}
 
-	public static function doSync(root : String) {
+	public function doSync(root : String) {
+
+		var validExtensionsLocal = syncOptions.validExtensions;
 
 		// We want to collect all files ending with ".sws" or with a valid source extension.
 		// Sometimes we will pick up a pair, but we merge them into one by canonicalisation.
@@ -868,7 +935,7 @@ class Sync extends Options {
 		forAllFilesBelow(root, function(f) {
 			// echo("Checking file: "+f);
 			var ext = getExtension(f);
-			if (SyncOptions.validExtensions.has(ext)) {
+			if (validExtensionsLocal.has(ext)) {
 				// Canonicalise to the non-sws name
 				if (ext == "sws") {
 					var words = f.split(".");
@@ -887,7 +954,7 @@ class Sync extends Options {
 		}
 	}
 
-	static function syncFile(curlyFile) {
+	function syncFile(curlyFile) {
 
 		var swsFile = curlyFile + ".sws";
 
@@ -908,29 +975,29 @@ class Sync extends Options {
 		}
 
 		if (direction == 1) {
-			SWS.echo("Decurling "+curlyFile+" -> "+swsFile);
+			echo("Decurling "+curlyFile+" -> "+swsFile);
 			// echo(decurl(curlyFile, swsFile));
 			// decurl(curlyFile, swsFile);    // NOTE: safeCurl is now mandatory, because it deals with date updating
 			// DONE: safeCurl and safeDecurl, done via doSafely; much nicer.
 			// doSafely(decurl, curlyFile, swsFile, curl)
-			SWS.safeDecurl(curlyFile, swsFile);
+			safeDecurl(curlyFile, swsFile);
 			// After transformation, transform *back* (to a tempfile), and check if the result matches the original.  If not warn user, showing differences.  (If they are minor he may ignore them.)
 			// Also to be safe, we should store a backup of the target file before it is overwritten.
 		} else if (direction == 2) {
-			SWS.echo("Curling "+swsFile+" -> "+curlyFile);
+			echo("Curling "+swsFile+" -> "+curlyFile);
 			// traceCall(curl(swsFile, curlyFile));
 			// curl(swsFile, curlyFile);
 			// doSafely(curl, swsFile, curlyFile, decurl)
-			SWS.safeCurl(swsFile, curlyFile);
+			safeCurl(swsFile, curlyFile);
 		}
 	}
 
-	static function forAllFilesBelow<ResType>(root : String, fn : String -> ResType) {
+	function forAllFilesBelow<ResType>(root : String, fn : String -> ResType) {
 		var children = FileSystem.readDirectory(root);
 		for (child in children) {
-			var childPath = root + Options.pathSeparator + child;
+			var childPath = root + syncOptions.pathSeparator + child;
 			if (FileSystem.isDirectory(childPath)) {
-				if (!SyncOptions.skipFoldersNamed.has(child)) {
+				if (!syncOptions.skipFoldersNamed.has(child)) {
 					// echo("Descending to folder: "+childPath);
 					forAllFilesBelow(childPath,fn);
 				}
@@ -938,6 +1005,10 @@ class Sync extends Options {
 				fn(childPath);
 			}
 		}
+	}
+
+	function echo(s) {
+		sws.reporter.echo("[Sync] "+s);
 	}
 
 }
@@ -1027,11 +1098,13 @@ class CommentTrackingReader extends HelpfulReader {
 
 	public var depthInsideParentheses : Int; // = false;
 
+	var sws : SWS;
 	var reporter : Reporter;
 
-	public function new(infile,_reporter) {
+	public function new(infile,_sws) {
 		super(infile);
-		reporter = _reporter;
+		sws = _sws;
+		reporter = sws.reporter;
 		insideComment = false;
 		depthInsideParentheses = 0;
 	}
@@ -1041,7 +1114,7 @@ class CommentTrackingReader extends HelpfulReader {
 		if (line == null) {
 			return line;
 		}
-		var res = SWS.splitLineAtComment(line);
+		var res = sws.splitLineAtComment(line);
 		var lineBeforeComment = res[0];
 		var trailingComment = res[1];
 
@@ -1074,7 +1147,7 @@ class CommentTrackingReader extends HelpfulReader {
 				// Let's not cause a fuss if we don't have to.
 			} else {
 				// reporter.echo("I am not trusting the parentheses on this line, although their could be some!");
-				SWS.debug("Debug: Ignoring untrustworthy parentheses: "+line);
+				reporter.debug("Debug: Ignoring untrustworthy parentheses: "+line);
 			}
 			// TODO: Perhaps we can count how many are inside "s, how many are inside 's and thus deduce how many are left outside?
 			// Ofc we have also forgotten (s or )s inside Regexp literals.

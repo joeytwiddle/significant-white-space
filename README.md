@@ -170,6 +170,8 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - DONE: But this still leaves us with the problem that trailing comment lines will not get semicolon injection or stripping of semicolons or curlies.  To address this, we should "remove" trailing comments when considering application of said features.
 
+- Introduce endline `\` chars in the sws to represent lines which do not end in semicolons.
+
 ## On the radar
 
 - DONE in `unwrapParenthesesForCommands`: We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.

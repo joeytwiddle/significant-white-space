@@ -1,4 +1,4 @@
-set -e
+# set -e
 
 env > /tmp/x.env.zsh
 set > /tmp/x.set.zsh
@@ -9,7 +9,7 @@ elif [ -n "$BASH" ]
 then export PS4="+[\[`cursered;cursebold`\]\s\[`cursenorm`\]]\[`cursegreen`\]\W\[`cursenorm`\]\$ "
 else export PS4="[sh $0] "
 fi
-set -x
+# set -x
 
 ## We can compile to various languages, if we don't use neko File I/O.
 # haxe -main org/neuralyte/sws/Root.hx -js sws.js
@@ -17,9 +17,22 @@ set -x
 # haxe -main org/neuralyte/sws/Root.hx -cpp sws.cpp
 # haxelib run hxjava sws.hxp
 
-sws.stable sync org
+sws.stable sync org > sync.log
 
-haxe -main org/neuralyte/sws/Root.hx -neko sws.n
+if [ "$?" != 0 ]
+then
+	cat sync.log
+	exit 120
+fi
+
+haxe -main org/neuralyte/sws/Root.hx -neko sws.n > haxe.log
+
+if [ "$?" = 0 ]
+then cat sync.log haxe.log
+else
+	cat haxe.log
+	exit 123
+fi
 
 # nekotools boot sws.n
 if ! nekotools boot sws.n
