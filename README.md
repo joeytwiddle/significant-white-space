@@ -265,6 +265,13 @@ Let's also critique the sync algorithm:
 
 - On filesystems with coarse-grained time-stamps, sync may not notice changes made to a source file very soon after it was synced (within 1 second).  This is rare, but could happen e.g. if a developer edits and saves a file while sync is running in the background.
 
+Some restrictions for decurling:
+
+  - Original input must be curled, one-line or two-line if statements will not be parsed correctly.  TODO: Should warn/error!
+
+  - ... This list is incomplete!  TODO
+
+
 
 
 ------------------------------
