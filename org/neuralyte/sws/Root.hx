@@ -99,7 +99,7 @@ class Root {
 
 	}
 
-	static var defaultOptions : Options = cast { debugging: true, javaStyleCurlies: true, addRemoveSemicolons: true, doNotCurlMultiLineParentheses: false, useCoffeeFunctions: true, unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ], blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/, blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/, blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/, newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true, retainLineNumbers: true };
+	public static var defaultOptions : Options = cast { debugging: true, javaStyleCurlies: true, addRemoveSemicolons: true, doNotCurlMultiLineParentheses: false, useCoffeeFunctions: true, unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ], blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/, blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/, blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/, newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true, retainLineNumbers: true };
 
 }
 
@@ -255,7 +255,9 @@ class Outputter {
 
 	public function close() {
 		output.close();
+
 	}
+
 }
 
 class SWS {
@@ -265,7 +267,8 @@ class SWS {
 	public var reporter : Reporter;
 
 	public function new(?_options) {
-		options = new Options();
+		// options = new Options()
+		options = _options!=null ? _options : Root.defaultOptions;
 		reporter = new OptionalReporter(options);
 
 	}
@@ -899,9 +902,9 @@ class Sync {
 		if (originalResult != null) {
 			var newResult = File.getContent(outFile);
 			if (newResult != originalResult) {
-				echo("There were changes since the last time ("+originalResult.length+" -> "+newResult.length);
+				echo("There were changes since the last time ("+originalResult.length+" -> "+newResult.length+")");
 			} else {
-				echo("There were no changes since the last time ("+originalResult.length+" == "+newResult.length);
+				echo("There were no changes since the last time ("+originalResult.length+" == "+newResult.length+")");
 			}
 		}
 	}
@@ -1124,7 +1127,7 @@ class CommentTrackingReader extends HelpfulReader {
 			} else {
 				insideComment = true;
 				if (SWS.seemsToContainRegexp.match(lineBeforeComment)) {
-					reporter.echo("Warning: looks like start of comment block but also like a regexp!  "+line);
+					reporter.warn("Looks like start of comment block but also like a regexp!  "+line);
 				}
 			}
 		}
@@ -1134,7 +1137,7 @@ class CommentTrackingReader extends HelpfulReader {
 			} else {
 				insideComment = false;
 				if (SWS.seemsToContainRegexp.match(lineBeforeComment)) {
-					reporter.echo("Warning: looks like end of comment block but also like a regexp!  "+line);
+					reporter.warn("Looks like end of comment block but also like a regexp!  "+line);
 				}
 			}
 		}
@@ -1147,7 +1150,7 @@ class CommentTrackingReader extends HelpfulReader {
 				// Let's not cause a fuss if we don't have to.
 			} else {
 				// reporter.echo("I am not trusting the parentheses on this line, although their could be some!");
-				reporter.debug("Debug: Ignoring untrustworthy parentheses: "+line);
+				reporter.debug("Ignoring untrustworthy parentheses: "+line);
 			}
 			// TODO: Perhaps we can count how many are inside "s, how many are inside 's and thus deduce how many are left outside?
 			// Ofc we have also forgotten (s or )s inside Regexp literals.
