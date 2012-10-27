@@ -29,13 +29,105 @@ using Lambda
 
 // TODO: We are still stripping ;s from commented lines with extra trailing comments (see blockLeadSymbol)
 
+// TODO: using blockLeadSymbol only for functions, we may as well adapt useCoffeeFunctions to handle anonymous and not anonymous
+
+// TODO: Complete refactoring into file-free tool.
+
+// Recommend config file do like HaXe and MPlayer, just put cmdline args there, and parse them the same way.
+
+
 class Root
+
+	static function main() =>
+
+		var args = neko.Sys.args()
+
+		var options = Root.defaultOptions
+		var syncOptions = new SyncOptions()
+
+		var sws = new SWS(options)
+		var sync = new Sync(options,syncOptions)
+
+		try
+
+			if args[0] == "--help"
+
+				showHelp()
+
+			else if (args[0] == "curl")
+
+				sws.curl(args[1], args[2])
+
+			else if (args[0] == "decurl")
+
+				sws.decurl(args[1], args[2])
+
+			else if (args[0] == "safe-curl")
+
+				sync.safeCurl(args[1], args[2])
+
+			else if (args[0] == "safe-decurl")
+
+				sync.safeDecurl(args[1], args[2])
+
+			else if (args[0] == "sync")
+
+				if args[1] != null
+					sync.doSync(args[1])
+				else
+					sync.doSync(".")
+
+			else
+
+				showHelp()
+
+		catch ex : Dynamic
+			echo("Caught exception: "+ex)
+			// TODO: Where do they keep the damn stacktrace?!  ex is just a string
+			return 5 // TODO: This is not being set as the exit code ... we must use neko.Sys?
+
+		return 0
+
+	static function showHelp() =>
+		echo("sws curl <filename> <outname>")
+		echo("sws decurl <filename> <outname>")
+		echo("sws sync [<folder/filename>]")
+
+	static function echo(s:String) =>
+		File.stdout().writeString("[Root] " + s + "\n")
+
+
+	// public static var defaultOptions : Options = cast { debugging: true, javaStyleCurlies: true, addRemoveSemicolons: true, doNotCurlMultiLineParentheses: false, useCoffeeFunctions: true, unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ], blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/, blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/, blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/, newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true, retainLineNumbers: true }
+
+	public static var defaultOptions : Options = cast (
+		debugging: true, \
+		javaStyleCurlies: true, \
+		addRemoveSemicolons: true, \
+		doNotCurlMultiLineParentheses: false, \
+		useCoffeeFunctions: true, \
+		unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ], \
+		blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/, \
+		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/, \
+		blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/, \
+		newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true, \
+		retainLineNumbers: true \
+	)
+
+	// Recently: Decurl adds trailing ' \' when semicolon was expected but not found.
+	//           Curl removes trailing ' \' and does not add semicolon when encountered.
+	//
+	// GONE: This has pushed a problem with the commented line looksLikeRegexpLineWithEndComment back up to the surface.  I think before those ambiguous lines (splitLineAtComment) were getting semicolons stripped and reinjected?  New ' \' may be avoiding stripping a bit more heavily.  Perhaps it too should check ambiguity?
+
+
+class Options
+
+	public var debugging : Bool
 
 	// Options {{{
 
-	static var javaStyleCurlies : Bool = true
+	public var javaStyleCurlies : Bool
 
-	static var addRemoveSemicolons : Bool = true
+	public var addRemoveSemicolons : Bool
 
 	// doNotCurlMultiLineParentheses:
 	//   true - You can write multi-line expressions with (...).
@@ -43,13 +135,13 @@ class Root
 	//          The contents of (...) will remain unchanged.  Doesn't that mean we *can* put curlies inside, but they won't be de/re-curled?
 	//   false - Multi-line expressions will be subject to curling and SCI, with or without (...)
 	//           new {...} blocks should work fine provided they are in the middle of an otherwise unbroken line.  (They do require at least one trailing that is not '}' or ';'.)
-	static var doNotCurlMultiLineParentheses : Bool = false
+	public var doNotCurlMultiLineParentheses : Bool
 
 	// Rename: useCoffeeFunctionSymbolForAnonymousFunctions?  Maybe not.
-	static var useCoffeeFunctions : Bool = true
+	public var useCoffeeFunctions : Bool
 
 	// NOTE: Current implementation will *not* unbrace or re-brace if(...) - because we peek the first symbol, a space is required: if (...)
-	static var unwrapParenthesesForCommands = [ "if", "while", "for", "catch", "switch" ]
+	public var unwrapParenthesesForCommands : Array<String>
 
 	//// blockLeadSymbol is an entirely optional symbol used to indicate the start of certain blocks.  This works much like Python's ":" symbol, but with SWS we want fine-grained control over when they are used.
 	// static var blockLeadSymbol = null;
@@ -57,7 +149,8 @@ class Root
 	// static var blockLeadSymbol = " :";        // But : looks rather odd in Haxe, where function lines may already end in ": Type"
 	// static var blockLeadSymbol = " =";        // Quite passable, although not as true as when CS defines functions this way.
 	// static var blockLeadSymbol = " {";        // hehe this actually works without error; of course no matching } is introduced
-	static var blockLeadSymbol = " =>"          // I like this for HaXe
+	// public var blockLeadSymbol = " =>"          // I like this for HaXe
+	public var blockLeadSymbol : String
 
 	//// s/Indicated/Wanted/g ?
 
@@ -66,38 +159,125 @@ class Root
 	// The start ensures a word.  The end requires at least one name char, to distinguish "function (e) {" from "function myFunc(e)"
 	// TODO: What about Java?
 	// TODO: There is no indicator for Java ... no keyword!
-	static var blockLeadSymbolIndicatedRE = ~/(\s|^)function\s+[a-zA-Z_$]/
+	public var blockLeadSymbolIndicatedRE : EReg
 	// static var blockLeadSymbolIndicatedRE = ~/(\s|^)(if|while|.*)/;   // Not sure when Python users want their ":"s
 
 	// Use this blockLeadSymbolContraIndicatedRE if you only want blockLeadSymbol on function declarations (i.e. none of the things mentioned here).
 	// TODO: To suppress warnings, contra-indicate anonymous functions.
 	// These would be neater in a list, checked against the first word on the line.
-	static var blockLeadSymbolContraIndicatedRE = ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/
-	static var blockLeadSymbolContraIndicatedRE2AnonymousFunctions = ~/(^|[^A-Za-z0-9_$@])function\s*[(]/
+	public var blockLeadSymbolContraIndicatedRE : EReg
+	public var blockLeadSymbolContraIndicatedRE2AnonymousFunctions : EReg
 	// static var blockLeadSymbolContraIndicatedRE = null;   // Not sure when Python users want their ":"s
 	// TODO: DRY.  useCoffeeFunctions already detects anonymous functions, and therefore can contra-indicate them without the need for a repeat regexp.
 	// TODO: Java does not have anonymous functions, but we should check that inline interface implementations are working ok.
 
 	// static var newline : String = "\r\n";
-	static var newline : String = "\n"
-	static var pathSeparator = "/"
+	public var newline : String
 
 	// }}}
+
+	// TODO:
+	public var addRemoveCurlies : Bool
+	public var trackSlashStarCommentBlocks : Bool   // can be disabled if they will never be used
+	public var retainLineNumbers : Bool             // retains whitespace chars
+
+	public function new() =>
+		//
+
+
+class SyncOptions
+
+	public var validExtensions : Array<String>
+
+	public var skipFoldersNamed : Array<String>
+
+	public var safeSyncMakeBackups : Bool
+	public var safeSyncCheckInverse : Bool
+
+	public var breakOnFirstFailedInverse : Bool
+
+	public var pathSeparator : String
+
+	public function new() =>
+		validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ]   // "jpp"
+		skipFoldersNamed = [ "CVS", ".git" ]
+		safeSyncMakeBackups  = true
+		safeSyncCheckInverse = true
+		breakOnFirstFailedInverse = true
+		pathSeparator = "/"
+
+
+
+class Reporter
+
+	// Try not to use echo!  info is preferred.
+	public function echo(s : String) =>
+		File.stdout().writeString(s + "\n")
+
+	public function debug(s : String) =>
+		echo("[Debug] "+s)
+
+	public function info(s : String) =>
+		echo("[Info] "+s)
+
+	public function warn(s : String) =>
+		echo("[Warning] "+s)
+
+	public function error(s : String) =>
+		echo("[Error] "+s)
+
+
+
+class OptionalReporter extends Reporter
+
+	var options : Options
+
+	public function new(_options) =>
+		options = _options
+
+	public override function echo(s : String) =>
+		// trace(s);
+		File.stdout().writeString(s + options.newline)
+
+	public override function debug(s : String) =>
+		if options.debugging
+			echo("[Debug] "+s)
+
+
+
+class Outputter
+
+	var output : FileOutput      // (for now)
+	var options : Options
+
+	public function new(_output,_options) =>
+		output = _output
+		options = _options
+
+	public function writeLine(str) =>
+		output.writeString(str + options.newline)
+
+	public function close() =>
+		output.close()
+
+
+
+class SWS
+
+	public var options : Options
+
+	public var reporter : Reporter
+
+	public function new(?_options) =>
+		// options = new Options()
+		options = _options!=null ? _options : Root.defaultOptions
+		reporter = new OptionalReporter(options)
 
 
 
 	// Sync options:
 
 	static var continuationKeywords = [ "else", "catch" ]
-
-	static var validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ]   // "jpp"
-
-	static var skipFoldersNamed = [ "CVS", ".git" ]
-
-	static var safeSyncMakeBackups  = true
-	static var safeSyncCheckInverse = true
-
-	static var breakOnFirstFailedInverse = true
 
 
 	// Constants:
@@ -137,8 +317,8 @@ class Root
 
 	//// Almost certainly a regexp literal (JS or Haxe) which ends in */ which is not a comment ending!
 	// public static var looksLikeRegexpLineWithEndComment : EReg = ~/=[ \t]*~?\/[^*\/].*\*\/;?\s*$/
-	//// Almost certainly a regexp literal assignment.
-	public static var looksLikeRegexpLine : EReg = ~/=[ \t]*~?\/[^*\/].*\/;?\s*$/
+	//// Almost certainly a regexp literal assignment, not in a comment
+	public static var looksLikeRegexpLine : EReg = ~/^[^\/]*=\s*~?\/[^*\/].*\/;?\s*$/
 	//// Might be a regexp literal, not neccessarily assigned; uncertain.
 	public static var seemsToContainRegexp : EReg = ~/~?\/[^*\/].*\//
 	// If you want to cause trouble, swap \/ and * like this: ~/~?\/[^\/*].*\//;  The line will fill with semicolons!
@@ -155,60 +335,7 @@ class Root
 	public static var anonymousCoffeeFunctionRE = ~/([(][a-zA-Z0-9@$_, 	]*[)])\s*->/g
 	public static var anonymousCoffeeFunctionReplace = "function$1"
 
-
-	static function main() =>
-
-		try
-
-			var args = neko.Sys.args()
-
-			if args[0] == "--help"
-
-				showHelp()
-
-			else if (args[0] == "curl")
-
-				curl(args[1], args[2])
-
-			else if (args[0] == "decurl")
-
-				decurl(args[1], args[2])
-
-			else if (args[0] == "safedecurl")
-
-				doSafely(decurl, args[1], args[2], curl)
-
-			else if (args[0] == "sync")
-
-				if args[1] != null
-					doSync(args[1])
-				else
-					doSync(".")
-
-			else
-
-				showHelp()
-
-
-		catch ex : Dynamic
-			echo("Caught exception: "+ex)
-			// TODO: Where do they keep the damn stacktrace?!  ex is just a string
-			return 5 // TODO: This is not being set as the exit code ... we must use neko.Sys?
-
-		return 0
-
-
-	public static function echo(s : String) =>
-		// trace(s);
-		File.stdout().writeString(s + newline)
-
-	static function showHelp() =>
-		// Sys.out.
-		echo("sws curl <filename> <outname>")
-		echo("sws decurl <filename> <outname>")
-		echo("sws sync [<folder/filename>]")
-
-	static function decurl(infile : String, outfile : String) =>
+	public function decurl(infile : String, outfile : String) =>
 
 		// TODO: Count number of in/out curlies swallowed, and compare them against indent.  Warn when they do not look right!
 
@@ -222,13 +349,17 @@ class Root
 		var endsWithSemicolon : EReg = ~/\s*;\s*$/
 
 		// var input : FileInput = File.read(infile,false);
-		var reader = new CommentTrackingReader(infile)
+		var reader = new CommentTrackingReader(infile,this)
 
 		var output : FileOutput = File.write(outfile,false)
+
+		var out = new Outputter(output,options)
 
 		try
 
 			while true
+
+				var wasInsideComment = reader.insideComment
 
 				var wholeLine : String = reader.getNextLine()
 				if wholeLine == null   // Unlike input, our reader does not throw Eof.
@@ -238,13 +369,14 @@ class Root
 				var line = res[0]
 				var trailingComment = res[1]
 
-				// echo("Read line: "+line);
+				// reporter.debug("Read line: "+line);
 
 				// We don't want to strip anything from comment lines
-				// var wholeLineIsComment = wholeLineIsCommentRE.match(line);
+				var wholeLineIsComment = wholeLineIsCommentRE.match(line)
 				// DISABLED: splitLineAtComment can deal with this now
-				var wholeLineIsComment = false
-				if !wholeLineIsComment && !reader.insideComment
+				// var wholeLineIsComment = false
+				// if true    // TODO BUG: Put the commented if line below the live one, and it will interfere with curling!
+				if !wholeLineIsComment && !wasInsideComment
 
 					if startsWithCurly.match(line)
 						line = startsWithCurlyReplacer.replace(line,"")
@@ -253,57 +385,64 @@ class Root
 
 					if endsWithCurly.match(line)
 						line = endsWithCurly.replace(line,"")
-						if blockLeadSymbol != null
-							var indicated = blockLeadSymbolIndicatedRE!=null && blockLeadSymbolIndicatedRE.match(line)
-							var contraIndicated = blockLeadSymbolContraIndicatedRE!=null && blockLeadSymbolContraIndicatedRE.match(line)
-							if blockLeadSymbolContraIndicatedRE2AnonymousFunctions.match(line)
+						if options.blockLeadSymbol != null
+							var indicated = options.blockLeadSymbolIndicatedRE!=null && options.blockLeadSymbolIndicatedRE.match(line)
+							var contraIndicated = options.blockLeadSymbolContraIndicatedRE!=null && options.blockLeadSymbolContraIndicatedRE.match(line)
+							if options.blockLeadSymbolContraIndicatedRE2AnonymousFunctions.match(line)
 								contraIndicated = true
 							// if (line.indexOf("function") == -1) {
 							if !indicated && !contraIndicated
-								echo("Debug: blockLeadSymbol neither indicated or contra-indicated for: "+line)
+								reporter.debug("blockLeadSymbol neither indicated or contra-indicated for: "+line)
 							if indicated
-								line += blockLeadSymbol
+								line += options.blockLeadSymbol
 							// This may look rather odd if the "{" was on a line on its own, now the ":" will be too.  To avoid it, we would have to recall the last newline we emitted, so we can append to the previous line.  Although if javaStyleCurlies is set, this may clean itself up after two runs.
 						if emptyOrBlank.match(line + trailingComment)
 							continue
 
-					if addRemoveSemicolons && endsWithSemicolon.match(line)
-						line = endsWithSemicolon.replace(line,"")
+					else
 
-					if useCoffeeFunctions
+						if !wholeLineIsComment && !reader.insideComment && !emptyOrBlank.match(line)
+							if options.addRemoveSemicolons
+								if endsWithSemicolon.match(line)
+									line = endsWithSemicolon.replace(line,"")
+								else
+									line += " \\"
+
+					if options.useCoffeeFunctions
 						if anonymousFunctionRE.match(line)
 							line = anonymousFunctionRE.replace(line,anonymousFunctionReplace)
 
-					if unwrapParenthesesForCommands != null
+					if options.unwrapParenthesesForCommands != null
 						var firstToken = getFirstWord(line)
-						if unwrapParenthesesForCommands.has(firstToken)
+						if options.unwrapParenthesesForCommands.has(firstToken)
 							var res = splitLineAtComment(line)
 							var beforeComment = res[0]
 							var afterComment = res[1]
 							var replacementRE = new EReg(firstToken+"\\s*[(](.*)[)]\\s*$",'')
-							// Root.echo("Trying "+replacementRE+" on "+beforeComment);
+							// reporter.debug("Trying "+replacementRE+" on "+beforeComment);
 							beforeComment = replacementRE.replace(beforeComment,firstToken+" $1")
 							line = beforeComment + afterComment
 
 
 				wholeLine = line + trailingComment
-				output.writeString(wholeLine + newline)
+				out.writeLine(wholeLine)
 
 
 		catch ex : haxe.io.Eof
-			// echo("Reached the End Of the File.");
+			// reporter.debug("Reached the End Of the File.");
 
-		output.close()
+		out.close()
 
 
-	static function curl(infile : String, outfile : String) =>
+	public function curl(infile : String, outfile : String) =>
 
 		var leadingIndentRE : EReg = ~/^\s*/
 		var whitespaceRE : EReg = ~/\s+/
+		var endsWithBackslash : EReg = ~/\s?\\$/
 
 		var currentLine : String
 
-		var helper = new CommentTrackingReader(infile)
+		var helper = new CommentTrackingReader(infile,this)
 
 		var output : FileOutput = File.write(outfile,false)
 
@@ -312,6 +451,8 @@ class Root
 		var indentString : String = null
 
 		var currentIndent : Int = 0
+
+		var out = new Outputter(output,options)
 
 		while true
 
@@ -327,12 +468,12 @@ class Root
 			// BUG TODO: That is not strictly true, in many languages we can open blocks inside expressions, e.g. in JS function(){ ... }, or inline anonymous implementation of interface in Java and Haxe.  I'm sure you agree it will be pretty hard to detect that in decurled files.  This is something of a "show-stopper" for Javascript, where anonymous callback functions are often passed directly to function calls.  Therefore, probably for Javascript we should *reject* parentheses from affecting curling&SCI, pushing the problem back to multi-line expressions (indented or otherwise).
 			// It may be worth nothing that we hadn't fully solved multi-line expressions anyway, specifically any *not* wrapped in brackets (...).
 			// I feel so much better about this whole business having document doNotCurlMultiLineParentheses.  One feature or the other is a fair conclusion.
-			if wasInsideComment || (isInsideBrackets && doNotCurlMultiLineParentheses)
+			if wasInsideComment || (isInsideBrackets && options.doNotCurlMultiLineParentheses)
 				// For the moment, just skip the entire line.
-				output.writeString(currentLine + newline)
+				out.writeLine(currentLine)
 				continue
 
-			// echo("currentLine = "+currentLine);
+			// reporter.debug("currentLine = "+currentLine);
 
 			// DONE: Do not seek curlies on comment lines, such as this trouble-maker here:
 			// if (!emptyOrBlank.match(currentLine)) {
@@ -353,11 +494,11 @@ class Root
 				var indentPart = indentRE.matched(0)
 				if indentPart != ""
 					indentString = indentPart
-					echo("Found first indent, length "+indentString.length)
+					reporter.debug("Found first indent, length "+indentString.length)
 
 			var indent_of_nextNonEmptyLine = countIndent(indentString, nextNonEmptyLine)
 
-			// echo("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
+			// reporter.debug("curr:" + currentIndent+"  next: "+indent_of_nextNonEmptyLine);
 
 			// We want to avoid semicolon addition on comment lines
 			// But we do want consider comment lines for indentation / bracing
@@ -367,7 +508,8 @@ class Root
 				var lineLikelyToBeRegexpDefinition = looksLikeRegexpLine.match(currentLine)
 				if lineLikelyToBeRegexpDefinition
 					wholeLineIsComment = false
-					// echo("Looked like a comment, but could be a regexp: "+currentLine);
+					//// No need to warn, this regexp imbues confidence
+					// reporter.warn("Looked like a comment, but could be a regexp: "+currentLine)
 			// But it could be a regexp line with a trailing comment!
 			/*
 			if (!wholeLineIsComment) {
@@ -383,7 +525,7 @@ class Root
 			// This only affects semicolon injection, which is just where we need it.  :)
 
 			// TODO: Should really be done after splitLineAtComment
-			if useCoffeeFunctions
+			if options.useCoffeeFunctions
 				if anonymousCoffeeFunctionRE.match(currentLine)
 					currentLine = anonymousCoffeeFunctionRE.replace(currentLine,anonymousCoffeeFunctionReplace)
 
@@ -392,17 +534,17 @@ class Root
 			if indent_of_nextNonEmptyLine > currentIndent
 
 				if indent_of_nextNonEmptyLine > currentIndent+1
-					echo("Error: Unexpected double indent on: "+nextNonEmptyLine)
+					reporter.error("Unexpected double indent on: "+nextNonEmptyLine)
 
 				// DONE: Should be done after splitLineAtComment and then we can check it should only appear at the end.
-				if blockLeadSymbol != null
+				if options.blockLeadSymbol != null
 					var res = splitLineAtComment(currentLine)
 					var beforeComment = res[0]
 					var afterComment = res[1]
-					var i = beforeComment.lastIndexOf(blockLeadSymbol)
+					var i = beforeComment.lastIndexOf(options.blockLeadSymbol)
 					if i >= 0
 						var beforeSymbol = beforeComment.substr(0,i)
-						var afterSymbol = beforeComment.substr(i+blockLeadSymbol.length)
+						var afterSymbol = beforeComment.substr(i+options.blockLeadSymbol.length)
 						// We only strip the symbol if it is the last thing on the (comment split) line.
 						if emptyOrBlank.match(afterSymbol)
 							beforeComment = beforeSymbol + afterSymbol
@@ -411,11 +553,11 @@ class Root
 				// Assumption: indent never increases by more than one
 				// Append open curly to current line
 				// Then write it
-				if javaStyleCurlies
-					output.writeString(appendToLine(currentLine," {") + newline)
+				if options.javaStyleCurlies
+					out.writeLine(appendToLine(currentLine," {"))
 				else
-					output.writeString(currentLine + newline)
-					output.writeString(repeatString(currentIndent,indentString) + "{" + newline)
+					out.writeLine(currentLine)
+					out.writeLine(repeatString(currentIndent,indentString) + "{")
 				currentIndent++
 				continue
 
@@ -429,9 +571,12 @@ class Root
 				// DONE: We need to check/apply addRemoveSemicolons rule to currentLine before we output it.
 				// TODO: DRY - this is a clone of later code!
 				// DONE: We should not act on comment lines!
-				if addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)
-					currentLine = appendToLine(currentLine,";")
-				output.writeString(currentLine + newline)
+				if options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)
+					if endsWithBackslash.match(currentLine)
+						currentLine = endsWithBackslash.replace(currentLine,"")
+					else
+						currentLine = appendToLine(currentLine,";")
+				out.writeLine(currentLine)
 
 				var delayLastCurly = false
 				// DONE: If the next non-empty line starts with the "else" or "catch" keyword, then:
@@ -451,7 +596,7 @@ class Root
 
 				var i = currentIndent - 1   // We could actually just continue to use currentIndent instead of i.
 				while i >= indent_of_nextNonEmptyLine
-					// echo("De-curlifying with i="+i);
+					// reporter.debug("De-curlifying with i="+i);
 
 					var indentAtThisLevel = repeatString(i,indentString)
 
@@ -465,7 +610,7 @@ class Root
 						while true
 							nextLine = helper.getNextLine()
 							if emptyOrBlank.match(nextLine)
-								output.writeString(nextLine + newline)
+								out.writeLine(nextLine)
 							else
 								break
 							// nextLine should be === nextNonEmptyLine now
@@ -473,15 +618,15 @@ class Root
 						nextLine = doUnwrapping(nextLine)
 
 						var updatedLine
-						if javaStyleCurlies
+						if options.javaStyleCurlies
 							// Join the next line to the curly
 							updatedLine = indentAtThisLevel + "} " + leadingIndentRE.replace(nextLine,"")
-							// output.writeString(updatedLine + newline);
+							// out.writeLine(updatedLine);
 							// But now we want to consider this line for opening an indent :O
 							// Feck!  Oh ... hmmm ... Managed that using pushBackLine.  :)
 						else
 							// Write the curly on its own line
-							output.writeString(indentAtThisLevel + "}" + newline)
+							out.writeLine(indentAtThisLevel + "}")
 							// Handle the next line normally
 							updatedLine = nextLine
 						helper.pushBackLine(updatedLine)
@@ -515,9 +660,9 @@ class Root
 							// Do not write the '}' just yet ...
 							// Consume and write the blank line now, and the '}' right after.
 							var nextLine = helper.getNextLine()
-							output.writeString(nextLine + newline)
+							out.writeLine(nextLine)
 
-						output.writeString(indentAtThisLevel + "}" + newline)
+						out.writeLine(indentAtThisLevel + "}")
 
 
 					i--
@@ -535,19 +680,22 @@ class Root
 
 			// TODO: DRY - this is a clone of earlier code!
 			// DONE: We should not act on comment lines!
-			if addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)
-				currentLine = appendToLine(currentLine,";")
-			output.writeString(currentLine + newline)
+			if options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)
+				if endsWithBackslash.match(currentLine)
+					currentLine = endsWithBackslash.replace(currentLine,"")
+				else
+					currentLine = appendToLine(currentLine,";")
+			out.writeLine(currentLine)
 
 
-		output.close()
+		out.close()
 
 
-	static function doUnwrapping(currentLine) =>
+	function doUnwrapping(currentLine) =>
 
-		if unwrapParenthesesForCommands != null
+		if options.unwrapParenthesesForCommands != null
 			var firstToken = getFirstWord(currentLine)
-			if unwrapParenthesesForCommands.has(firstToken)
+			if options.unwrapParenthesesForCommands.has(firstToken)
 				var res = splitLineAtComment(currentLine)
 				var beforeComment = res[0]
 				var afterComment = res[1]
@@ -559,29 +707,30 @@ class Root
 
 
 	// appends the string to the line, except if there is a trailing comment on the line, the append is done *before* the comment.
-	static function appendToLine(line : String, toAppend : String) =>
+	function appendToLine(line : String, toAppend : String) =>
 		var res = splitLineAtComment(line)
 		var beforeComment = res[0]
 		var afterComment = res[1]
 		return beforeComment + toAppend + afterComment
 
 	// TODO: Does Haxe have a better way to return tuples, or use "out" arguments like UScript or &var pointers like C?
-	public static function splitLineAtComment(line : String) =>
+	public function splitLineAtComment(line : String) =>
 		var hasTrailingComment = trailingCommentOutsideQuotes.match(line) && trailingCommentOutsideApostrophes.match(line)
 		// Actually it might only be trailing after indentation, no content!
 		if !hasTrailingComment
 			return [line,""]
 		else
 			if trailingCommentOutsideQuotes.matched(1) != trailingCommentOutsideApostrophes.matched(1)
-				Root.echo("Warning: trailingCommentOutsideQuotes and trailingCommentOutsideApostrophes could not agree where the comment boundary is: "+line)
+				reporter.warn("trailingCommentOutsideQuotes and trailingCommentOutsideApostrophes could not agree where the comment boundary is: "+line)
 			// Regexps can end in ...\// - we do not want to split on that!
 			if looksLikeRegexpLine.match(line)
 				// No logging - we have confidence in this?
+				reporter.debug("could be a comment line but could equally be a regexp literal!  "+line)
 				return [line,""]
 			if couldbeRegexpEndingSlashSlash.match(line)
-				// Root.echo("Warning: looks like a // comment but could be regexp!  "+line);
+				// reporter.warn("looks like a // comment but could be regexp!  "+line);
 				// This regexp is less ambiguous now - let's trust it and do-the-right-thing by ignoring the //.
-				Root.echo("Debug: could be a // comment but probably actually a regexp!  "+line)
+				reporter.debug("could be a // comment but probably actually a regexp!  "+line)
 				return [line,""]
 			// trace("Line has trailing comment!  "+line);
 			// This regexp finds the *last* occurrence of // on the line.  But sometimes a // comment contains // inside it!
@@ -632,86 +781,32 @@ class Root
 			sb.add(str)
 		return sb.toString()
 
-	static function getExtension(filename : String) =>
-		var words = filename.split(".")
-		if words.length > 1
-			return words[words.length-1]
-		else
-			return ""
-
-	static function doSync(root : String) =>
-
-		// We want to collect all files ending with ".sws" or with a valid source extension.
-		// Sometimes we will pick up a pair, but we merge them into one by canonicalisation.
-		var filesToDo : Array<String> = []
-		forAllFilesBelow(root, (f) ->
-			// echo("Checking file: "+f);
-			var ext = getExtension(f)
-			if validExtensions.has(ext)
-				// Canonicalise to the non-sws name
-				if ext == "sws"
-					var words = f.split(".")
-					words = words.slice(0,words.length-1)
-					f = words.join(".")
-				if !filesToDo.has(f)
-					filesToDo.push(f)
-				// echo("pushing: "+f);
-		)
-
-		for srcFile in filesToDo
-			syncFile(srcFile)
+	function echo(str) =>
+		reporter.echo("[Rest] "+str)
 
 
-	static function syncFile(srcFile) =>
+class Sync
 
-		var swsFile = srcFile + ".sws"
+	var sws : SWS
 
-		var direction : Int = 0   // 0=none, 1=to_sws, 2=from_sws
-		if !FileSystem.exists(swsFile)
-			direction = 1
-		else if (!FileSystem.exists(srcFile))
-			direction = 2
-		else
-			var srcStat = FileSystem.stat(srcFile)
-			var swsStat = FileSystem.stat(swsFile)
-			// echo(srcStat + " <-> "+swsStat);
-			if srcStat.mtime.getTime() < swsStat.mtime.getTime()
-				direction = 2
-			else if (srcStat.mtime.getTime() > swsStat.mtime.getTime())
-				direction = 1
+	var syncOptions : SyncOptions
 
-		if direction == 1
-			echo("Decurling "+srcFile+" -> "+swsFile)
-			// echo(decurl(srcFile, swsFile));
-			// decurl(srcFile, swsFile);    // NOTE: safeCurl is now mandatory, because it deals with date updating
-			// DONE: safeCurl and safeDecurl, done via doSafely; much nicer.
-			doSafely(decurl, srcFile, swsFile, curl)
-			// After transformation, transform *back* (to a tempfile), and check if the result matches the original.  If not warn user, showing differences.  (If they are minor he may ignore them.)
-			// Also to be safe, we should store a backup of the target file before it is overwritten.
-		else if (direction == 2)
-			echo("Curling "+swsFile+" -> "+srcFile)
-			// traceCall(curl(swsFile, srcFile));
-			// curl(swsFile, srcFile);
-			doSafely(curl, swsFile, srcFile, decurl)
+	public function new(_options, _syncOptions) =>
+		sws = new SWS(_options)
+		syncOptions = _syncOptions
 
+	public function safeDecurl(infile, outfile) =>
+		doSafely(sws.decurl, infile, outfile, sws.curl)
 
-	static function forAllFilesBelow<ResType>(root : String, fn : String -> ResType) =>
-		var children = FileSystem.readDirectory(root)
-		for child in children
-			var childPath = root + pathSeparator + child
-			if FileSystem.isDirectory(childPath)
-				if !skipFoldersNamed.has(child)
-					// echo("Descending to folder: "+childPath);
-					forAllFilesBelow(childPath,fn)
-			else
-				fn(childPath)
+	public function safeCurl(infile, outfile) =>
+		doSafely(sws.curl, infile, outfile, sws.decurl)
 
 	// Loving the first-order functions.
 	// However in this particular case, I wouldn't mind getting more specific, because this is really not applicable to all functions in general.
 	// E.g. we should only accept fn/class which implements "FileTransformer".
-	static function doSafely(fn : Dynamic, inFile : String, outFile : String, inverseFn : Dynamic) =>
+	public function doSafely(fn : Dynamic, inFile : String, outFile : String, inverseFn : Dynamic) =>
 
-		if safeSyncMakeBackups
+		if syncOptions.safeSyncMakeBackups
 			var backupFile = outFile + ".bak"
 			if FileSystem.exists(outFile)
 				File.copy(outFile, backupFile)
@@ -727,35 +822,122 @@ class Root
 		touchFile(inFile)
 		// Woop!  It worked!  (It might not work on very large files, or fine-grained filesystems.)
 
-		if safeSyncCheckInverse
+		if syncOptions.safeSyncCheckInverse
 			var tempFile = inFile + ".inv"
 			inverseFn(outFile, tempFile)
 			// echo("Now compare "+inFile+" against "+tempFile);
 			if File.getContent(inFile) != File.getContent(tempFile)
-				echo("Warning: Inverse differs from original.  Differences may or may not be cosmetic!")
+				warn("Warning: Inverse differs from original.  Differences may or may not be cosmetic!")
 				// echo("Compare files: \""+inFile+"\" \""+tempFile+"\"");
 				// echo("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
-				echo("Compare:")
-				echo("  vimdiff \""+inFile+"\" \""+tempFile+"\"")
-				if breakOnFirstFailedInverse
+				warn("Compare:")
+				pureEcho("  vimdiff \""+inFile+"\" \""+tempFile+"\"")
+				if syncOptions.breakOnFirstFailedInverse
 					echo("Exiting so user can inspect.  There may be more files which need processing...")
 					Sys.exit(5)
 
 		if originalResult != null
 			var newResult = File.getContent(outFile)
 			if newResult != originalResult
-				echo("There were changes since the last time ("+originalResult.length+" -> "+newResult.length)
+				info("There were changes to "+inFile+" since the last time ("+originalResult.length+" -> "+newResult.length+")")
 			else
-				echo("There were no changes since the last time ("+originalResult.length+" == "+newResult.length)
-
+				// info("There were no changes since the last time ("+originalResult.length+" == "+newResult.length+")")
 
 	static function touchFile(filename) =>
 		File.copy(filename,filename+".touch")
 		FileSystem.rename(filename+".touch",filename)
 
-	static function traceCall(fn : Dynamic, args : Array<Dynamic>) : Dynamic =>
+	function traceCall(fn : Dynamic, args : Array<Dynamic>) : Dynamic =>
 		echo("Calling "+fn+" with args "+args)
 		return fn(args)
+
+	static function getExtension(filename : String) =>
+		var words = filename.split(".")
+		if words.length > 1
+			return words[words.length-1]
+		else
+			return ""
+
+	public function doSync(root : String) =>
+
+		var validExtensionsLocal = syncOptions.validExtensions
+
+		// We want to collect all files ending with ".sws" or with a valid source extension.
+		// Sometimes we will pick up a pair, but we merge them into one by canonicalisation.
+		var filesToDo : Array<String> = []
+		forAllFilesBelow(root, (f) ->
+			// echo("Checking file: "+f);
+			var ext = getExtension(f)
+			if validExtensionsLocal.has(ext)
+				// Canonicalise to the non-sws name
+				if ext == "sws"
+					var words = f.split(".")
+					words = words.slice(0,words.length-1)
+					f = words.join(".")
+				if !filesToDo.has(f)
+					filesToDo.push(f)
+				// echo("pushing: "+f);
+		)
+
+		for curlyFile in filesToDo
+			syncFile(curlyFile)
+
+	function syncFile(curlyFile) =>
+
+		var swsFile = curlyFile + ".sws"
+
+		var direction : Int = 0   // 0=none, 1=to_sws, 2=from_sws
+		if !FileSystem.exists(swsFile)
+			direction = 1
+		else if (!FileSystem.exists(curlyFile))
+			direction = 2
+		else
+			var srcStat = FileSystem.stat(curlyFile)
+			var swsStat = FileSystem.stat(swsFile)
+			// echo(srcStat + " <-> "+swsStat);
+			if srcStat.mtime.getTime() < swsStat.mtime.getTime()
+				direction = 2
+			else if (srcStat.mtime.getTime() > swsStat.mtime.getTime())
+				direction = 1
+
+		if direction == 1
+			echo("Decurling "+curlyFile+" -> "+swsFile)
+			// echo(decurl(curlyFile, swsFile));
+			// decurl(curlyFile, swsFile);    // NOTE: safeCurl is now mandatory, because it deals with date updating
+			// DONE: safeCurl and safeDecurl, done via doSafely; much nicer.
+			// doSafely(decurl, curlyFile, swsFile, curl)
+			safeDecurl(curlyFile, swsFile)
+			// After transformation, transform *back* (to a tempfile), and check if the result matches the original.  If not warn user, showing differences.  (If they are minor he may ignore them.)
+			// Also to be safe, we should store a backup of the target file before it is overwritten.
+		else if (direction == 2)
+			echo("Curling "+swsFile+" -> "+curlyFile)
+			// traceCall(curl(swsFile, curlyFile));
+			// curl(swsFile, curlyFile);
+			// doSafely(curl, swsFile, curlyFile, decurl)
+			safeCurl(swsFile, curlyFile)
+
+	function forAllFilesBelow<ResType>(root : String, fn : String -> ResType) =>
+		var children = FileSystem.readDirectory(root)
+		for child in children
+			var childPath = root + syncOptions.pathSeparator + child
+			if FileSystem.isDirectory(childPath)
+				if !syncOptions.skipFoldersNamed.has(child)
+					// echo("Descending to folder: "+childPath);
+					forAllFilesBelow(childPath,fn)
+			else
+				fn(childPath)
+
+	function echo(s) =>
+		sws.reporter.echo("[Sync] "+s)
+
+	function pureEcho(s) =>
+		sws.reporter.echo(s)
+
+	function info(s) =>
+		sws.reporter.info(s)
+
+	function warn(s) =>
+		sws.reporter.warn(s)
 
 
 class HelpfulReader
@@ -780,14 +962,14 @@ class HelpfulReader
 		// This could be rafactored to use peekLine
 		var i : Int
 		for i in 0...queue.length
-			if !Root.emptyOrBlank.match(queue[i])
+			if !SWS.emptyOrBlank.match(queue[i])
 				return queue[i]
 		// We ran out of queue to check!
 		while true
 			try
 				var line = input.readLine()
 				queue.push(line)
-				if !Root.emptyOrBlank.match(line)
+				if !SWS.emptyOrBlank.match(line)
 					return line
 			catch ex: haxe.io.Eof
 				break
@@ -828,8 +1010,13 @@ class CommentTrackingReader extends HelpfulReader
 
 	public var depthInsideParentheses : Int // = false;
 
-	public function new(infile) =>
+	var sws : SWS
+	var reporter : Reporter
+
+	public function new(infile,_sws) =>
 		super(infile)
+		sws = _sws
+		reporter = sws.reporter
 		insideComment = false
 		depthInsideParentheses = 0
 
@@ -837,41 +1024,43 @@ class CommentTrackingReader extends HelpfulReader
 		var line = super.getNextLine()
 		if line == null
 			return line
-		var res = Root.splitLineAtComment(line)
+		var res = sws.splitLineAtComment(line)
 		var lineBeforeComment = res[0]
 		var trailingComment = res[1]
 
 		if lineOpensCommentRE.match(line)
-			if Root.looksLikeRegexpLine.match(line)
-				// Root.echo("Looks like regexp literal declaration; assuming not a comment start: "+line);
+			if SWS.looksLikeRegexpLine.match(line)
+				// reporter.echo("Looks like regexp literal declaration; assuming not a comment start: "+line);
 			else
 				insideComment = true
-				if Root.seemsToContainRegexp.match(lineBeforeComment)
-					Root.echo("Warning: looks like start of comment block but also like a regexp!  "+line)
+				if SWS.seemsToContainRegexp.match(lineBeforeComment)
+					reporter.warn("Looks like start of comment block but also like a regexp!  "+line)
 		if lineClosesCommentRE.match(line)
-			if Root.looksLikeRegexpLine.match(line)
-				// Root.echo("Looks like regexp literal declaration; assuming not a comment end: "+line);
+			if SWS.looksLikeRegexpLine.match(line)
+				// reporter.echo("Looks like regexp literal declaration; assuming not a comment end: "+line);
 			else
 				insideComment = false
-				if Root.seemsToContainRegexp.match(lineBeforeComment)
-					Root.echo("Warning: looks like end of comment block but also like a regexp!  "+line)
+				if SWS.seemsToContainRegexp.match(lineBeforeComment)
+					reporter.warn("Looks like end of comment block but also like a regexp!  "+line)
 
 		// TODO: We should really be counting parentheses *outside* string and regexp literals!
 		var openBracketCount = countInString(lineBeforeComment,"(".code)
 		var closeBracketCount = countInString(lineBeforeComment,")".code)
 		if parenthesisInsideQuotes.match(lineBeforeComment) || parenthesisInsideApostrophes.match(lineBeforeComment)
-			// Root.echo("I am not trusting the parentheses on this line, although their could be some!");
 			if openBracketCount == closeBracketCount
 				// Let's not cause a fuss if we don't have to.
 			else
-				Root.echo("Debug: Ignoring untrustworthy parentheses: "+line)
+				// reporter.echo("I am not trusting the parentheses on this line, although their could be some!");
+				reporter.debug("Ignoring untrustworthy parentheses: "+line)
 			// TODO: Perhaps we can count how many are inside "s, how many are inside 's and thus deduce how many are left outside?
 			// Ofc we have also forgotten (s or )s inside Regexp literals.
 			// And our "-pairing regexps cannot handle \" inside them, likewise for '...\'...'
+			// For now, this is likely to fail on lines such as:
+			//   if (myString.charAt(0) == "(")      // blah blah
 		else
 			depthInsideParentheses += (openBracketCount - closeBracketCount)
 
-		// Root.echo("["+depthInsideParentheses+"] "+line);
+		// reporter.echo("["+depthInsideParentheses+"] "+line);
 
 		return line
 
