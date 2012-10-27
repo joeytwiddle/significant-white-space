@@ -33,6 +33,11 @@ using Lambda;
 
 // TODO: Complete refactoring into file-free tool.
 
+// TODO: Warn when decurling expects un () wrapping but does not get it, e.g.:
+//   if (name.equals(v.name)) return true;
+
+// TODO: Upgrade some warnings to errors; if we are confident it has caused / will cause a problem.
+
 // Recommend config file do like HaXe and MPlayer, just put cmdline args there, and parse them the same way.
 
 
@@ -944,6 +949,8 @@ class Sync {
 				pureEcho("  vimdiff \""+inFile+"\" \""+tempFile+"\"");
 				if (syncOptions.breakOnFirstFailedInverse) {
 					echo("Exiting so user can inspect.  There may be more files which need processing...");
+					// Lies: tempFile won't be checked! echo("Whichever file you edit will be transformed on the next pass, or if neither are edited, we will pick up where we left off, on the next file.")
+					echo("If you edit edit the source file, it be transformed again on the next pass, if not we will pick up where we left off, on the next file.");
 					Sys.exit(5);
 				}
 			}
@@ -952,6 +959,7 @@ class Sync {
 		if (originalResult != null) {
 			var newResult = File.getContent(outFile);
 			if (newResult != originalResult) {
+				// This is perfectly normal, if we have changed the source file.
 				info("There were changes to "+inFile+" since the last time ("+originalResult.length+" -> "+newResult.length+")");
 			} else {
 				// info("There were no changes since the last time ("+originalResult.length+" == "+newResult.length+")")
