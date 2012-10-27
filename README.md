@@ -30,17 +30,17 @@ into the more traditional style that HaXe requires for compilation:
     static function curl(infile, outfile) {
 
         while (readNextLine()) {
-    
+
             if (indent_of_nextNonEmptyLine > currentIndent) {
                 writeLine(currentLine + " {");
             } else {
                 writeLine(currentLine);
             }
-    
+
             if (indent_of_nextNonEmptyLine < currentIndent) {
                 writeLine("}");
             }
-    
+
         }
 
     }
@@ -91,7 +91,7 @@ Sync searches the current folder and subfolders for all sws or sws-able files (b
 
 Curl and decurl are minimal; they do their job and exit.  Sync however does some extra checking, and right now this checking is exposed in:
 
-    % sws safedecurl <curly_file> <sws_file>
+    % sws safe-decurl <curly_file> <sws_file>
 
 This will probably change to something neater in the future:
 
@@ -281,6 +281,27 @@ Vim users who want syntax highlighting and tags to work like normal when they ar
 ```
 
 Some strict syntax files may complain about missing semicolons and curlies, whilst others will be flexible enough to work fine.
+
+We can also run sws automatically whenever we save .sws file:
+
+```vim
+    " Simple but messy: writes errors over your screen!
+    autocmd BufWritePost,FileWritePost *.sws silent !sws curl "%" "%:r" >/dev/null
+
+    " Better: output shown tidily, and also saved in quickfix list.
+    set makeprg=sws
+    autocmd BufWritePost,FileWritePost *.sws :make curl "%" "%:r"
+
+    " Alternative: create and use a constant build script:
+    set makeprg=bash\ ./build.sh
+    autocmd BufWritePost,FileWritePost *.sws :make
+```
+
+When you have both curled and decurled files open, I recommend doing this on the file you are generating (not the one you are editing):
+
+```vim
+    :setlocal nomodifiable autoread
+```
 
 Some commands that can help when wrapping long lines:
 
