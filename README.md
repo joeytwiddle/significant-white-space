@@ -147,6 +147,8 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 - Added optional `blockLeadSymbol` which when set to `:` outputs sws files which look rather like Python.  Personally I would prefer something like `=>` but *only* on function declarations, perhaps `:` on classes, and nothing on if, while, for, try and other in-code indents.
 - Added `unwrapParenthesesForCommands`, which can remove the `(...)` parentheses around `if` and `while` conditions, and reintroduce them on curling.  (You can set the list of keywords you want this to work on, or just empty it.  (Personally I find the visual effect of `(...)` symbols useful if I have no syntax highlighting for the given language, but redundant if branch statements already stand out by colour.)
 
+- Multi-line expressions are now possible, by appending `\` in sws files to suppress semicolon injection for that line.
+
 
 
 ------------------------------
