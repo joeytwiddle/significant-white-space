@@ -152,6 +152,8 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 ------------------------------
 # TODO
 
+- BUG: `(...)` wrapping fails on "else if" but works on "if"
+
 - Problem detecting false indent from files starting with a multi-line comment (e.g. well-documented Java files).  Ideal solution: Solve this alongside other issues, by doing our best to track when we are inside a multi-line comment.  (The plan was to do that in HelpfulReader, and for it to expose the state (in/out of a comment) of the parser after the current line has been read (at the beginning of the next line).)
 
 - Get HelpfulReader to track whether we are inside or outside a multi-line comment.  (Consider how to deal with multiple mini comment blocks on one line, as well as the open-endedness of the state of each end of a line.  Our simple line-by-line approach would have been fine if it wasn't for those pesky `/*` ... `*/` blocks, users who like to split long lines, and `\"` chars inside `"`...`"` strings.)
