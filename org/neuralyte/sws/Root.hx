@@ -126,8 +126,11 @@ class Options {
 		blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/,
 		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/,
 		blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/,
-		newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true,
-		retainLineNumbers: true
+		newline: "\n",
+		addRemoveCurlies: true,
+		trackSlashStarCommentBlocks: true,
+		retainLineNumbers: true,
+		onlyWrapParensAtBlockStart: true
 	} );
 
 	// Recently: Decurl adds trailing ' \' when semicolon was expected but not found.
@@ -187,6 +190,8 @@ class Options {
 
 	// static var newline : String = "\r\n";
 	public var newline : String;
+
+	public var onlyWrapParensAtBlockStart : Bool;
 
 	// }}}
 
@@ -602,9 +607,15 @@ class SWS {
 				}
 			}
 
+			if (!options.onlyWrapParensAtBlockStart) {
+				currentLine = wrapParens(currentLine);
+			}
+
 			if (!helper.insideComment && indent_of_nextNonEmptyLine > currentIndent) {
 
-				currentLine = wrapParens(currentLine);
+				if (options.onlyWrapParensAtBlockStart) {
+					currentLine = wrapParens(currentLine);
+				}
 
 				if (indent_of_nextNonEmptyLine > currentIndent+1) {
 					reporter.error("Unexpected double indent on: "+nextNonEmptyLine);
