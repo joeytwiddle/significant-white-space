@@ -65,6 +65,10 @@ Available commands are:
 
     sws curl <sws_file> <curly_file>
 
+    sws safe-decurl <curly_file> <sws_file>
+
+    sws safe-curl <sws_file> <curly_file>
+
     sws sync [ <directory/filename> ]
 
 ## Examples
@@ -87,26 +91,37 @@ If no argument is provided, sws sync will search everything below the current fo
 
 Sync searches the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This allows the user to edit files in either format, without having to worry about the direction in which changes will be propagated!  Thus a single project can be edited both through its sws files, and through its traditional files, for example using an IDE such as Eclipse.
 
-## Temporary
+# What does "safe" mean?
 
-Curl and decurl are minimal; they do their job and exit.  Sync however does some extra checking, and right now this checking is exposed in:
+Curl and decurl are minimal; they do their job and exit.  However the safe-curl and safe-decurl operations do some extra checking: they invert the generated file and compare it to the original, and emit a warning if they do not match.
 
-    % sws safe-decurl <curly_file> <sws_file>
 
-This will probably change to something neater in the future:
 
-    % sws --test decurl <curly_file> <sws_file>
+------------------------------
+# Options
 
-The checking it does is to invert the generated sws_file and see if the result exactly matches the original curly file (which it rarely does the first time you try it!).
+`doNotCurlMultiLineParentheses`
+
+    > An old attempt at solving multi-line expressions.  Tracks `(` and `)` count, and prevents semicolon injection while inside one.  Unfortunately this sacrifices passing of anonymous inline functions, so is not recommended.
 
 
 
 ------------------------------
 # Status
 
-Now able to transform its own source leaving only 2 minor differences.
+Immature.
 
-Seems to be working reasonably for a good subset of HaXe and Java code, with the exclusion of multi-line expressions.  Working less smoothly on Javascript files (but this is not really a target language - that has Coffeescript already).
+Working reasonably for a neat subset of HaXe and Java code.
+
+Options are not yet exposed as command-line arguments, but can be changed by editing Root.hx.
+
+Recently added multi-line support; if you are lucky you will get:
+
+    var result = a > 200 \
+              || b > 300 \
+              || c > 500
+
+The `\` markers are needed to prevent `;` semicolons from being injected when curling.
 
 Multi-line expressions which introduce an anonymous function should work, provided only one level of indentation is used:
 
@@ -118,17 +133,6 @@ Multi-line expressions which introduce an anonymous function should work, provid
     )
 
 The head of the function may not appear on its own line.  (Non-empty lines always receive a ; if they do not open a curly block.)
-
-But multi-line expressions in general are not supported.
-
-    // Illegal!
-    var result = a > 200
-              || b > 300
-              || c > 500
-
-They may be coerced to work by wrapping the whole expression in `(...)` and setting doNotCurlMultiLineParentheses, but this sacrifices passing of anonymous inline functions, as in the previous example.
-
-Options are not yet exposed as command-line arguments, but can be changed by editing Root.hx.
 
 
 
@@ -154,15 +158,17 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 ------------------------------
 # TODO
 
-- BUG: `(...)` wrapping fails on "else if" but works on "if"
+- Code and comment cleanup.
 
-- Problem detecting false indent from files starting with a multi-line comment (e.g. well-documented Java files).  Ideal solution: Solve this alongside other issues, by doing our best to track when we are inside a multi-line comment.  (The plan was to do that in HelpfulReader, and for it to expose the state (in/out of a comment) of the parser after the current line has been read (at the beginning of the next line).)
+- FIXED: `(...)` wrapping fails on "else if" but works on "if"
 
-- Get HelpfulReader to track whether we are inside or outside a multi-line comment.  (Consider how to deal with multiple mini comment blocks on one line, as well as the open-endedness of the state of each end of a line.  Our simple line-by-line approach would have been fine if it wasn't for those pesky `/*` ... `*/` blocks, users who like to split long lines, and `\"` chars inside `"`...`"` strings.)
+- FIXED: Problem detecting false indent from files starting with a multi-line comment (e.g. well-documented Java files).  Ideal solution: Solve this alongside other issues, by doing our best to track when we are inside a multi-line comment.  (The plan was to do that in HelpfulReader, and for it to expose the state (in/out of a comment) of the parser after the current line has been read (at the beginning of the next line).)
+
+- DONE: Get HelpfulReader to track whether we are inside or outside a multi-line comment.  (Consider how to deal with multiple mini comment blocks on one line, as well as the open-endedness of the state of each end of a line.  Our simple line-by-line approach would have been fine if it wasn't for those pesky `/*` ... `*/` blocks, users who like to split long lines, and `\"` chars inside `"`...`"` strings.)
 
 - Argument parsing to select options from commandline calls.
 
-- Refactor to tidy the code up into neat classes, and expose the tool for use in file-free environments.
+- PARTLY: Refactor to tidy the code up into neat classes, and expose the tool for use in file-free environments.
 
 - Clear documentation, detection and warning of problematic code configurations.  Easy to read definition of what is legal code structure, and list of the gotchas (common issues we cannot fix).
 
@@ -174,7 +180,7 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 
 - DONE: But this still leaves us with the problem that trailing comment lines will not get semicolon injection or stripping of semicolons or curlies.  To address this, we should "remove" trailing comments when considering application of said features.
 
-- Introduce endline `\` chars in the sws to represent lines which do not end in semicolons.
+- DONE: Introduce endline `\` chars in the sws to represent lines which do not end in semicolons.
 
 ## On the radar
 
@@ -193,6 +199,10 @@ Options are not yet exposed as command-line arguments, but can be changed by edi
 - Some people might want a different blockLeadSymbol depending on the hint in the opening line, e.g. `=` for a class, `=>` for a function, `::` for a static function, `:` for a typedef struct (note this last is two tokens!).  To offer that kind of customisation, we could expose an editable map from hint to symbol.
 
 - Are there any relevant curly languages which use different comment symbols?  If so we should make that switch easy to access.
+
+## Over the horizon
+
+- Decide how to gap closing curlies based on gap found at opening, for symmetry.
 
 
 
@@ -245,7 +255,7 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
 - You can still express short `{ ... }` blocks on-one-line if you want to, but don't mix things up.  Specifically do not follow a curly by text and then newline and indent.  That mid-line curly will not be stripped, whilst the indent will cause a new one to be injected.
 
-- Semicolon injection's inability to detect multi-line comments and trailing comments can cause them to appear unwantedly.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)  You can either stick with a strict single-line comment style, or try to stop caring about odd semicolons appearing in comments!
+- FIXED: Semicolon injection's inability to detect multi-line comments and trailing comments can cause them to appear unwantedly.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)  You can either stick with a strict single-line comment style, or try to stop caring about odd semicolons appearing in comments!
 
 - Indentation of the original code must be correct for transformation to sws.  (E.g. this can be thrown up if you comment out the top and bottom lines of an if statement.)  A fix for this could be to parse `{` and `}`s and force correct indentation in the output.
 
@@ -253,7 +263,7 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
 - In Javascript, object and function definitions sometimes end with `};`.  When semicolon removal/injection is enabled, both these tokens will be stripped when decurling to sws, and the semicolon will *not* be re-introduced on curling.  However the semicolon can be retained by wrapping the definition in brackets, leaving a third symbol on the last line: `} );`
 
-- You must choose between allowing multi-line expressions (provided they are wrapped in `(`...`)`) or allowing the definition of new indented blocks within `(`...`)` expressions.  For languages where you often declare anonymous functions or implementations and pass them immediately, you probably want the latter.  The option is currently called doNotCurlMultiLineParentheses.  Perhaps we can track a stack of what nested blocks we are in (e.g. `"{{{(({"`), although since we have no `{`s in sws files, `{` must be always implied by indentation, but at least we can avoid semicolon injection in flat or only-partially-indented multi-line expressions.  However this is not an easy task, we would need to correctly parse strings and *regexps* to discard non-structural `{ } ( )` symbols.
+- OLD `doNotCurlMultiLineParentheses` You must choose between allowing multi-line expressions (provided they are wrapped in `(`...`)`) or allowing the definition of new indented blocks within `(`...`)` expressions.  For languages where you often declare anonymous functions or implementations and pass them immediately, you probably want the latter.  The option is currently called doNotCurlMultiLineParentheses.  Perhaps we can track a stack of what nested blocks we are in (e.g. `"{{{(({"`), although since we have no `{`s in sws files, `{` must be always implied by indentation, but at least we can avoid semicolon injection in flat or only-partially-indented multi-line expressions.  However this is not an easy task, we would need to correctly parse strings and *regexps* to discard non-structural `{ } ( )` symbols.
 
 - For the moment you will not have much joy with `#ifdef` preprocessor macros.  They will suffer from semicolon and experience curly insertion just like normal code if their bodies are indented. 
 

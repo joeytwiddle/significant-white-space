@@ -123,6 +123,7 @@ class Options {
 		doNotCurlMultiLineParentheses: false,
 		useCoffeeFunctions: true,
 		unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ],
+		// , "elseif"
 		blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/,
 		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/,
 		blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/,
@@ -130,7 +131,8 @@ class Options {
 		addRemoveCurlies: true,
 		trackSlashStarCommentBlocks: true,
 		retainLineNumbers: true,
-		onlyWrapParensAtBlockStart: true
+		onlyWrapParensAtBlockStart: true,
+		joinMixedIndentLinesToLast: true
 	} );
 
 	// Recently: Decurl adds trailing ' \' when semicolon was expected but not found.
@@ -168,6 +170,7 @@ class Options {
 	// static var blockLeadSymbol = " {";        // hehe this actually works without error; of course no matching } is introduced
 	// public var blockLeadSymbol = " =>"          // I like this for HaXe
 	public var blockLeadSymbol : String;
+	// TODO: keywordsHintSymbols : Map<String,String>
 
 	//// s/Indicated/Wanted/g ?
 
@@ -191,14 +194,17 @@ class Options {
 	// static var newline : String = "\r\n";
 	public var newline : String;
 
+	// If we always wrap parens for an "if..." line, we cannot accept single-line if statements.
+	// If we only wrap when we are starting an indented block, we can't have single-line parensWrapping, e.g.: throwError "message" -> to throwError("message")   - I don't think we ever really need that!  No languages have syntax that looks like functions!
 	public var onlyWrapParensAtBlockStart : Bool;
 
 	// }}}
 
 	// TODO:
 	public var addRemoveCurlies : Bool;
-	public var trackSlashStarCommentBlocks : Bool;   // can be disabled if they will never be used
-	public var retainLineNumbers : Bool;             // retains whitespace chars
+	public var trackSlashStarCommentBlocks : Bool;   // can be disabled if they will never be used, saving concerns about slash-stars appearing hidden in strings or regexps.
+	public var retainLineNumbers : Bool;             // does not squash up empty lines on decurl (on curl we should drop/replace an empty line when closing curls)
+	public var joinMixedIndentLinesToLast : Bool;    // My Eclipse formatting settings add spaces after the tab indentation when breaking a long line.  This might not be an uncommon semantic approach used elsewhere, so worth including.
 
 	public function new() {
 		//
@@ -461,10 +467,17 @@ class SWS {
 									var indent_of_currentLine = Heuristics.leadingIndentRE.matched(0).length;
 									Heuristics.leadingIndentRE.match(nextNonEmptyLine);
 									var indent_of_nextNonEmptyLine = Heuristics.leadingIndentRE.matched(0).length;
+									//// TODO: We should not demand tabs-spaces here.  We should check for any extra indent after matching/stripping indentString, e.g. to pick up 2 space indent in a 4 spaced file.
+									//// But we don't have indentString.  HelpfulReader could find and hold it.
+									// var indent_of_currentLine = countIndent(indentString, currentLine)
 									if (indent_of_nextNonEmptyLine > indent_of_currentLine) {
-										// We are about to indent; do not be concerned about missing ;
-										reporter.debug("About to indent despite no curlies, hopefully a one-line if: "+line);
-										// reporter.debug("indent_of_nextNonEmptyLine="+indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
+										if (options.joinMixedIndentLinesToLast && ~/^\t+ +/.match(nextNonEmptyLine)) {
+											line += " \\";     // We don't *have* to join them with \ on decurl.  We *could* look for mixed indent on curling, and handle it there.  But this fits logically with the other places we use '\'.
+										} else {
+											// We are about to indent; do not be concerned about missing ;
+											reporter.debug("About to indent despite no curlies, hopefully a one-line if: "+line);
+											// reporter.debug("indent_of_nextNonEmptyLine="+indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
+										}
 									} else {
 										line += " \\";
 									}
@@ -837,6 +850,7 @@ class SWS {
 		} else {
 			if (trailingCommentOutsideQuotes.matched(1) != trailingCommentOutsideApostrophes.matched(1)) {
 				reporter.warn("trailingCommentOutsideQuotes and trailingCommentOutsideApostrophes could not agree where the comment boundary is: "+line);
+				return [line,""];   // Do not try to split
 			}
 			// Regexps can end in ...\// - we do not want to split on that!
 			if (looksLikeRegexpLine.match(line)) {
