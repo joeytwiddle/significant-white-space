@@ -102,7 +102,7 @@ Sync searches the current folder and subfolders for all sws or sws-able files (b
 ------------------------------
 # Options
 
-`doNotCurlMultiLineParentheses`
+* `doNotCurlMultiLineParentheses`
 
     > An old attempt at solving multi-line expressions.  Tracks `(` and `)` count, and prevents semicolon injection while inside one.  Unfortunately this sacrifices passing of anonymous inline functions, so is not recommended.
 
@@ -293,7 +293,7 @@ Restrictions on code structure:
 
 
 ------------------------------
-# Bugs:
+# Bugs
 
     - sync fails with exception `std@sys_file_type` if it encounters any broken symlinks in the scanned tree.
 
@@ -350,7 +350,7 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 
 ------------------------------
-# Debate:
+# Debate
 
 - "I like curly braces!"
 
