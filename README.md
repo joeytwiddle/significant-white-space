@@ -265,9 +265,13 @@ Let's also critique the sync algorithm:
 
 - On filesystems with coarse-grained time-stamps, sync may not notice changes made to a source file very soon after it was synced (within 1 second).  This is rare, but could happen e.g. if a developer edits and saves a file while sync is running in the background.
 
-Some restrictions for decurling:
+Restrictions on code structure:
 
-  - Original input must be curled, one-line or two-line if statements will not be parsed correctly.  TODO: Should warn/error!
+  - Curly-files should be well indented before decurling.  Support was added to read one-line well-indented if bodies without curlies; they will be given curlies on curling.
+
+  - Indentation must be perfect as every indent/outdent will create `{...}` curlies.  (In a tab-indented file, extra space indents will be ignored.)
+
+  - Empty blocks require an indented // comment line to mark the body, or no curlies will be generated.
 
   - ... This list is incomplete!  TODO
 

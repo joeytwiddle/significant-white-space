@@ -602,9 +602,9 @@ class SWS {
 				}
 			}
 
-			currentLine = doUnwrapping(currentLine);
+			if (!helper.insideComment && indent_of_nextNonEmptyLine > currentIndent) {
 
-			if (indent_of_nextNonEmptyLine > currentIndent) {
+				currentLine = wrapParens(currentLine);
 
 				if (indent_of_nextNonEmptyLine > currentIndent+1) {
 					reporter.error("Unexpected double indent on: "+nextNonEmptyLine);
@@ -641,7 +641,7 @@ class SWS {
 
 			}
 
-			if (indent_of_nextNonEmptyLine < currentIndent) {
+			if (!helper.insideComment && indent_of_nextNonEmptyLine < currentIndent) {
 
 				// Write current line
 				// Write close curly (at lower indent)
@@ -700,7 +700,8 @@ class SWS {
 							// nextLine should be === nextNonEmptyLine now
 						}
 
-						nextLine = doUnwrapping(nextLine);
+						// If the line we are joining to is an else or catch continuation, we may need to wrap parens.
+						nextLine = wrapParens(nextLine);
 
 						var updatedLine;
 						if (options.javaStyleCurlies) {
@@ -790,7 +791,7 @@ class SWS {
 
 	}
 
-	function doUnwrapping(currentLine) {
+	function wrapParens(currentLine) {
 
 		if (options.unwrapParenthesesForCommands != null) {
 			var firstToken = getFirstWord(currentLine);
