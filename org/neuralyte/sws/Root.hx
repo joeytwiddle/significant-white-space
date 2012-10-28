@@ -445,21 +445,21 @@ class SWS {
 
 						if (!wholeLineIsComment && !reader.insideComment && !emptyOrBlank.match(line)) {
 							if (options.addRemoveSemicolons) {
-								// We only addRemoveSemicolons if the line does not start or end in a curl.
-								// However, some languages allow single-line if result without curls.
-								// If that is well indented, we do not need to remove ';' or more importantly add '\'
-								var nextNonEmptyLine = reader.getNextNonEmptyLine();
-								Heuristics.leadingIndentRE.match(line);
-								var indent_of_currentLine = Heuristics.leadingIndentRE.matched(0).length;
-								Heuristics.leadingIndentRE.match(nextNonEmptyLine);
-								var indent_of_nextNonEmptyLine = Heuristics.leadingIndentRE.matched(0).length;
-								if (indent_of_nextNonEmptyLine > indent_of_currentLine) {
-									// We are about to indent; do not be concerned about missing ;
-									reporter.debug("About to indent but no curlies, hopefully a one-line if: "+line);
-									// reporter.debug("indent_of_nextNonEmptyLine="+indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
+								if (endsWithSemicolon.match(line)) {
+									line = endsWithSemicolon.replace(line,"");
 								} else {
-									if (endsWithSemicolon.match(line)) {
-										line = endsWithSemicolon.replace(line,"");
+									// We only addRemoveSemicolons if the line does not start or end in a curl.
+									// However, some languages allow single-line if result without curls.
+									// If that is well indented, we do not need to remove ';' or more importantly add '\'
+									var nextNonEmptyLine = reader.getNextNonEmptyLine();
+									Heuristics.leadingIndentRE.match(line);
+									var indent_of_currentLine = Heuristics.leadingIndentRE.matched(0).length;
+									Heuristics.leadingIndentRE.match(nextNonEmptyLine);
+									var indent_of_nextNonEmptyLine = Heuristics.leadingIndentRE.matched(0).length;
+									if (indent_of_nextNonEmptyLine > indent_of_currentLine) {
+										// We are about to indent; do not be concerned about missing ;
+										reporter.debug("About to indent despite no curlies, hopefully a one-line if: "+line);
+										// reporter.debug("indent_of_nextNonEmptyLine="+indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
 									} else {
 										line += " \\";
 									}
