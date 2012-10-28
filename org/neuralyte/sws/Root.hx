@@ -47,7 +47,7 @@ class Root {
 
 		var args = neko.Sys.args();
 
-		var options = Root.defaultOptions;
+		var options = Options.defaultOptions;
 		var syncOptions = new SyncOptions();
 
 		var sws = new SWS(options);
@@ -108,8 +108,14 @@ class Root {
 
 	}
 
+}
+
+class Options {
+
 	// public static var defaultOptions : Options = cast { debugging: true, javaStyleCurlies: true, addRemoveSemicolons: true, doNotCurlMultiLineParentheses: false, useCoffeeFunctions: true, unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ], blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/, blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/, blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/, newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true, retainLineNumbers: true }
 
+	// The (...)s are required here to get the needed trailing ;
+	// The cast is the only way I found in Haxe so far.  It's fine I guess?
 	public static var defaultOptions : Options = cast ( {
 		debugging: true,
 		javaStyleCurlies: true,
@@ -128,10 +134,6 @@ class Root {
 	//           Curl removes trailing ' \' and does not add semicolon when encountered.
 	//
 	// GONE: This has pushed a problem with the commented line looksLikeRegexpLineWithEndComment back up to the surface.  I think before those ambiguous lines (splitLineAtComment) were getting semicolons stripped and reinjected?  New ' \' may be avoiding stripping a bit more heavily.  Perhaps it too should check ambiguity?
-
-}
-
-class Options {
 
 	public var debugging : Bool;
 
@@ -301,7 +303,7 @@ class SWS {
 
 	public function new(?_options) {
 		// options = new Options()
-		options = _options!=null ? _options : Root.defaultOptions;
+		options = _options!=null ? _options : Options.defaultOptions;
 		reporter = new OptionalReporter(options);
 
 	}
@@ -443,10 +445,24 @@ class SWS {
 
 						if (!wholeLineIsComment && !reader.insideComment && !emptyOrBlank.match(line)) {
 							if (options.addRemoveSemicolons) {
-								if (endsWithSemicolon.match(line)) {
-									line = endsWithSemicolon.replace(line,"");
+								// We only addRemoveSemicolons if the line does not start or end in a curl.
+								// However, some languages allow single-line if result without curls.
+								// If that is well indented, we do not need to remove ';' or more importantly add '\'
+								var nextNonEmptyLine = reader.getNextNonEmptyLine();
+								Heuristics.leadingIndentRE.match(line);
+								var indent_of_currentLine = Heuristics.leadingIndentRE.matched(0).length;
+								Heuristics.leadingIndentRE.match(nextNonEmptyLine);
+								var indent_of_nextNonEmptyLine = Heuristics.leadingIndentRE.matched(0).length;
+								if (indent_of_nextNonEmptyLine > indent_of_currentLine) {
+									// We are about to indent; do not be concerned about missing ;
+									reporter.debug("About to indent but no curlies, hopefully a one-line if: "+line);
+									// reporter.debug("indent_of_nextNonEmptyLine="+indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
 								} else {
-									line += " \\";
+									if (endsWithSemicolon.match(line)) {
+										line = endsWithSemicolon.replace(line,"");
+									} else {
+										line += " \\";
+									}
 								}
 							}
 						}
@@ -487,10 +503,6 @@ class SWS {
 	}
 
 	public function curl(infile : String, outfile : String) {
-
-		var leadingIndentRE : EReg = ~/^\s*/;
-		var whitespaceRE : EReg = ~/\s+/;
-		var endsWithBackslash : EReg = ~/\s?\\$/;
 
 		var currentLine : String;
 
@@ -639,8 +651,8 @@ class SWS {
 				// TODO: DRY - this is a clone of later code!
 				// DONE: We should not act on comment lines!
 				if (options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
-					if (endsWithBackslash.match(currentLine)) {
-						currentLine = endsWithBackslash.replace(currentLine,"");
+					if (Heuristics.endsWithBackslash.match(currentLine)) {
+						currentLine = Heuristics.endsWithBackslash.replace(currentLine,"");
 					} else {
 						currentLine = appendToLine(currentLine,";");
 					}
@@ -655,7 +667,7 @@ class SWS {
 				// Other things which like to trail after closing } is the name following a "typedef struct { ... } Name;".  Since that name could be anything, we could look for just one word, but then that would misfire on other single words like "break" "continue" "debugger" and "i++"!
 				// Now added ')' and ',' as tokens for joining too.
 				if (nextNonEmptyLine != null) {
-					// var tokens = leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
+					// var tokens = Heuristics.leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
 					// var firstToken = tokens[0];
 					var firstToken = getFirstWord(nextNonEmptyLine);
 					if (continuationKeywords.has(firstToken) || firstToken.charAt(0)==')' || firstToken.charAt(0)==',') {
@@ -693,7 +705,7 @@ class SWS {
 						var updatedLine;
 						if (options.javaStyleCurlies) {
 							// Join the next line to the curly
-							updatedLine = indentAtThisLevel + "} " + leadingIndentRE.replace(nextLine,"");
+							updatedLine = indentAtThisLevel + "} " + Heuristics.leadingIndentRE.replace(nextLine,"");
 							// out.writeLine(updatedLine);
 							// But now we want to consider this line for opening an indent :O
 							// Feck!  Oh ... hmmm ... Managed that using pushBackLine.  :)
@@ -764,8 +776,8 @@ class SWS {
 			// TODO: DRY - this is a clone of earlier code!
 			// DONE: We should not act on comment lines!
 			if (options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
-				if (endsWithBackslash.match(currentLine)) {
-					currentLine = endsWithBackslash.replace(currentLine,"");
+				if (Heuristics.endsWithBackslash.match(currentLine)) {
+					currentLine = Heuristics.endsWithBackslash.replace(currentLine,"");
 				} else {
 					currentLine = appendToLine(currentLine,";");
 				}
@@ -1244,7 +1256,14 @@ class CommentTrackingReader extends HelpfulReader {
 			}
 		}
 		return count;
-
 	}
+
+}
+
+class Heuristics {
+
+	public static var leadingIndentRE : EReg = ~/^\s*/;
+	public static var whitespaceRE : EReg = ~/\s+/;
+	public static var endsWithBackslash : EReg = ~/\s?\\$/;
 
 }
