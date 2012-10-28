@@ -81,11 +81,11 @@ will strip curlies and semicolons from myapp.c and write file myapp.c.sws
 
 will read file myapp.c.sws, inject curlies and semicolons, and overwrite myapp.c
 
-### Safe modes
+## Safe modes
 
 Curl and decurl are minimal; they do their job and exit.  However the safe-curl and safe-decurl operations do some extra checking: they invert the generated file and compare it to the original, emitting a warning if they do not match.
 
-### Sync
+## Sync
 
     % sws sync src/
 
