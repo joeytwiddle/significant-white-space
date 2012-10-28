@@ -33,6 +33,11 @@ using Lambda
 
 // TODO: Complete refactoring into file-free tool.
 
+// TODO: Warn when decurling expects un () wrapping but does not get it, e.g.:
+//   if (name.equals(v.name)) return true;
+
+// TODO: Upgrade some warnings to errors; if we are confident it has caused / will cause a problem.
+
 // Recommend config file do like HaXe and MPlayer, just put cmdline args there, and parse them the same way.
 
 
@@ -42,7 +47,7 @@ class Root
 
 		var args = neko.Sys.args()
 
-		var options = Root.defaultOptions
+		var options = Options.defaultOptions
 		var syncOptions = new SyncOptions()
 
 		var sws = new SWS(options)
@@ -97,8 +102,13 @@ class Root
 		File.stdout().writeString("[Root] " + s + "\n")
 
 
+
+class Options
+
 	// public static var defaultOptions : Options = cast { debugging: true, javaStyleCurlies: true, addRemoveSemicolons: true, doNotCurlMultiLineParentheses: false, useCoffeeFunctions: true, unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ], blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/, blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/, blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/, newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true, retainLineNumbers: true }
 
+	// The (...)s are required here to get the needed trailing ;
+	// The cast is the only way I found in Haxe so far.  It's fine I guess?
 	public static var defaultOptions : Options = cast (
 		debugging: true, \
 		javaStyleCurlies: true, \
@@ -106,20 +116,22 @@ class Root
 		doNotCurlMultiLineParentheses: false, \
 		useCoffeeFunctions: true, \
 		unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ], \
+		// , "elseif"
 		blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/, \
 		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/, \
 		blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/, \
-		newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true, \
-		retainLineNumbers: true \
+		newline: "\n", \
+		addRemoveCurlies: true, \
+		trackSlashStarCommentBlocks: true, \
+		retainLineNumbers: true, \
+		onlyWrapParensAtBlockStart: true, \
+		joinMixedIndentLinesToLast: true \
 	)
 
 	// Recently: Decurl adds trailing ' \' when semicolon was expected but not found.
 	//           Curl removes trailing ' \' and does not add semicolon when encountered.
 	//
 	// GONE: This has pushed a problem with the commented line looksLikeRegexpLineWithEndComment back up to the surface.  I think before those ambiguous lines (splitLineAtComment) were getting semicolons stripped and reinjected?  New ' \' may be avoiding stripping a bit more heavily.  Perhaps it too should check ambiguity?
-
-
-class Options
 
 	public var debugging : Bool
 
@@ -151,6 +163,7 @@ class Options
 	// static var blockLeadSymbol = " {";        // hehe this actually works without error; of course no matching } is introduced
 	// public var blockLeadSymbol = " =>"          // I like this for HaXe
 	public var blockLeadSymbol : String
+	// TODO: keywordsHintSymbols : Map<String,String>
 
 	//// s/Indicated/Wanted/g ?
 
@@ -174,12 +187,17 @@ class Options
 	// static var newline : String = "\r\n";
 	public var newline : String
 
+	// If we always wrap parens for an "if..." line, we cannot accept single-line if statements.
+	// If we only wrap when we are starting an indented block, we can't have single-line parensWrapping, e.g.: throwError "message" -> to throwError("message")   - I don't think we ever really need that!  No languages have syntax that looks like functions!
+	public var onlyWrapParensAtBlockStart : Bool
+
 	// }}}
 
 	// TODO:
 	public var addRemoveCurlies : Bool
-	public var trackSlashStarCommentBlocks : Bool   // can be disabled if they will never be used
-	public var retainLineNumbers : Bool             // retains whitespace chars
+	public var trackSlashStarCommentBlocks : Bool   // can be disabled if they will never be used, saving concerns about slash-stars appearing hidden in strings or regexps.
+	public var retainLineNumbers : Bool             // does not squash up empty lines on decurl (on curl we should drop/replace an empty line when closing curls)
+	public var joinMixedIndentLinesToLast : Bool    // My Eclipse formatting settings add spaces after the tab indentation when breaking a long line.  This might not be an uncommon semantic approach used elsewhere, so worth including.
 
 	public function new() =>
 		//
@@ -270,7 +288,7 @@ class SWS
 
 	public function new(?_options) =>
 		// options = new Options()
-		options = _options!=null ? _options : Root.defaultOptions
+		options = _options!=null ? _options : Options.defaultOptions
 		reporter = new OptionalReporter(options)
 
 
@@ -406,7 +424,26 @@ class SWS
 								if endsWithSemicolon.match(line)
 									line = endsWithSemicolon.replace(line,"")
 								else
-									line += " \\"
+									// We only addRemoveSemicolons if the line does not start or end in a curl.
+									// However, some languages allow single-line if result without curls.
+									// If that is well indented, we do not need to remove ';' or more importantly add '\'
+									var nextNonEmptyLine = reader.getNextNonEmptyLine()
+									Heuristics.leadingIndentRE.match(line)
+									var indent_of_currentLine = Heuristics.leadingIndentRE.matched(0).length
+									Heuristics.leadingIndentRE.match(nextNonEmptyLine)
+									var indent_of_nextNonEmptyLine = Heuristics.leadingIndentRE.matched(0).length
+									//// TODO: We should not demand tabs-spaces here.  We should check for any extra indent after matching/stripping indentString, e.g. to pick up 2 space indent in a 4 spaced file.
+									//// But we don't have indentString.  HelpfulReader could find and hold it.
+									// var indent_of_currentLine = countIndent(indentString, currentLine)
+									if indent_of_nextNonEmptyLine > indent_of_currentLine
+										if options.joinMixedIndentLinesToLast && ~/^\t+ +/.match(nextNonEmptyLine)
+											line += " \\"     // We don't *have* to join them with \ on decurl.  We *could* look for mixed indent on curling, and handle it there.  But this fits logically with the other places we use '\'.
+										else
+											// We are about to indent; do not be concerned about missing ;
+											reporter.debug("About to indent despite no curlies, hopefully a one-line if: "+line)
+											// reporter.debug("indent_of_nextNonEmptyLine="+indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
+									else
+										line += " \\"
 
 					if options.useCoffeeFunctions
 						if anonymousFunctionRE.match(line)
@@ -435,10 +472,6 @@ class SWS
 
 
 	public function curl(infile : String, outfile : String) =>
-
-		var leadingIndentRE : EReg = ~/^\s*/
-		var whitespaceRE : EReg = ~/\s+/
-		var endsWithBackslash : EReg = ~/\s?\\$/
 
 		var currentLine : String
 
@@ -529,9 +562,13 @@ class SWS
 				if anonymousCoffeeFunctionRE.match(currentLine)
 					currentLine = anonymousCoffeeFunctionRE.replace(currentLine,anonymousCoffeeFunctionReplace)
 
-			currentLine = doUnwrapping(currentLine)
+			if !options.onlyWrapParensAtBlockStart
+				currentLine = wrapParens(currentLine)
 
-			if indent_of_nextNonEmptyLine > currentIndent
+			if !helper.insideComment && indent_of_nextNonEmptyLine > currentIndent
+
+				if options.onlyWrapParensAtBlockStart
+					currentLine = wrapParens(currentLine)
 
 				if indent_of_nextNonEmptyLine > currentIndent+1
 					reporter.error("Unexpected double indent on: "+nextNonEmptyLine)
@@ -562,7 +599,7 @@ class SWS
 				continue
 
 
-			if indent_of_nextNonEmptyLine < currentIndent
+			if !helper.insideComment && indent_of_nextNonEmptyLine < currentIndent
 
 				// Write current line
 				// Write close curly (at lower indent)
@@ -572,8 +609,8 @@ class SWS
 				// TODO: DRY - this is a clone of later code!
 				// DONE: We should not act on comment lines!
 				if options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)
-					if endsWithBackslash.match(currentLine)
-						currentLine = endsWithBackslash.replace(currentLine,"")
+					if Heuristics.endsWithBackslash.match(currentLine)
+						currentLine = Heuristics.endsWithBackslash.replace(currentLine,"")
 					else
 						currentLine = appendToLine(currentLine,";")
 				out.writeLine(currentLine)
@@ -586,7 +623,7 @@ class SWS
 				// Other things which like to trail after closing } is the name following a "typedef struct { ... } Name;".  Since that name could be anything, we could look for just one word, but then that would misfire on other single words like "break" "continue" "debugger" and "i++"!
 				// Now added ')' and ',' as tokens for joining too.
 				if nextNonEmptyLine != null
-					// var tokens = leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
+					// var tokens = Heuristics.leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
 					// var firstToken = tokens[0];
 					var firstToken = getFirstWord(nextNonEmptyLine)
 					if continuationKeywords.has(firstToken) || firstToken.charAt(0)==')' || firstToken.charAt(0)==','
@@ -615,12 +652,13 @@ class SWS
 								break
 							// nextLine should be === nextNonEmptyLine now
 
-						nextLine = doUnwrapping(nextLine)
+						// If the line we are joining to is an else or catch continuation, we may need to wrap parens.
+						nextLine = wrapParens(nextLine)
 
 						var updatedLine
 						if options.javaStyleCurlies
 							// Join the next line to the curly
-							updatedLine = indentAtThisLevel + "} " + leadingIndentRE.replace(nextLine,"")
+							updatedLine = indentAtThisLevel + "} " + Heuristics.leadingIndentRE.replace(nextLine,"")
 							// out.writeLine(updatedLine);
 							// But now we want to consider this line for opening an indent :O
 							// Feck!  Oh ... hmmm ... Managed that using pushBackLine.  :)
@@ -681,8 +719,8 @@ class SWS
 			// TODO: DRY - this is a clone of earlier code!
 			// DONE: We should not act on comment lines!
 			if options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)
-				if endsWithBackslash.match(currentLine)
-					currentLine = endsWithBackslash.replace(currentLine,"")
+				if Heuristics.endsWithBackslash.match(currentLine)
+					currentLine = Heuristics.endsWithBackslash.replace(currentLine,"")
 				else
 					currentLine = appendToLine(currentLine,";")
 			out.writeLine(currentLine)
@@ -691,7 +729,7 @@ class SWS
 		out.close()
 
 
-	function doUnwrapping(currentLine) =>
+	function wrapParens(currentLine) =>
 
 		if options.unwrapParenthesesForCommands != null
 			var firstToken = getFirstWord(currentLine)
@@ -722,6 +760,7 @@ class SWS
 		else
 			if trailingCommentOutsideQuotes.matched(1) != trailingCommentOutsideApostrophes.matched(1)
 				reporter.warn("trailingCommentOutsideQuotes and trailingCommentOutsideApostrophes could not agree where the comment boundary is: "+line)
+				return [line,""]   // Do not try to split
 			// Regexps can end in ...\// - we do not want to split on that!
 			if looksLikeRegexpLine.match(line)
 				// No logging - we have confidence in this?
@@ -834,11 +873,14 @@ class Sync
 				pureEcho("  vimdiff \""+inFile+"\" \""+tempFile+"\"")
 				if syncOptions.breakOnFirstFailedInverse
 					echo("Exiting so user can inspect.  There may be more files which need processing...")
+					// Lies: tempFile won't be checked! echo("Whichever file you edit will be transformed on the next pass, or if neither are edited, we will pick up where we left off, on the next file.")
+					echo("If you edit edit the source file, it be transformed again on the next pass, if not we will pick up where we left off, on the next file.")
 					Sys.exit(5)
 
 		if originalResult != null
 			var newResult = File.getContent(outFile)
 			if newResult != originalResult
+				// This is perfectly normal, if we have changed the source file.
 				info("There were changes to "+inFile+" since the last time ("+originalResult.length+" -> "+newResult.length+")")
 			else
 				// info("There were no changes since the last time ("+originalResult.length+" == "+newResult.length+")")
@@ -1071,4 +1113,10 @@ class CommentTrackingReader extends HelpfulReader
 				count++
 		return count
 
+
+class Heuristics
+
+	public static var leadingIndentRE : EReg = ~/^\s*/
+	public static var whitespaceRE : EReg = ~/\s+/
+	public static var endsWithBackslash : EReg = ~/\s?\\$/
 
