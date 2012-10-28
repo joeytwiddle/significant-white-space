@@ -71,7 +71,7 @@ Available commands are:
 
     sws sync [ <directory/filename> ]
 
-## Examples
+## Common examples
 
     % sws decurl myapp.c myapp.c.sws
 
@@ -80,6 +80,12 @@ will strip curlies and semicolons from myapp.c and write file myapp.c.sws
     % sws curl myapp.c.sws myapp.c
 
 will read file myapp.c.sws, inject curlies and semicolons, and overwrite myapp.c
+
+### Safe modes
+
+Curl and decurl are minimal; they do their job and exit.  However the safe-curl and safe-decurl operations do some extra checking: they invert the generated file and compare it to the original, emitting a warning if they do not match.
+
+### Sync
 
     % sws sync src/
 
@@ -90,10 +96,6 @@ A good place to use sync would be at the top of your build chain.
 If no argument is provided, sws sync will search everything below the current folder.  If that does more than you hoped it would, you may want to delete all the files it generated: **/*.(sws|bak|inv)  (By default sync generates more files than it really needs to, to aid debugging and reverting.)
 
 Sync searches the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This allows the user to edit files in either format, without having to worry about the direction in which changes will be propagated!  Thus a single project can be edited both through its sws files, and through its traditional files, for example using an IDE such as Eclipse.
-
-# What does "safe" mean?
-
-Curl and decurl are minimal; they do their job and exit.  However the safe-curl and safe-decurl operations do some extra checking: they invert the generated file and compare it to the original, and emit a warning if they do not match.
 
 
 
@@ -251,13 +253,15 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
   Common problem cases (some of which can be found in the SWS source code) are identified by heuristic regexps, and warnings are emitted if SWS is unsure how to correctly handle them.  However, heuristics only push the horizon; they usually fail to cover all cases.  In future we hope to present a clear description of the coding style and options neccessary to stay safe.  (For example, we might end up recommending that users at NASA never use `/* ... */` blocks, always put `//` comments on their own line, and set the options to take advantage of these simplified conditions and warn if they are breached.)
 
+- Indentation of the original code must be correct for transformation to sws.  (E.g. this can be thrown up if you comment out the top and bottom lines of an if statement.)  A fix for this could be to parse `{` and `}`s and force correct indentation in the output.
+
 - Indentation of single-line comments is meaningful.  If you have `//`s which look like outdent, curlies will be generated!  This may change in future, but at the moment it is considered a feature, allowing us to indicate empty blocks in the code (we need *something* to indent, or curlies cannot be generated).
+
+- Multi-line block comments `/* ... */` are somewhat supported, but single-line entries in the middle of a line can cause trouble (e.g. on the line introducing an indented/curled code block).  (Reason: splitLineAtComment returns two Strings, left and right.  If we want to stick with single-line algorithm, we need to change that return to [start_state, code/comment, comment/code, code/comment, ..., comment/code, end_state])
 
 - You can still express short `{ ... }` blocks on-one-line if you want to, but don't mix things up.  Specifically do not follow a curly by text and then newline and indent.  That mid-line curly will not be stripped, whilst the indent will cause a new one to be injected.
 
 - FIXED: Semicolon injection's inability to detect multi-line comments and trailing comments can cause them to appear unwantedly.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)  You can either stick with a strict single-line comment style, or try to stop caring about odd semicolons appearing in comments!
-
-- Indentation of the original code must be correct for transformation to sws.  (E.g. this can be thrown up if you comment out the top and bottom lines of an if statement.)  A fix for this could be to parse `{` and `}`s and force correct indentation in the output.
 
 - Since indentation is required to create curlies `{` `}`, if you attempt to create a class or function (or any block) with an empty body, you had better add an indented dummy line too (e.g. a comment) or you won't get curlies (and with SCI you will get a semicolon).
 
