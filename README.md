@@ -192,6 +192,10 @@ The head of the function may not appear on its own line.  (Non-empty lines alway
 
 - Fix blockLeadSymbol for C-style blocks.
 
+- Before attacking the next refactor, set up test script that can run against a large set of sources, and warn us when number of problems increases!
+
+- Some refactoring: Central loop of curl could split comment early, saving a lot of repetition eblow, and avoiding introduction of ; on initial /* line.  Also split up more of the curl code into separate functions.
+
 ## On the radar
 
 - DONE in `unwrapParenthesesForCommands`: We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
