@@ -474,14 +474,17 @@ class SWS {
 									// var indent_of_currentLine = countIndent(indentString, currentLine)
 									if (indent_of_nextNonEmptyLine > indent_of_currentLine) {
 										if (options.joinMixedIndentLinesToLast && ~/^\t+ +/.match(nextNonEmptyLine)) {
-											line += " \\";     // We don't *have* to join them with \ on decurl.  We *could* look for mixed indent on curling, and handle it there.  But this fits logically with the other places we use '\'.
+											line += " \\";     // TODO: Clean up sws: We don't *have* to join them with \ on decurl.  We *could* look for mixed indent on curling, and handle it there.  But this fits logically with the other places we use '\'.
 										} else {
 											// We are about to indent; do not be concerned about missing ;
 											reporter.debug("About to indent despite no curlies, hopefully a one-line if: "+line);
 											// reporter.debug("indent_of_nextNonEmptyLine="+indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
 										}
 									} else {
-										line += " \\";
+										// Lines ending ',' do not need trailing \ marker
+										if (!Heuristics.endsWithComma.match(line)) {
+											line += " \\";
+										}
 									}
 								}
 							}
@@ -677,10 +680,14 @@ class SWS {
 				// TODO: DRY - this is a clone of later code!
 				// DONE: We should not act on comment lines!
 				if (options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
-					if (Heuristics.endsWithBackslash.match(currentLine)) {
-						currentLine = Heuristics.endsWithBackslash.replace(currentLine,"");
+					if (Heuristics.endsWithComma.match(currentLine)) {
+						// currentLine = currentLine
 					} else {
-						currentLine = appendToLine(currentLine,";");
+						if (Heuristics.endsWithBackslash.match(currentLine)) {
+							currentLine = Heuristics.endsWithBackslash.replace(currentLine,"");
+						} else {
+							currentLine = appendToLine(currentLine,";");
+						}
 					}
 				}
 				out.writeLine(currentLine);
@@ -1300,5 +1307,6 @@ class Heuristics {
 	public static var leadingIndentRE : EReg = ~/^\s*/;
 	public static var whitespaceRE : EReg = ~/\s+/;
 	public static var endsWithBackslash : EReg = ~/\s?\\$/;
+	public static var endsWithComma : EReg = ~/,\s*$/;
 
 }

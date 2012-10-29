@@ -2,7 +2,7 @@
 
 export PS4="[$0] "
 
-set -e
+# set -e
 # set -x
 
 ## We can compile to various languages, if we don't use neko File I/O.
@@ -14,7 +14,7 @@ set -e
 # sws.stable sync org > sync.log
 sws sync org > sync.log
 
-if [ "$?" != 0 ]
+if [ ! "$?" = 0 ]
 then
 	cat sync.log
 	# exit 120
@@ -22,8 +22,8 @@ fi
 
 haxe -main org/neuralyte/sws/Root.hx -neko sws.n > haxe.log
 
-if [ "$?" = 0 ]
-then cat sync.log haxe.log
+if [ ! "$?" = 0 ]
+then cat sync.log haxe.log ; exit 120
 else
 	cat haxe.log
 	exit 123

@@ -106,6 +106,10 @@ Sync searches the current folder and subfolders for all sws or sws-able files (b
 
     > An old attempt at solving multi-line expressions.  Tracks `(` and `)` count, and prevents semicolon injection while inside one.  Unfortunately this sacrifices passing of anonymous inline functions, so is not recommended.
 
+* `unwrapParenthesesForCommands`
+
+    > Converts lines like `if abc` to and from `if (abc)`.  Notably *not currently working* for `else if abc`!
+
 
 
 ------------------------------
