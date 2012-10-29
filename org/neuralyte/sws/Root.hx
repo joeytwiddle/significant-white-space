@@ -125,7 +125,7 @@ class Options {
 		doNotCurlMultiLineParentheses: false,
 		useCoffeeFunctions: true,
 		unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ],
-		// , "elseif" \
+		// , "elseif"
 		blockLeadSymbol: " =>",
 		blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/,
 		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/,
