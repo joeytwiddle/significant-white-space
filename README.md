@@ -190,6 +190,8 @@ The head of the function may not appear on its own line.  (Non-empty lines alway
 
 - DONE: Introduce endline `\` chars in the sws to represent lines which do not end in semicolons.
 
+- Fix blockLeadSymbol for C-style blocks.
+
 ## On the radar
 
 - DONE in `unwrapParenthesesForCommands`: We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.

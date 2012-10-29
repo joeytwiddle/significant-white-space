@@ -8,28 +8,13 @@ import neko.Sys;
 
 using Lambda;
 
-// Does it matter if we indent this line?  Yes!  Indent once and we get a curly block starting from the Lambda line; indent twice and the indent level is detected as two tabs!
-
-/*
-	FIXED!
-	If the comment line above is not indented, then the indent of this line is critical.
-	Both these problems are worth addressing, to avoid issues with comments in the wild.
-	They are only problematic for curling, not decurling.
-	We need to get HelpfulReader tracking whether or not we are inside a comment block.
-	And we should then ignore comments for indentation?
-	(That would invalidate our advice to use a comment to force curling of empty blocks.)
-	(Perhaps we should ignore multi-line comments for indentation, but still recognise one-line comments.)
-*/
-
-// TODO: Uses of .insideComment may not deal well with cases of mixed comment/code lines.
-
 // TODO: Track input file line numbers, and use these when printing warnings.
 
 // TODO: We could suppress warnings for JS regexps if we know we're working in Haxe or Java.
 
-// TODO: We are still stripping ;s from commented lines with extra trailing comments (see blockLeadSymbol)
+// DONE: We are still stripping ;s from commented lines with extra trailing comments (see blockLeadSymbol)
 
-// TODO: using blockLeadSymbol only for functions, we may as well adapt useCoffeeFunctions to handle anonymous and not anonymous
+// TODO: using blockLeadSymbol only for functions, we may as well adapt useCoffeeFunctions to handle anonymous and not anonymous.  Or maybe not!  It's nice to have a semantic difference between anonymous and declared functions.  If they are both the same, we will have to ensure we convert any anonymous -> functions back before stripping any redundant -> for a declaration.
 
 // TODO: Complete refactoring into file-free tool.
 
@@ -113,8 +98,6 @@ class Root {
 }
 
 class Options {
-
-	// public static var defaultOptions : Options = cast { debugging: true, javaStyleCurlies: true, addRemoveSemicolons: true, doNotCurlMultiLineParentheses: false, useCoffeeFunctions: true, unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ], blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/, blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/, blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/, newline: "\n", addRemoveCurlies: true, trackSlashStarCommentBlocks: true, retainLineNumbers: true }
 
 	// The (...)s are required here to get the needed trailing ;
 	// The cast is the only way I found in Haxe so far.  It's fine I guess?
@@ -202,10 +185,12 @@ class Options {
 	// If we only wrap when we are starting an indented block, we can't have single-line parensWrapping, e.g.: throwError "message" -> to throwError("message")   - I don't think we ever really need that!  No languages have syntax that looks like functions!
 	public var onlyWrapParensAtBlockStart : Bool;
 
+	// Cosmetic: how blank lines are distributed around closing "}" lines.  Depends on your coding style / formatter.  When disabled, outdent immediate produces a "}" line.  When enabled, the closing "}" line will be separated from its block by an empty line, *if* enough empty lines are available in the sws.
 	public var guessEndGaps : Bool;
 
 	// If your curly code formatter (e.g. Eclipse) adds spaces after tab indentation when breaking a long line, we can detect this and prevent semicolon insertion until the final line.
 	public var joinMixedIndentLinesToLast : Bool;
+	// Potential issue with too much faith in this feature: If the first line in your file has been broken this way, then the file's indent string may be incorrectly detected!  (Although it's unlikely Eclipse would format that way.)
 
 	// }}}
 
@@ -441,7 +426,8 @@ class SWS {
 
 					if (endsWithCurly.match(line)) {
 						line = endsWithCurly.replace(line,"");
-						if (options.blockLeadSymbol != null) {
+						// TODO: For this to work with C-style braces, we could look back *and modify* the previous line.  That might not be possible with a sensible output stream.  Instead recommend we check on previous line for this lonely curly here.
+						if (options.blockLeadSymbol != null && !emptyOrBlank.match(line)) {
 							var indicated = options.blockLeadSymbolIndicatedRE!=null && options.blockLeadSymbolIndicatedRE.match(line);
 							var contraIndicated = options.blockLeadSymbolContraIndicatedRE!=null && options.blockLeadSymbolContraIndicatedRE.match(line);
 							if (options.blockLeadSymbolContraIndicatedRE2AnonymousFunctions.match(line)) {
@@ -467,6 +453,7 @@ class SWS {
 								if (endsWithSemicolon.match(line)) {
 									line = endsWithSemicolon.replace(line,"");
 								} else {
+									//// options.solveMissingSemicolonsWithBackslash
 									// We only addRemoveSemicolons if the line does not start or end in a curl.
 									// However, some languages allow single-line if result without curls.
 									// If that is well indented, we do not need to remove ';' or more importantly add '\'
@@ -488,7 +475,13 @@ class SWS {
 										}
 									} else {
 										// Lines ending ',' do not need trailing \ marker
-										if (!Heuristics.endsWithComma.match(line)) {
+										// Also we don't need one if the reason we haven't opened a curl is that the source is C-style curls.
+										var nextLineIsCurl = false;
+										var nextLine = reader.peekLine(1);
+										if (nextLine!=null && ~/^\s*{\s*$/.match(nextLine)) {
+											nextLineIsCurl = true;
+										}
+										if (!Heuristics.endsWithComma.match(line) && !nextLineIsCurl) {
 											line += " \\";
 										}
 										// Note that if the final line does not have a comma, it may need a ' \'!
@@ -731,11 +724,10 @@ class SWS {
 							// nextLine should be === nextNonEmptyLine now
 						}
 
-						// If the line we are joining to is an else or catch continuation, we may need to wrap parens.
-						nextLine = wrapParens(nextLine);
-
 						var updatedLine;
 						if (options.javaStyleCurlies) {
+							// If the line we are joining to is an else or catch continuation, we may need to wrap parens.
+							nextLine = wrapParens(nextLine);
 							// Join the next line to the curly
 							updatedLine = indentAtThisLevel + "}" + delayLastCurly + Heuristics.leadingIndentRE.replace(nextLine,"");
 							// out.writeLine(updatedLine);
@@ -752,37 +744,40 @@ class SWS {
 
 					} else {
 
-						// var nextLine = helper.peekLine(1);
-						// var lineAfterThat = helper.peekLine(2);
-						// if (nextLine!=null && emptyOrBlank.match(nextLine) && lineAfterThat!=null && emptyOrBlank.match(lineAfterThat)) {
-						// Hmm but if I have two curlies to go out, I really want to check if 3 lines are empty!
-						// I don't want to gap the first curly if I can't gap the second.  Well really we dunno what we want.  :P
-						var spaceCurly = true;
-						var indentsToGo = (i - indent_of_nextNonEmptyLine) + 1;   // +1 cos "to go" includes this one we are about to do
-						var numEmptyLinesRequired = indentsToGo + 1;
-						// DONE: This seems to do what I want.  Except in one exceptional circumstance.  If the next non-empty line will have delayLastCurly applied (e.g. because it starts with a continuationKeywords) then we need not be concerned about spacing that last curly, therefore we can require one less space for our earlier curlies to reach the spaceCurly condition!
-						if (delayLastCurly != null) {
-							numEmptyLinesRequired--;
-						}
-						for (j in 0...numEmptyLinesRequired) {
-							var peekLine = helper.peekLine(j+1);
-							if (peekLine == null) {
-								// An exception.  EOF pretends to be 1 blank line.
-								if (j < numEmptyLinesRequired - 1) {
-									spaceCurly = false;
-								}
-								break;
-							} else if (!emptyOrBlank.match(peekLine)) {
-								spaceCurly = false;
-								break;
-							}
-						}
+						if (options.guessEndGaps) {
 
-						if (spaceCurly) {
-							// Do not write the '}' just yet ...
-							// Consume and write the blank line now, and the '}' right after.
-							var nextLine = helper.getNextLine();
-							out.writeLine(nextLine);
+							// var nextLine = helper.peekLine(1);
+							// var lineAfterThat = helper.peekLine(2);
+							// if (nextLine!=null && emptyOrBlank.match(nextLine) && lineAfterThat!=null && emptyOrBlank.match(lineAfterThat)) {
+							// Hmm but if I have two curlies to go out, I really want to check if 3 lines are empty!
+							// I don't want to gap the first curly if I can't gap the second.  Well really we dunno what we want.  :P
+							var spaceCurly = true;
+							var indentsToGo = (i - indent_of_nextNonEmptyLine) + 1;   // +1 cos "to go" includes this one we are about to do
+							var numEmptyLinesRequired = indentsToGo + 1;
+							// DONE: This seems to do what I want.  Except in one exceptional circumstance.  If the next non-empty line will have delayLastCurly applied (e.g. because it starts with a continuationKeywords) then we need not be concerned about spacing that last curly, therefore we can require one less space for our earlier curlies to reach the spaceCurly condition!
+							if (delayLastCurly != null) {
+								numEmptyLinesRequired--;
+							}
+							for (j in 0...numEmptyLinesRequired) {
+								var peekLine = helper.peekLine(j+1);
+								if (peekLine == null) {
+									// An exception.  EOF pretends to be 1 blank line.
+									if (j < numEmptyLinesRequired - 1) {
+										spaceCurly = false;
+									}
+									break;
+								} else if (!emptyOrBlank.match(peekLine)) {
+									spaceCurly = false;
+									break;
+								}
+							}
+
+							if (spaceCurly) {
+								// Do not write the '}' just yet ...
+								// Consume and write the blank line now, and the '}' right after.
+								var nextLine = helper.getNextLine();
+								out.writeLine(nextLine);
+							}
 						}
 
 						out.writeLine(indentAtThisLevel + "}");
@@ -1008,7 +1003,7 @@ class Sync {
 				if (syncOptions.breakOnFirstFailedInverse) {
 					echo("Exiting so user can inspect.  There may be more files which need processing...");
 					// Lies: tempFile won't be checked! echo("Whichever file you edit will be transformed on the next pass, or if neither are edited, we will pick up where we left off, on the next file.")
-					echo("If you edit edit the source file, it be transformed again on the next pass, if not we will pick up where we left off, on the next file.");
+					echo("If you edit the source file now, it be transformed again on the next sync; if not we will pick up where we left off, on the next file.");
 					Sys.exit(5);
 				}
 			}
