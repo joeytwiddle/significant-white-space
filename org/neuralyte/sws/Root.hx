@@ -125,8 +125,9 @@ class Options {
 		doNotCurlMultiLineParentheses: false,
 		useCoffeeFunctions: true,
 		unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ],
-		// , "elseif"
-		blockLeadSymbol: " =>", blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/,
+		// , "elseif" \
+		blockLeadSymbol: " =>",
+		blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/,
 		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/,
 		blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/,
 		newline: "\n",
@@ -134,6 +135,7 @@ class Options {
 		trackSlashStarCommentBlocks: true,
 		retainLineNumbers: true,
 		onlyWrapParensAtBlockStart: true,
+		guessEndGaps: true,
 		joinMixedIndentLinesToLast: true
 	});
 
@@ -200,13 +202,17 @@ class Options {
 	// If we only wrap when we are starting an indented block, we can't have single-line parensWrapping, e.g.: throwError "message" -> to throwError("message")   - I don't think we ever really need that!  No languages have syntax that looks like functions!
 	public var onlyWrapParensAtBlockStart : Bool;
 
+	public var guessEndGaps : Bool;
+
+	// If your curly code formatter (e.g. Eclipse) adds spaces after tab indentation when breaking a long line, we can detect this and prevent semicolon insertion until the final line.
+	public var joinMixedIndentLinesToLast : Bool;
+
 	// }}}
 
 	// TODO:
 	public var addRemoveCurlies : Bool;
 	public var trackSlashStarCommentBlocks : Bool;   // can be disabled if they will never be used, saving concerns about slash-stars appearing hidden in strings or regexps.
 	public var retainLineNumbers : Bool;             // does not squash up empty lines on decurl (on curl we should drop/replace an empty line when closing curls)
-	public var joinMixedIndentLinesToLast : Bool;    // My Eclipse formatting settings add spaces after the tab indentation when breaking a long line.  This might not be an uncommon semantic approach used elsewhere, so worth including.
 
 	public function new() {
 		//
@@ -485,6 +491,7 @@ class SWS {
 										if (!Heuristics.endsWithComma.match(line)) {
 											line += " \\";
 										}
+										// Note that if the final line does not have a comma, it may need a ' \'!
 									}
 								}
 							}
@@ -677,19 +684,7 @@ class SWS {
 				// In fact write as many as we need...
 
 				// DONE: We need to check/apply addRemoveSemicolons rule to currentLine before we output it.
-				// TODO: DRY - this is a clone of later code!
-				// DONE: We should not act on comment lines!
-				if (options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
-					if (Heuristics.endsWithComma.match(currentLine)) {
-						// currentLine = currentLine
-					} else {
-						if (Heuristics.endsWithBackslash.match(currentLine)) {
-							currentLine = Heuristics.endsWithBackslash.replace(currentLine,"");
-						} else {
-							currentLine = appendToLine(currentLine,";");
-						}
-					}
-				}
+				currentLine = considerSemicolonInjection(currentLine,options,wholeLineIsComment);
 				out.writeLine(currentLine);
 
 				var delayLastCurly = null;
@@ -810,21 +805,30 @@ class SWS {
 
 			// If we got here then we have neither indented nor outdented
 
-			// TODO: DRY - this is a clone of earlier code!
-			// DONE: We should not act on comment lines!
-			if (options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
-				if (Heuristics.endsWithBackslash.match(currentLine)) {
-					currentLine = Heuristics.endsWithBackslash.replace(currentLine,"");
-				} else {
-					currentLine = appendToLine(currentLine,";");
-				}
-			}
+			currentLine = considerSemicolonInjection(currentLine,options,wholeLineIsComment);
 			out.writeLine(currentLine);
 
 		}
 
 		out.close();
 
+	}
+
+	function considerSemicolonInjection(currentLine : String, options : Options, wholeLineIsComment : Bool) {
+		// DONE: We should not act on comment lines!
+		if (options.addRemoveSemicolons && !wholeLineIsComment && !emptyOrBlank.match(currentLine)) {
+			// TODO: These regexp tests should be done on comma-split line
+			if (Heuristics.endsWithComma.match(currentLine)) {
+				return currentLine;
+			} else {
+				if (Heuristics.endsWithBackslash.match(currentLine)) {
+					return Heuristics.endsWithBackslash.replace(currentLine,"");
+				} else {
+					return appendToLine(currentLine,";");
+				}
+			}
+		}
+		return currentLine;
 	}
 
 	function wrapParens(currentLine) {

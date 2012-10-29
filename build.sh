@@ -24,9 +24,7 @@ haxe -main org/neuralyte/sws/Root.hx -neko sws.n > haxe.log
 
 if [ ! "$?" = 0 ]
 then cat sync.log haxe.log ; exit 120
-else
-	cat haxe.log
-	exit 123
+else cat haxe.log
 fi
 
 # nekotools boot sws.n

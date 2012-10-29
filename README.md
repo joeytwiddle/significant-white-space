@@ -182,6 +182,8 @@ The head of the function may not appear on its own line.  (Non-empty lines alway
 
 - If some problems we decide do not want to attempt to solve, because we do not want to increase complexity that far (e.g. situations where we really should parse string, char and regexp literals, comment blocks, etc.), then we should instead provide a covering set of tests/regexps that can look for potentially problematic situations and warn the user "I am not sure if this is bad or not, perhaps you could re-jigger it for me so I can regain confidence"; then a little escaping or reformatting (or option/warning toggling) may eliminate the issue.  This would be far preferable to ploughing onward as if the problems do not exist and can never occur, then producing some unrelated error (e.g. from a later compiler) when they do.
 
+- A major issue (seen often in Javascript): we end up stripping info from lines which need to end in `};` .  We can either: instead of removing `};` replace it with a marker (easy, ugly), or force wrapping of the expression in `(...)` (hard, need to track where it started!).  If we can achieve the second, then we may as well just check if before the expr there was an assignment operator `= += -= *= /=` ... and use that to decide to output a `;` after the close curly.
+
 - DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures `//` did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. `#` then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful `$#`, but we could demand a gap before the `#` to address that.)
 
 - DONE: But this still leaves us with the problem that trailing comment lines will not get semicolon injection or stripping of semicolons or curlies.  To address this, we should "remove" trailing comments when considering application of said features.
@@ -393,4 +395,13 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 - "Why are some of the comments in the SWS source code longer than 80 chars?"
 
     > Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
+
+
+------------------------------
+# Musings
+
+## When do we have enough heuristics?
+
+Heuristics add complexity to SWS whilst extending it to work over a larger area of the target languages.  Unfortunately they cannot cover the whole domain unless they reach the complexity of a proper parser.  So when do we stop?  I think the answer to that might be, when it works on *enough* of my code that I don't mind fixing the odd exception.
+
 
