@@ -90,6 +90,8 @@ class Root {
 
 		} catch (ex : Dynamic) {
 			echo("Caught exception: "+ex);
+			// echo(haxe.Stack.toString(haxe.Stack.callStack()))
+			echo(haxe.Stack.toString(haxe.Stack.exceptionStack()));
 			// TODO: Where do they keep the damn stacktrace?!  ex is just a string
 			return 5; // TODO: This is not being set as the exit code ... we must use neko.Sys?
 		}
@@ -133,7 +135,7 @@ class Options {
 		retainLineNumbers: true,
 		onlyWrapParensAtBlockStart: true,
 		joinMixedIndentLinesToLast: true
-	} );
+	});
 
 	// Recently: Decurl adds trailing ' \' when semicolon was expected but not found.
 	//           Curl removes trailing ' \' and does not add semicolon when encountered.
@@ -370,7 +372,7 @@ class SWS {
 	// public static var couldbeRegexpEndingSlashSlash : EReg = ~/~?\/[^*\/].*\/\//;
 	// We allow slash inside quotes.  We fail to check for an even number of 's, or mask /s inside them!
 	static var evenNumberOfQuotesWithNoSlashes = '(([^"/]*"[^"]*"[^"/]*)*|[^"/]*)';
-	public static var couldbeRegexpEndingSlashSlash : EReg = new EReg("^"+evenNumberOfQuotesWithNoSlashes+"~?\\/[^*\\/].*\\/\\/",'');
+	public static var couldbeRegexpEndingSlashSlash : EReg = new EReg("^"+evenNumberOfQuotesWithNoSlashes+"~?\\/[^*/].*\\/\\/",'');
 	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //.  It does not notice regexps declares without assignment, e.g. passed immediately.
 
 	// The first char matched is to ensure function starts at a word boundary, i.e. not res = my_favourite_function(a,b,c);
@@ -683,7 +685,7 @@ class SWS {
 				}
 				out.writeLine(currentLine);
 
-				var delayLastCurly = false;
+				var delayLastCurly = null;
 				// DONE: If the next non-empty line starts with the "else" or "catch" keyword, then:
 				//   in Javastyle, we could join that line on after the }
 				//   in either braces style, any blank lines between us and the next line can be outputted *before* the } we are about to write.
@@ -694,8 +696,11 @@ class SWS {
 					// var tokens = Heuristics.leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
 					// var firstToken = tokens[0];
 					var firstToken = getFirstWord(nextNonEmptyLine);
-					if (continuationKeywords.has(firstToken) || firstToken.charAt(0)==')' || firstToken.charAt(0)==',') {
-						delayLastCurly = true;
+					if (continuationKeywords.has(firstToken)) {
+						delayLastCurly = " ";
+					}
+					if (firstToken.charAt(0)==')' || firstToken.charAt(0)==',') {
+						delayLastCurly = "";
 						// TODO: Certainly in the ',' and maybe in the ')' case, we do not really want to add a space after the curly when we print it later.  However in the "else" and "catch" cases we must.
 					}
 				}
@@ -710,7 +715,7 @@ class SWS {
 					// DONE: Even if we don't detect a continuation keyword, if the next *two* lines are both blanks, then emit one of them before the curly.  This won't always be right, but it may be right more often than wrong.
 					// This rule could be applied for every outdent, checking the next two lines again on each.
 
-					if (delayLastCurly && i == indent_of_nextNonEmptyLine) {
+					if (delayLastCurly!=null && i == indent_of_nextNonEmptyLine) {
 
 						// We are guaranteed a nextLine
 						var nextLine = null;
@@ -730,7 +735,7 @@ class SWS {
 						var updatedLine;
 						if (options.javaStyleCurlies) {
 							// Join the next line to the curly
-							updatedLine = indentAtThisLevel + "} " + Heuristics.leadingIndentRE.replace(nextLine,"");
+							updatedLine = indentAtThisLevel + "}" + delayLastCurly + Heuristics.leadingIndentRE.replace(nextLine,"");
 							// out.writeLine(updatedLine);
 							// But now we want to consider this line for opening an indent :O
 							// Feck!  Oh ... hmmm ... Managed that using pushBackLine.  :)
@@ -754,7 +759,7 @@ class SWS {
 						var indentsToGo = (i - indent_of_nextNonEmptyLine) + 1;   // +1 cos "to go" includes this one we are about to do
 						var numEmptyLinesRequired = indentsToGo + 1;
 						// DONE: This seems to do what I want.  Except in one exceptional circumstance.  If the next non-empty line will have delayLastCurly applied (e.g. because it starts with a continuationKeywords) then we need not be concerned about spacing that last curly, therefore we can require one less space for our earlier curlies to reach the spaceCurly condition!
-						if (delayLastCurly) {
+						if (delayLastCurly != null) {
 							numEmptyLinesRequired--;
 						}
 						for (j in 0...numEmptyLinesRequired) {
@@ -786,7 +791,7 @@ class SWS {
 				}
 
 				currentIndent = indent_of_nextNonEmptyLine;
-				if (delayLastCurly) {
+				if (delayLastCurly != null) {
 					// We have unshifted the line back into the queue
 					// continue is good, we will handle it next
 				}
@@ -858,11 +863,15 @@ class SWS {
 				reporter.debug("could be a comment line but could equally be a regexp literal!  "+line);
 				return [line,""];
 			}
-			if (couldbeRegexpEndingSlashSlash.match(line)) {
-				// reporter.warn("looks like a // comment but could be regexp!  "+line);
-				// This regexp is less ambiguous now - let's trust it and do-the-right-thing by ignoring the //.
-				reporter.debug("could be a // comment but probably actually a regexp!  "+line);
-				return [line,""];
+			try {
+				if (couldbeRegexpEndingSlashSlash.match(line)) {
+					// reporter.warn("looks like a // comment but could be regexp!  "+line);
+					// This regexp is less ambiguous now - let's trust it and do-the-right-thing by ignoring the //.
+					reporter.debug("could be a // comment but probably actually a regexp!  "+line);
+					return [line,""];
+				}
+			} catch (ex : Dynamic) {
+				reporter.warn("Exception applying couldbeRegexpEndingSlashSlash: \""+ex+"\" on line: "+line);
 			}
 			// trace("Line has trailing comment!  "+line);
 			// This regexp finds the *last* occurrence of // on the line.  But sometimes a // comment contains // inside it!
@@ -1046,7 +1055,7 @@ class Sync {
 				}
 				// echo("pushing: "+f);
 			}
-		} );
+		});
 
 		for (curlyFile in filesToDo) {
 			syncFile(curlyFile);
