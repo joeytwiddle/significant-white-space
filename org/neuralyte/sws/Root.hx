@@ -189,6 +189,8 @@ class Options {
 	// Cosmetic: how blank lines are distributed around closing "}" lines.  Depends on your coding style / formatter.  When disabled, outdent immediate produces a "}" line.  When enabled, the closing "}" line will be separated from its block by an empty line, *if* enough empty lines are available in the sws.
 	public var guessEndGaps : Bool;
 
+	// Causes de-curling to override existing indentation with indentation generated from counting { and } symbols.
+	// Might break (or at least improperly indent) non-curled bodies, e.g. from singe-line body of an if statement.
 	public var fixIndent : Bool;
 
 	// If your curly code formatter (e.g. Eclipse) adds spaces after tab indentation when breaking a long line, we can detect this and prevent semicolon insertion until the final line.
@@ -500,6 +502,7 @@ class SWS {
 						}
 					}
 
+					// TODO: We might not need blockLeadSymbolContraIndicatedRE2AnonymousFunctions if we do this check earlier.
 					if (options.useCoffeeFunctions) {
 						if (anonymousFunctionRE.match(line)) {
 							line = anonymousFunctionRE.replace(line,anonymousFunctionReplace);
