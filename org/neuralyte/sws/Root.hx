@@ -119,6 +119,7 @@ class Options {
 		retainLineNumbers: true,
 		onlyWrapParensAtBlockStart: true,
 		guessEndGaps: true,
+		fixIndent: false,
 		joinMixedIndentLinesToLast: true
 	});
 
@@ -187,6 +188,8 @@ class Options {
 
 	// Cosmetic: how blank lines are distributed around closing "}" lines.  Depends on your coding style / formatter.  When disabled, outdent immediate produces a "}" line.  When enabled, the closing "}" line will be separated from its block by an empty line, *if* enough empty lines are available in the sws.
 	public var guessEndGaps : Bool;
+
+	public var fixIndent : Bool;
 
 	// If your curly code formatter (e.g. Eclipse) adds spaces after tab indentation when breaking a long line, we can detect this and prevent semicolon insertion until the final line.
 	public var joinMixedIndentLinesToLast : Bool;
@@ -393,11 +396,14 @@ class SWS {
 
 		var out = new Outputter(output,options);
 
+		var indentCountAtLineEnd = 0;
+
 		try {
 
 			while (true) {
 
 				var wasInsideComment = reader.insideComment;
+				var indentCountAtLineStart = indentCountAtLineEnd;
 
 				var wholeLine : String = reader.getNextLine();
 				if (wholeLine == null) {   // Unlike input, our reader does not throw Eof.
@@ -419,12 +425,15 @@ class SWS {
 
 					if (startsWithCurly.match(line)) {
 						line = startsWithCurlyReplacer.replace(line,"");
+						indentCountAtLineStart--;
+						indentCountAtLineEnd--;
 						if (emptyOrBlank.match(line + trailingComment)) {
 							continue;
 						}
 					}
 
 					if (endsWithCurly.match(line)) {
+						indentCountAtLineEnd++;
 						line = endsWithCurly.replace(line,"");
 						// TODO: For this to work with C-style braces, we could look back *and modify* the previous line.  That might not be possible with a sensible output stream.  Instead recommend we check on previous line for this lonely curly here.
 						if (options.blockLeadSymbol != null && !emptyOrBlank.match(line)) {
@@ -513,6 +522,17 @@ class SWS {
 				}
 
 				wholeLine = line + trailingComment;
+
+				if (options.fixIndent && !reader.insideComment && !wasInsideComment) {
+					if (emptyOrBlank.match(wholeLine)) {
+						wholeLine = "";
+					} else {
+						var fixedIndentStr = repeatString(indentCountAtLineStart,"\t");
+						wholeLine = fixedIndentStr + indentRE.replace(wholeLine,"");
+						// TODO: Should use detected indent string, once that is pushed into a streamer
+					}
+				}
+
 				out.writeLine(wholeLine);
 
 			}

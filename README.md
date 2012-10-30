@@ -52,6 +52,8 @@ Options can be tweaked to rename or remove that `=>` symbol, generate Java or C-
 
 Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.  It was written in a quick-and-dirty fashion to work on 99% of valid code, with heuristics and warnings to mitigate the edge-cases.  This allows us to employ SWS on a wide variety of languages, without having to use a number of different lexers for language-specific String and Regexp literals.
 
+SWS is *not* a professional tool; it may or may not perform to your requirements.  Some of the options perform simple text-transformation, and can get confused.  For example, if you run SWS with support for `/* ... */` comment blocks enabled, then you also run the risk of incorrectly matching `/*` or `*/` occurrences inside String or regexp literals in your program!  Perhaps with the minimum options enabled, SWS is safe and deterministic.  Documenting for this may come in future.
+
 SWS is written in HaXe.  Currently we build an executable binary via Neko, but you may be able to export the tool to Java or Javascript.
 
 
@@ -83,7 +85,7 @@ will read file myapp.c.sws, inject curlies and semicolons, and overwrite myapp.c
 
 ## Safe modes
 
-Curl and decurl are minimal; they do their job and exit.  However the safe-curl and safe-decurl operations do some extra checking: they invert the generated file and compare it to the original, emitting a warning if they do not match.
+Curl and decurl are minimal; they do their job and exit.  However the safe-curl and safe-decurl operations do some extra checking: they invert the generated file and compare the result to the original file, emitting a warning if they do not match.  This is useful to discover any formatting style in your code that SWS does not consider canonical (the sws standard).
 
 ## Sync
 
@@ -182,7 +184,7 @@ The head of the function may not appear on its own line.  (Non-empty lines alway
 
 - If some problems we decide do not want to attempt to solve, because we do not want to increase complexity that far (e.g. situations where we really should parse string, char and regexp literals, comment blocks, etc.), then we should instead provide a covering set of tests/regexps that can look for potentially problematic situations and warn the user "I am not sure if this is bad or not, perhaps you could re-jigger it for me so I can regain confidence"; then a little escaping or reformatting (or option/warning toggling) may eliminate the issue.  This would be far preferable to ploughing onward as if the problems do not exist and can never occur, then producing some unrelated error (e.g. from a later compiler) when they do.
 
-- A major issue (seen often in Javascript): we end up stripping info from lines which need to end in `};` .  We can either: instead of removing `};` replace it with a marker (easy, ugly), or force wrapping of the expression in `(...)` (hard, need to track where it started!).  If we can achieve the second, then we may as well just check if before the expr there was an assignment operator `= += -= *= /=` ... and use that to decide to output a `;` after the close curly.
+- An annoying issue (seen often in Javascript) with decurling: we end up stripping info from lines which need to end in `};` .  We can either: instead of removing `};` replace it with some marker (easy, ugly), or force wrapping of the expression in `(...)` (hard, need to track where it started!).  If we can achieve the second, then instead we may as well just check if before the expr there was an assignment operator `= += -= *= /=` ... and use that to decide to output a `;` after the close curly.
 
 - DONE: We could try to avoid appending semicolons to *trailing* comment lines (currently undetected).  (Just need a regexp that ensures `//` did not appear inside a String.  Could that ever appear in a regexp literal?  A pretty naff one if so.  But if our sws comment symbol was ever changed to e.g. `#` then certainly we would need to check we are not in a regexp as well as not in a String.  Some languages even have a meaningful `$#`, but we could demand a gap before the `#` to address that.)
 
@@ -195,6 +197,8 @@ The head of the function may not appear on its own line.  (Non-empty lines alway
 - Before attacking the next refactor, set up test script that can run against a large set of sources, and warn us when number of problems increases!
 
 - Some refactoring: Central loop of curl could split comment early, saving a lot of repetition eblow, and avoiding introduction of ; on initial /* line.  Also split up more of the curl code into separate functions.
+
+- Optional forceIndent for decurling.  This would discard incoming indentation, and replace it with its own indentation based on curly counts.
 
 ## On the radar
 
