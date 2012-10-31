@@ -106,45 +106,118 @@ Sync searches the current folder and subfolders for all sws or sws-able files (b
 
 
 ------------------------------
+# Trying it out
+
+Check out the project, and install dependencies:
+
+    % aptitude install haxe neko
+    % haxelib install hxcpp
+
+Build sws:
+
+    % ./build.sh
+
+Clone your favourite curly code project:
+
+    % cp ~/projects/MyApp ~/projects/MyAppSWS
+    % cd ~/projects/MyAppSWS
+
+De-curl your code to sws files:
+
+    % sws sync src/
+
+This will likely throw up a warning that the resultant sws file did not invert back to your original source perfectly.  vimdiff the original and inverse files, checking for any differences.
+
+If there are any non-cosmetic differences, edit the source file and try to fix it to make SWS happier; save it and run `sws sync` again.  Repeat this until all the differences are fixed (or unimportant).  Now you should have a happy sws file which you can work on.
+
+You don't have to fix post-decurl issues in the curly file; if it nearly correct, you may choose to edit the sws file instead.  But beware when syncing that the sws file will overwrite your original curled file!
+
+
+
+------------------------------
 # Options
 
-* `doNotCurlMultiLineParentheses`
+* `debugging: true`
 
-    > An old attempt at solving multi-line expressions.  Tracks `(` and `)` count, and prevents semicolon injection while inside one.  Unfortunately this sacrifices passing of anonymous inline functions, so is not recommended.
+    > More output
 
-* `unwrapParenthesesForCommands`
+* `javaStyleCurlies: true`
+
+    > Outputs ` {` at the end of lines.  Otherwise outputs C style, `{` on its own line.
+
+* `addRemoveSemicolons: true`
+
+    > Those `;` chars at the ends of lines.  Who needs them?
+
+* `unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ]`
 
     > Converts lines like `if abc` to and from `if (abc)`.  Notably *not currently working* for `else if abc`!
+
+* `onlyWrapParensAtBlockStart: true`
+
+    > This prevents unwrapParenthesesForCommands from making a mess on lines like `if (abc) { doSmth(); }`.
+
+* `useCoffeeFunctions: true`
+
+    > Converts anonymous `function (a,b) ...` (as seen in Haxe/Javascript) into `(a,b) -> ...` like Coffeescript's.
+
+* `blockLeadSymbol: " =>"`
+
+    > After stripping all the curlies, some lines look a bit odd (e.g. function declaration lines).  This appends a special symbol to the ends of such lines, to indicate that a code block is about to follow.
+
+* `blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/`
+
+    > When should we add a blockLeadSymbol?  This feature is likely to change in future into a blockLeadSymbolTable, for finer customisation.  Python lovers will be able to map `if` and `while` keywords to use the `:` symbol.
+
+* `blockLeadSymbolContraIndicatedRE` and `blockLeadSymbolContraIndicatedRE2AnonymousFunctions` are heuristics, and should be moved out of the Options object.
+
+* `newline: "\n"`
+
+    > Change this to `"\r\n"` if you want to output DOS-style files.
+
+* `addRemoveCurlies: true`
+
+    > Not implemented.  Always happens!
+
+* `trackSlashStarCommentBlocks: true`
+
+    > Currently enabled for legacy code.  However, it is recommended that you do not use `/*...*/` blocks, since this feature introduces bugs.  (It can potentially cause false-positives matching `/*` or `*/` within strings or regexps).
+
+* `retainLineNumbers: true`
+
+    > Not implemented.  Will track line-numbers whilst parsing, to produce more informative errors.
+
+* `guessEndGaps: true`
+
+    > Cosmetic.  For curling.  When disabled, closing curlies `}` will come immediately after the indented block.  When enabled, `}`s will be spaced out if there are empty lines in the source file.
+
+* `fixIndent: false`
+
+    > When de-curling, forces indentation to be re-calculated from `{`s and `}`s noticed.
+
+* `joinMixedIndentLinesToLast: true`
+
+    > If broken lines are indented by an indent less than the standard file-wide indent, we can detect this and bypass semi-colon insert (and the need for `\` to negate it).  This currently only works on space indents following a tab-indented line/file, but in future it should work on e.g. 2-spaces in a 4-indented file.  For example:
+
+    --->public static final protected synchronized highoctave veryLongFunctionName(String
+    --->      argument1, String argument2, String argument3) {
+
+* `doNotCurlMultiLineParentheses: false`
+
+    > An old attempt at solving multi-line expressions.  Tracks `(` and `)` count, and prevents semicolon injection *and curling* while inside one.  Unfortunately this sacrifices passing of anonymous inline functions (their indentation does not create curlies), so is not recommended.
 
 
 
 ------------------------------
 # Status
 
-Immature.
+Still a little immature.
 
-Working reasonably for a neat subset of HaXe and Java code.
+Working reasonably for a neat subset of HaXe, Java and C code.
 
 Options are not yet exposed as command-line arguments, but can be changed by editing Root.hx.
 
-Recently added multi-line support; if you are lucky you will get:
-
-    var result = a > 200 \
-              || b > 300 \
-              || c > 500
-
-The `\` markers are needed to prevent `;` semicolons from being injected when curling.
-
-Multi-line expressions which introduce an anonymous function should work, provided only one level of indentation is used:
-
-    fs.readFile(options.input, function(err, contents)
-        if (err)
-            log(err)
-        else
-            input = contents
-    )
-
-The head of the function may not appear on its own line.  (Non-empty lines always receive a ; if they do not open a curly block.)
+Sws is a little ropey, but that was implicit in the original specification.  :)
 
 
 
@@ -164,6 +237,41 @@ The head of the function may not appear on its own line.  (Non-empty lines alway
 - Added `unwrapParenthesesForCommands`, which can remove the `(...)` parentheses around `if` and `while` conditions, and reintroduce them on curling.  (You can set the list of keywords you want this to work on, or just empty it.  (Personally I find the visual effect of `(...)` symbols useful if I have no syntax highlighting for the given language, but redundant if branch statements already stand out by colour.)
 
 - Multi-line expressions are now possible, by appending `\` in sws files to suppress semicolon injection for that line.
+
+## New multi-line support
+
+Recently added somewhat gnarly multi-line support; although if later lines are indented they *must* be space-indented from a tab-indented baseline.
+
+    --->var result = a > 200 \
+    --->          || b > 300 \
+    --->          || c > 500
+
+The `\` markers are needed to prevent `;` semicolons from being injected when curling, but a trailing `,` can also prevent this.  Later-line indentation with Tabs will cause curly wrapping (fine if you're creating an object literal).  Later-line indentation with spaces (in a Tab-indenetd file) does not cause curly wrapping, so use this to break up expressions, or for a multi-line array literal:
+
+    // An object literal
+    --->var obj = (
+    --->--->foo: 3,
+    --->--->bar: 7 \
+    --->)
+
+    // An array literal
+    --->var list = [
+    --->  3,
+    --->  7 \
+    --->]
+
+Basically multi-line expressions were never intended to be supported by sws, but since so much existing curly source code uses them, it's good to have a way to preserve them, even if it's not pretty.  We have to wrap that object literal in `(...)` if we want to get a semicolon on the last line.
+
+Multi-line expressions which introduce an anonymous function should work, provided only one level of indentation is used:
+
+    fs.readFile(options.input, function(err, contents)
+        if (err)
+            log(err)
+        else
+            input = contents
+    )
+
+The head of the function may not appear on its own line.  (You can try using `\` to lead into it, but you will probably want to indent it, and receive unwanted curlies from that.)
 
 
 
@@ -271,6 +379,17 @@ Comment lines should not be stripped or injected into, or used for indentation. 
 
 SWS uses a simple text-processing algorithm to transform files; it does not properly lex/parse or understand your code.  Because of this, it will probably only work on a _subset_ of the language you are using.  In other words, you may need to restrict your code-style a little, to something that SWS can handle.  Notable examples are:
 
+- `{`s are only detected at the *end* of lines.  `}`s are only detected at the *beginning* of lines.  It is fine to use them mid-line, provided they match.  So, the following examples work, and curlies will be *retained* in the "de-curled" file.
+
+    callFunc({width:300,height:200})
+
+    var opts = {width:300, height:200}
+
+  But instances like this may cause trouble:
+
+    var opts = \
+      { width: 300, height: 200 };
+
 - Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented, and will also suffer from semicolon-insertion.  (You can get away with indenting 2 spaces in an otherwise 4-spaced file, but then face issues with semicolon-injection.)  Unindented multi-line expressions should work fine if semicolonInsertion is disabled.
 
 - SWS does not parse the code in a strict manner.  It uses a simple line-based approach for curling, with some extras tacked on.  Specifically, most of the time it does not track when it is inside or outside a String or Regexp literal, and as a result can get confused with regard to multi-line comments.  For example, the following was a problem before we introduced heuristics for it:
@@ -324,6 +443,8 @@ Restrictions on code structure:
 # Bugs
 
     - sync fails with exception `std@sys_file_type` if it encounters any broken symlinks in the scanned tree.
+    - sws in general fails with with "Invalid field access : __s" if we forgot to pass an argument.
+    - There are plenty more, but I don't want to spoil *all* your fun.
 
 
 
@@ -377,6 +498,7 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 - http://hwi.ath.cx/code/home/.vim/plugin/breakindent_beta.vim
 
 
+
 ------------------------------
 # Debate
 
@@ -417,6 +539,7 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 - "Why are some of the comments in the SWS source code longer than 80 chars?"
 
     > Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
+
 
 
 ------------------------------
