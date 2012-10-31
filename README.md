@@ -146,49 +146,49 @@ Once all your files are in nice neat sws format, close all curly files, and star
 ------------------------------
 # Options
 
-* `debugging: true`
+- `debugging: true`
 
   More output
 
-* `javaStyleCurlies: true`
+- `javaStyleCurlies: true`
 
   Outputs ` {` at the end of lines.  Otherwise outputs C style, `{` on its own line.
 
-* `addRemoveSemicolons: true`
+- `addRemoveSemicolons: true`
 
   Those `;` chars at the ends of lines.  Who needs them?
 
-* `unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ]`
+- `unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ]`
 
   Converts lines like `if abc` to and from `if (abc)`.  Notably *not currently working* for `else if abc`!
 
-* `onlyWrapParensAtBlockStart: true`
+- `onlyWrapParensAtBlockStart: true`
 
   This prevents unwrapParenthesesForCommands from making a mess on lines like `if (abc) { doSmth(); }`.
 
-* `useCoffeeFunctions: true`
+- `useCoffeeFunctions: true`
 
   Converts anonymous `function (a,b) ...` (as seen in Haxe/Javascript) to and from `(a,b) -> ...` as seen in Coffeescript.  Does not affect named functions.
 
-* `blockLeadSymbol: " =>"`
+- `blockLeadSymbol: " =>"`
 
   After stripping all the curlies, some lines look a bit odd (e.g. function declaration lines).  This appends a special symbol to the end of such lines, to indicate that a code block is about to follow.
 
-* `blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/`
+- `blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/`
 
   When should we add a blockLeadSymbol?  This feature is likely to change in future into a blockLeadSymbolTable, for finer customisation.  Python lovers will be able to map `if` and `while` keywords to use the `:` symbol.
 
-* `blockLeadSymbolContraIndicatedRE` and `blockLeadSymbolContraIndicatedRE2AnonymousFunctions` are heuristics, and should be moved out of the Options object.
+- `blockLeadSymbolContraIndicatedRE` and `blockLeadSymbolContraIndicatedRE2AnonymousFunctions` are heuristics, and should be moved out of the Options object.
 
-* `newline: "\n"`
+- `newline: "\n"`
 
   Change this to `"\r\n"` if you want to output DOS-formatted files.
 
-* `addRemoveCurlies: true`
+- `addRemoveCurlies: true`
 
   Not implemented.  Always happens!
 
-* `trackSlashStarCommentBlocks: true`
+- `trackSlashStarCommentBlocks: true`
 
   Currently enabled due to its prevalence in the body of existing code.  However for professional projects, it is recommended that you *disable* this feature, and do not use any `/*...*/` blocks, since this feature introduces rare bugs.
 
@@ -196,26 +196,26 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
   The difficulty with properly addressing this, is that we would need a parser/lexer for strings and regexps in all the various target languages.  This is beyond the scope of SWS, which aims to operate as a simple textual manipulator.
 
-* `retainLineNumbers: true`
+- `retainLineNumbers: true`
 
   Not yet implemented.  Will track line-numbers whilst parsing, to produce more informative errors.  Probably won't even be an option.
 
-* `guessEndGaps: true`
+- `guessEndGaps: true`
 
   Cosmetic.  For curling.  When disabled, closing curlies `}` will come immediately after the indented block.  When enabled, `}`s will be spaced out if there are empty lines in the source file.
 
-* `fixIndent: false`
+- `fixIndent: false`
 
   When de-curling, forces indentation to be re-calculated from `{`s and `}`s noticed.  Useful when reading a poorly-indented source file.  However, it may cause issues by stripping indentation from lazy non-curled one-line if bodies.
 
-* `joinMixedIndentLinesToLast: true`
+- `joinMixedIndentLinesToLast: true`
 
   If broken lines are indented by an indent less than the standard file-wide indent, we can detect this and bypass semi-colon insert (and the need for `\` to negate it).  This currently only works on space indents following a tab-indented line/file, but in future it should work on e.g. 2-spaces in a 4-indented file.  For example:
 
    --->public static final protected synchronized highoctave veryLongFunctionName(String
    --->      argument1, String argument2, String argument3) {
 
-* `doNotCurlMultiLineParentheses: false`
+- `doNotCurlMultiLineParentheses: false`
 
   An old attempt at solving multi-line expressions.  Tracks `(` and `)` count, and prevents semicolon injection *and curling* while inside one.  Unfortunately this sacrifices passing of anonymous inline functions (their indentation does not create curlies), so is not recommended.
 
