@@ -168,11 +168,11 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
 * `useCoffeeFunctions: true`
 
-   Converts anonymous `function (a,b) ...` (as seen in Haxe/Javascript) into `(a,b) -> ...` like Coffeescript's.
+   Converts anonymous `function (a,b) ...` (as seen in Haxe/Javascript) into `(a,b) -> ...` like Coffeescript's.  Does not affect named functions.
 
 * `blockLeadSymbol: " =>"`
 
-   After stripping all the curlies, some lines look a bit odd (e.g. function declaration lines).  This appends a special symbol to the ends of such lines, to indicate that a code block is about to follow.
+   After stripping all the curlies, some lines look a bit odd (e.g. function declaration lines).  This appends a special symbol to the end of such lines, to indicate that a code block is about to follow.
 
 * `blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/`
 
@@ -182,7 +182,7 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
 * `newline: "\n"`
 
-   Change this to `"\r\n"` if you want to output DOS-style files.
+   Change this to `"\r\n"` if you want to output DOS-formatted files.
 
 * `addRemoveCurlies: true`
 
@@ -190,11 +190,13 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
 * `trackSlashStarCommentBlocks: true`
 
-   Currently enabled for legacy code.  However, it is recommended that you do not use `/*...*/` blocks, since this feature introduces bugs.  (It can potentially cause false-positives matching `/*` or `*/` within strings or regexps).
+   Currently enabled due to its prevalence in the body of existing code.  However for professional projects, it is recommended that you *disable* this feature, and do not use any `/*...*/` blocks, since this feature introduces rare bugs.
+
+   It can potentially cause false-positives if it sees `/*` or `*/` within a string or regexp literal.  There are heuristics to avoid this in some situations, but not all.  One heuristic for example, aborts star-comment tracking for this line if it positively identifies a regexp, but of course this would cause problems if the line was followed by a `/*`!.  Another factor is that `/*`s can be mentioned in `//` comments, and should be ignored, making star-comment tracking dependent on the accuracy of `//` comment tracking, which may not itself be 100%.
 
 * `retainLineNumbers: true`
 
-   Not implemented.  Will track line-numbers whilst parsing, to produce more informative errors.
+   Not yet implemented.  Will track line-numbers whilst parsing, to produce more informative errors.  Probably won't even be an option.
 
 * `guessEndGaps: true`
 
@@ -202,7 +204,7 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
 * `fixIndent: false`
 
-   When de-curling, forces indentation to be re-calculated from `{`s and `}`s noticed.
+   When de-curling, forces indentation to be re-calculated from `{`s and `}`s noticed.  Useful when reading a poorly-indented source file.  However, it may cause issues by stripping indentation from lazy non-curled one-line if bodies.
 
 * `joinMixedIndentLinesToLast: true`
 
@@ -294,6 +296,8 @@ The head of the function may not appear on its own line.  (You can try using `\`
 - Code and comment cleanup.
 
 - Serious outstanding: multi-line *indented* expressions (e.g. assignments of a long formula) get curlies when they shouldn't.  Use heuristic: non-curled one-line if or else (or while or do ...) bodies are ok, but anything else indented that is not curled should produce Error, or receive marking (trailing `\` ok?) to explain that it is special.  (OK added error report for that at least.)
+
+- Track line numbers (retainLineNumbers).
 
 - There are other things which should warn but just silently plough ahead and produce a file which will not invert properly!  E.g. we consume a curly but there is no indentation to follow, and fixIndent is not enabled.  These are mostly during the decurling phase however, which was never really the priority - users are supposed to supply a "perfect" file.  :)
 
