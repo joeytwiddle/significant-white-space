@@ -81,7 +81,6 @@ class Root {
  {			// for stackElem in stackArray
 				// echo(""+stackElem)
 			}
-			// TODO: Where do they keep the damn stacktrace?!  ex is just a string
 			Sys.exit(2);
 		}
 
@@ -1307,8 +1306,13 @@ class CommentTrackingReader extends HelpfulReader {
 			if (openBracketCount == closeBracketCount) {
 				// Let's not cause a fuss if we don't have to.
 			} else {
+				if (sws.options.doNotCurlMultiLineParentheses) {
+					// reporter.echo("I am not trusting the parentheses on this line, although their could be some!");
+					reporter.debug("Ignoring untrustworthy parentheses: "+line);
+				} else {
+					// At the moment, doNotCurlMultiLineParentheses is the only feature using depthInsideParentheses, so we needn't complain.
+				}
 				// reporter.echo("I am not trusting the parentheses on this line, although their could be some!");
-				reporter.debug("Ignoring untrustworthy parentheses: "+line);
 			}
 			// TODO: Perhaps we can count how many are inside "s, how many are inside 's and thus deduce how many are left outside?
 			// Ofc we have also forgotten (s or )s inside Regexp literals.
