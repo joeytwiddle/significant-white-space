@@ -148,72 +148,72 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
 * `debugging: true`
 
-    > More output
+   More output
 
 * `javaStyleCurlies: true`
 
-    > Outputs ` {` at the end of lines.  Otherwise outputs C style, `{` on its own line.
+   Outputs ` {` at the end of lines.  Otherwise outputs C style, `{` on its own line.
 
 * `addRemoveSemicolons: true`
 
-    > Those `;` chars at the ends of lines.  Who needs them?
+   Those `;` chars at the ends of lines.  Who needs them?
 
 * `unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ]`
 
-    > Converts lines like `if abc` to and from `if (abc)`.  Notably *not currently working* for `else if abc`!
+   Converts lines like `if abc` to and from `if (abc)`.  Notably *not currently working* for `else if abc`!
 
 * `onlyWrapParensAtBlockStart: true`
 
-    > This prevents unwrapParenthesesForCommands from making a mess on lines like `if (abc) { doSmth(); }`.
+   This prevents unwrapParenthesesForCommands from making a mess on lines like `if (abc) { doSmth(); }`.
 
 * `useCoffeeFunctions: true`
 
-    > Converts anonymous `function (a,b) ...` (as seen in Haxe/Javascript) into `(a,b) -> ...` like Coffeescript's.
+   Converts anonymous `function (a,b) ...` (as seen in Haxe/Javascript) into `(a,b) -> ...` like Coffeescript's.
 
 * `blockLeadSymbol: " =>"`
 
-    > After stripping all the curlies, some lines look a bit odd (e.g. function declaration lines).  This appends a special symbol to the ends of such lines, to indicate that a code block is about to follow.
+   After stripping all the curlies, some lines look a bit odd (e.g. function declaration lines).  This appends a special symbol to the ends of such lines, to indicate that a code block is about to follow.
 
 * `blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/`
 
-    > When should we add a blockLeadSymbol?  This feature is likely to change in future into a blockLeadSymbolTable, for finer customisation.  Python lovers will be able to map `if` and `while` keywords to use the `:` symbol.
+   When should we add a blockLeadSymbol?  This feature is likely to change in future into a blockLeadSymbolTable, for finer customisation.  Python lovers will be able to map `if` and `while` keywords to use the `:` symbol.
 
 * `blockLeadSymbolContraIndicatedRE` and `blockLeadSymbolContraIndicatedRE2AnonymousFunctions` are heuristics, and should be moved out of the Options object.
 
 * `newline: "\n"`
 
-    > Change this to `"\r\n"` if you want to output DOS-style files.
+   Change this to `"\r\n"` if you want to output DOS-style files.
 
 * `addRemoveCurlies: true`
 
-    > Not implemented.  Always happens!
+   Not implemented.  Always happens!
 
 * `trackSlashStarCommentBlocks: true`
 
-    > Currently enabled for legacy code.  However, it is recommended that you do not use `/*...*/` blocks, since this feature introduces bugs.  (It can potentially cause false-positives matching `/*` or `*/` within strings or regexps).
+   Currently enabled for legacy code.  However, it is recommended that you do not use `/*...*/` blocks, since this feature introduces bugs.  (It can potentially cause false-positives matching `/*` or `*/` within strings or regexps).
 
 * `retainLineNumbers: true`
 
-    > Not implemented.  Will track line-numbers whilst parsing, to produce more informative errors.
+   Not implemented.  Will track line-numbers whilst parsing, to produce more informative errors.
 
 * `guessEndGaps: true`
 
-    > Cosmetic.  For curling.  When disabled, closing curlies `}` will come immediately after the indented block.  When enabled, `}`s will be spaced out if there are empty lines in the source file.
+   Cosmetic.  For curling.  When disabled, closing curlies `}` will come immediately after the indented block.  When enabled, `}`s will be spaced out if there are empty lines in the source file.
 
 * `fixIndent: false`
 
-    > When de-curling, forces indentation to be re-calculated from `{`s and `}`s noticed.
+   When de-curling, forces indentation to be re-calculated from `{`s and `}`s noticed.
 
 * `joinMixedIndentLinesToLast: true`
 
-    > If broken lines are indented by an indent less than the standard file-wide indent, we can detect this and bypass semi-colon insert (and the need for `\` to negate it).  This currently only works on space indents following a tab-indented line/file, but in future it should work on e.g. 2-spaces in a 4-indented file.  For example:
+   If broken lines are indented by an indent less than the standard file-wide indent, we can detect this and bypass semi-colon insert (and the need for `\` to negate it).  This currently only works on space indents following a tab-indented line/file, but in future it should work on e.g. 2-spaces in a 4-indented file.  For example:
 
     --->public static final protected synchronized highoctave veryLongFunctionName(String
     --->      argument1, String argument2, String argument3) {
 
 * `doNotCurlMultiLineParentheses: false`
 
-    > An old attempt at solving multi-line expressions.  Tracks `(` and `)` count, and prevents semicolon injection *and curling* while inside one.  Unfortunately this sacrifices passing of anonymous inline functions (their indentation does not create curlies), so is not recommended.
+   An old attempt at solving multi-line expressions.  Tracks `(` and `)` count, and prevents semicolon injection *and curling* while inside one.  Unfortunately this sacrifices passing of anonymous inline functions (their indentation does not create curlies), so is not recommended.
 
 
 
@@ -513,41 +513,41 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 - "I like curly braces!"
 
-    > Don't use sws.  But also, try not to fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
+   Don't use sws.  But also, try not to fear it.  sws sync allows you to edit *either* format, so you can collaborate with crazies without leaving your bubble.  (Having said that, sws does place some restrictions on the style of code in traditional format.)
 
 - "Why do you hate curlies?"
 
-    > I haven't really made up my mind on this yet, I'm just trying to keep my options open.
+   I haven't really made up my mind on this yet, I'm just trying to keep my options open.
 
 - "Are there any advantages to coding without curlies?"
 
-    > - If you aren't using an IDE, then it can save a little time and work for your fingers.
+   - If you aren't using an IDE, then it can save a little time and work for your fingers.
 
-    > - The structure of your code is exhibited purely visually.  There is no need for the user to parse the symbols; they cannot be misled by incorrect indentation.
+   - The structure of your code is exhibited purely visually.  There is no need for the user to parse the symbols; they cannot be misled by incorrect indentation.
 
-    > - Arguably without the chaff, other symbols such as `(`...`)` stand out more clearly, making method calls more visible and bringing you closer to your code.
+   - Arguably without the chaff, other symbols such as `(`...`)` stand out more clearly, making method calls more visible and bringing you closer to your code.
 
-    > - Refactoring code with copy-paste can be easier if you only have to worry about the code and the indentation, not the code, the indentation *and* the curlies.
+   - Refactoring code with copy-paste can be easier if you only have to worry about the code and the indentation, not the code, the indentation *and* the curlies.
 
-    > - Without the lonely closing curlies, which occupy a whole line each, you can fit more code on the screen!
+   - Without the lonely closing curlies, which occupy a whole line each, you can fit more code on the screen!
 
-    > - We save a little disk-space.
+   - We save a little disk-space.
 
 - "Why were curlies ever introduced in the first place?"
 
-    > - Meaningful indentation is actually quite difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Thus using these symbols is a good idea if you want to keep your parser and compiler simple.
+   - Meaningful indentation is actually quite difficult for traditional compilers to parse.  They can build syntax trees far more easily by parsing `{` and `}` tokens.  Thus using these symbols is a good idea if you want to keep your parser and compiler simple.
   
-    > We certainly do not recommend an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.  This keeps two different problems separate, in the great tradition of unix, and allows us to operate with a broad family of languages.
+   We certainly do not recommend an overhaul of traditional parsers.  As with Coffeescript, we are simply providing a preprocessor which introduces these tokens for the parser to consume.  This keeps two different problems separate, in the great tradition of unix, and allows us to operate with a broad family of languages.
 
-    > - Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
+   - Some people find curlies make it easier to see the structure of the code they are reading.  That's fine, for them.
 
 - "What have you got against semicolons?"
 
-    > What have you got against newlines?
+   What have you got against newlines?
 
 - "Why are some of the comments in the SWS source code longer than 80 chars?"
 
-    > Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
+   Significant whitespace crusaders believe that newlines are meaningful.  A newline should not mean "people only had screens this wide in the 1980s".  A newline should mean the end of one thing, and the start of another.  If long lines look horrible in your editor, that is a problem with your editor.
 
 
 
