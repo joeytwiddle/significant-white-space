@@ -133,7 +133,7 @@ On the first run, sync will likely throw up a warning that a resultant sws file 
 
 - If the problems are cosmetic (unimportant), then just run sync again to process the next file.
 
-- However if there are any non-cosmetic (problematic) differences, you need to fix them!  Edit the source file and try to fix it to make it SWS friendly; then *save it* before running `sws sync` again.  Repeat this until all the differences are fixed (or unimportant).  Now you should have a happy sws file which you can work on, instead of the original curly file.  Run sync without saving the file, so it moves on to the next file.
+- However if there are any non-cosmetic (problematic) differences, you need to fix them!  Edit the source file and try to fix it to make it SWS friendly; then *save it* before running `sws sync` again.  Repeat this until all the differences are fixed (or unimportant).  Now you should have a happy sws file which you can work on, instead of the original curly file.  Run sync without saving the file, so it will move on to the next file.
 
   (You don't *have* to fix post-decurl issues by editing the curly file; if it is nearly correct, you may choose to edit the sws file instead.  But beware when syncing that the sws file will overwrite your original curled file, so you will not be able to compare them!)
 
