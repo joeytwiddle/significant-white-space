@@ -113,24 +113,33 @@ Check out the project, and install dependencies:
     % aptitude install haxe neko
     % haxelib install hxcpp
 
-Build sws:
+Build sws and put it on your PATH:
 
     % ./build.sh
+    % sudo ln -s $PWD/sws /usr/local/bin/
 
-Clone your favourite curly code project:
+Clone your favourite curly code project (just to be safe):
 
-    % cp ~/projects/MyApp ~/projects/MyAppSWS
+    % cp -a ~/projects/MyApp ~/projects/MyAppSWS
     % cd ~/projects/MyAppSWS
 
-De-curl your code to sws files:
+Now let's de-curl your code to sws files:
 
     % sws sync src/
 
-This will likely throw up a warning that the resultant sws file did not invert back to your original source perfectly.  vimdiff the original and inverse files, checking for any differences.
+## Handling differences
 
-If there are any non-cosmetic differences, edit the source file and try to fix it to make SWS happier; save it and run `sws sync` again.  Repeat this until all the differences are fixed (or unimportant).  Now you should have a happy sws file which you can work on.
+On the first run, sync will likely throw up a warning that a resultant sws file did not invert back to the original source perfectly.  vimdiff the original and inverse files, checking for any differences.
 
-You don't have to fix post-decurl issues in the curly file; if it nearly correct, you may choose to edit the sws file instead.  But beware when syncing that the sws file will overwrite your original curled file!
+- If the problems are cosmetic (unimportant), then just run sync again to process the next file.
+
+- However if there are any non-cosmetic (problematic) differences, you need to fix them!  Edit the source file and try to fix it to make it SWS friendly; then *save it* before running `sws sync` again.  Repeat this until all the differences are fixed (or unimportant).  Now you should have a happy sws file which you can work on, instead of the original curly file.  Run sync without saving the file, so it moves on to the next file.
+
+  (You don't *have* to fix post-decurl issues by editing the curly file; if it is nearly correct, you may choose to edit the sws file instead.  But beware when syncing that the sws file will overwrite your original curled file, so you will not be able to compare them!)
+
+If a file inverts perfectly first time, or if you don't *save* the source file to indicate it needs re-syncing, then sync will move on to the next file.
+
+Once all your files are in nice neat sws format, close all curly files, and start editing your projects through the sws files!  (If you want to edit the curly files in your favourite IDE, you can do that too - just be sure to run sync, to update the sws files when that's done.)
 
 
 
