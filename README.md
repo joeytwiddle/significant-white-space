@@ -303,6 +303,8 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 - There are other things which should warn but just silently plough ahead and produce a file which will not invert properly!  E.g. we consume a curly but there is no indentation to follow, and fixIndent is not enabled.  These are mostly during the decurling phase however, which was never really the priority - users are supposed to supply a "perfect" file.  :)
 
+- Provide ready executables (Javascript/Node, Java jar, and neko binaries) for people too scared/lazy to install Haxe.
+
 - FIXED: `(...)` wrapping fails on "else if" but works on "if"
 
 - FIXED: Problem detecting false indent from files starting with a multi-line comment (e.g. well-documented Java files).  Ideal solution: Solve this alongside other issues, by doing our best to track when we are inside a multi-line comment.  (The plan was to do that in HelpfulReader, and for it to expose the state (in/out of a comment) of the parser after the current line has been read (at the beginning of the next line).)
@@ -562,6 +564,19 @@ Since Vim's breakindent patch no longer works, I wrote something similar:
 
 ## When do we have enough heuristics?
 
-Heuristics add complexity to SWS whilst extending it to work over a larger area of the target languages.  Unfortunately they cannot cover the whole domain unless they reach the complexity of a proper parser.  So when do we stop?  I think the answer to that might be, when it works on *enough* of my code that I don't mind fixing the odd exception.
+Heuristics add complexity to SWS whilst extending it to work over a larger area of the target languages (or at least provide useful warnings).  Unfortunately they cannot cover the whole domain unless they reach the complexity of a proper parser.  So when do we stop?  I think the answer to that might be, when it works on *enough* of my code that I don't mind fixing the odd exception.  I feel I've reached pretty close to that now.
 
+## Rewrite / refactor
+
+Is there a better way to do this?  The core loop started off very simple, and worked "ok" like that.  But as we added options to deal with more cases, the complexity of that loops has grown immensely.
+
+We could approach this project from the point of view of addressing concerns.  (Some of our options represent a single concern, but not all are there.)
+
+We might be able to build the reformatter out of a chain of minor reformatters.  Addressing a concern would mean placing a reformatter or two at appropriate places in the chain.  Whilst this abstraction might help us to deal with each concern separately, there may be times when one concern needs to know about another, in order to decide how to proceed.  (E.g. joinMixedIndentLinesToLast can negate the need to append a `\`.)  Perhaps I must make an attempt at writing in this style, before I can see it's major flaws/benefits.
+
+If you care to input to this discussion, we are talking about the major functions `curl()` and `decurl()`.  Is there a better way to present that code, by splitting it up?  Or it is it good to keep the whole algorithm in once place, minor options and all, so we can clearly see what is happening?
+
+It could be said that the two classes `HelpfulReader` and `CommentTrackingReader` address some concerns is a nice separated fashion, although these are purely information concerns, not reformatting concerns.  I really meant to put `indentString` detection into a helper class too, but didn't get around to it.
+
+Perhaps that is a better approach, to separate out extraction of information about the input, from decisions about the output.  Then our core loop would have no code to seek data, it would just accept all the processed information (a bunch of bools/Strings/getters), and decide what to do with it.
 
