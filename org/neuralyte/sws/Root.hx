@@ -78,10 +78,10 @@ class Root {
 			// echo(haxe.Stack.toString(haxe.Stack.callStack()))
 			echo(haxe.Stack.toString(haxe.Stack.exceptionStack()));
 			// TODO: Where do they keep the damn stacktrace?!  ex is just a string
-			return 5; // TODO: This is not being set as the exit code ... we must use neko.Sys?
+			Sys.exit(2);
 		}
 
-		return 0;
+		Sys.exit(0);
 	}
 
 	static function showHelp() {
@@ -1242,8 +1242,9 @@ class CommentTrackingReader extends HelpfulReader {
 
 	// Let's also track parentheses noobishly
 
-	public static var parenthesisInsideQuotes = ~/[^"]*"[^"]*[()][^"]*"/;
-	public static var parenthesisInsideApostrophes = ~/[^']*'[^']*[()][^']*"/;
+	// public static var parenthesisInsideQuotes = ~/^[^"]*("[^"]*[()][^"]*"[^"]*)*$/
+	public static var parenthesisInsideQuotes = ~/^[^"]*"[^"]*[()][^"]*"/;
+	public static var parenthesisInsideApostrophes = ~/^[^']*'[^']*[()][^']*'/;
 
 	public var depthInsideParentheses : Int; // = false;
 

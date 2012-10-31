@@ -166,6 +166,10 @@ The head of the function may not appear on its own line.  (Non-empty lines alway
 ------------------------------
 # TODO
 
+- Parse options from command-line.
+
+- Allow options to be set near top/bottom of file (like vim's modeline).
+
 - Code and comment cleanup.
 
 - FIXED: `(...)` wrapping fails on "else if" but works on "if"
