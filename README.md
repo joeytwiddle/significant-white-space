@@ -85,6 +85,10 @@ will read file myapp.c.sws, inject curlies and semicolons, and overwrite myapp.c
 
 ## Safe modes
 
+    % sws safe-decurl myapp.c myapp.c.sws
+
+    % sws safe-curl myapp.c.sws myapp.c
+
 Curl and decurl are minimal; they do their job and exit.  However the safe-curl and safe-decurl operations do some extra checking: they invert the generated file and compare the result to the original file, emitting a warning if they do not match.  This is useful to discover any formatting style in your code that SWS does not consider canonical (the sws standard).
 
 ## Sync
@@ -171,6 +175,10 @@ The head of the function may not appear on its own line.  (Non-empty lines alway
 - Allow options to be set near top/bottom of file (like vim's modeline).
 
 - Code and comment cleanup.
+
+- Serious outstanding: multi-line *indented* expressions (e.g. assignments of a long formula) get curlies when they shouldn't.  Use heuristic: non-curled one-line if or else (or while or do ...) bodies are ok, but anything else indented that is not curled should produce Error, or receive marking (trailing `\` ok?) to explain that it is special.  (OK added error report for that at least.)
+
+- There are other things which should warn but just silently plough ahead and produce a file which will not invert properly!  E.g. we consume a curly but there is no indentation to follow, and fixIndent is not enabled.  These are mostly during the decurling phase however, which was never really the priority - users are supposed to supply a "perfect" file.  :)
 
 - FIXED: `(...)` wrapping fails on "else if" but works on "if"
 

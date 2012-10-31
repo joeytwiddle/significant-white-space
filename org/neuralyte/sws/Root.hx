@@ -74,9 +74,13 @@ class Root {
 			}
 
 		} catch (ex : Dynamic) {
-			echo("Caught exception: "+ex);
+			echo("Exception occurred: "+ex);
 			// echo(haxe.Stack.toString(haxe.Stack.callStack()))
-			echo(haxe.Stack.toString(haxe.Stack.exceptionStack()));
+			echoPure(haxe.Stack.toString(haxe.Stack.exceptionStack()));
+			// var stackArray = haxe.Stack.exceptionStack()
+ {			// for stackElem in stackArray
+				// echo(""+stackElem)
+			}
 			// TODO: Where do they keep the damn stacktrace?!  ex is just a string
 			Sys.exit(2);
 		}
@@ -91,7 +95,11 @@ class Root {
 	}
 
 	static function echo(s:String) {
-		File.stdout().writeString("[Root] " + s + "\n");
+		echoPure("[Root] " + s);
+	}
+
+	static function echoPure(s:String) {
+		File.stdout().writeString(s + "\n");
 
 	}
 
@@ -383,9 +391,9 @@ class SWS {
 		// TODO: Count number of in/out curlies swallowed, and compare them against indent.  Warn when they do not look right!
 
 		// We detect lines which end with an opening curly brace
-		var endsWithCurly : EReg = ~/\s*{\s*$/;
+		var endsWithOpeningCurly : EReg = ~/\s*{\s*$/;
 		// And lines which start with a closing curly brace
-		var startsWithCurly : EReg = ~/^\s*}\s*/;
+		var startsWithClosingCurly : EReg = ~/^\s*}\s*/;
 		// We don't want to strip the indent
 		var startsWithCurlyReplacer : EReg = ~/}\s*/;
 		// And sometimes lines ending in a semicolon.
@@ -425,7 +433,10 @@ class SWS {
 				// if true    // TODO BUG: Put the commented if line below the live one, and it will interfere with curling!
 				if (!wholeLineIsComment && !wasInsideComment) {
 
-					if (startsWithCurly.match(line)) {
+					if (startsWithClosingCurly.match(line)) {
+						if (~/^\s*}\s*;\s*$/.match(line)) {
+							reporter.error("We do not currently support \"};\" end-lines, try \"});\" instead:"+line);
+						}
 						line = startsWithCurlyReplacer.replace(line,"");
 						indentCountAtLineStart--;
 						indentCountAtLineEnd--;
@@ -434,9 +445,9 @@ class SWS {
 						}
 					}
 
-					if (endsWithCurly.match(line)) {
+					if (endsWithOpeningCurly.match(line)) {
 						indentCountAtLineEnd++;
-						line = endsWithCurly.replace(line,"");
+						line = endsWithOpeningCurly.replace(line,"");
 						// TODO: For this to work with C-style braces, we could look back *and modify* the previous line.  That might not be possible with a sensible output stream.  Instead recommend we check on previous line for this lonely curly here.
 						if (options.blockLeadSymbol != null && !emptyOrBlank.match(line)) {
 							var indicated = options.blockLeadSymbolIndicatedRE!=null && options.blockLeadSymbolIndicatedRE.match(line);
@@ -1018,7 +1029,7 @@ class Sync {
 			inverseFn(outFile, tempFile);
 			// echo("Now compare "+inFile+" against "+tempFile);
 			if (File.getContent(inFile) != File.getContent(tempFile)) {
-				warn("Warning: Inverse differs from original.  Differences may or may not be cosmetic!");
+				warn("Inverse differs from original.  Differences may or may not be cosmetic!");
 				// echo("Compare files: \""+inFile+"\" \""+tempFile+"\"");
 				// echo("Compare: jdiff \""+inFile+"\" \""+tempFile+"\"");
 				warn("Compare:");

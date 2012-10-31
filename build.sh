@@ -39,5 +39,7 @@ if ! nekotools boot sws.n
 then errcode="$?" ; echo "Problem with nekotools" ; exit "$errcode"
 fi
 
+# ctags org/**/*.hx /usr/share/haxe/**/*.hx
+
 echo "Build successful."
 
