@@ -334,8 +334,6 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 - DONE: Get HelpfulReader to track whether we are inside or outside a multi-line comment.  (Consider how to deal with multiple mini comment blocks on one line, as well as the open-endedness of the state of each end of a line.  Our simple line-by-line approach would have been fine if it wasn't for those pesky `/*` ... `*/` blocks, users who like to split long lines, and `\"` chars inside `"`...`"` strings.)
 
-- Argument parsing to select options from commandline calls.
-
 - PARTLY: Refactor to tidy the code up into neat classes, and expose the tool for use in file-free environments.
 
 - Clear documentation, detection and warning of problematic code configurations.  Easy to read definition of what is legal code structure, and list of the gotchas (common issues we cannot fix).
