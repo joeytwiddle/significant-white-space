@@ -280,17 +280,21 @@ Recently added somewhat gnarly multi-line support; although if later lines are i
 
 The `\` markers are needed to prevent `;` semicolons from being injected when curling, but a trailing `,` can also prevent this.  Later-line indentation with Tabs will cause curly wrapping (fine if you're creating an object literal).  Later-line indentation with spaces (in a Tab-indenetd file) does not cause curly wrapping, so use this to break up expressions, or for a multi-line array literal:
 
-    // An object literal
+    // An object literal (curlies will be added due to indent)
     --->var obj = (
     --->--->foo: 3,
     --->--->bar: 7 \
     --->)
 
-    // An array literal
-    --->var list = [
+    // An array literal (curlies avoided by mixed indent)
+    --->// An array literal
+    --->var list = [ \
     --->  3,
     --->  7 \
     --->]
+
+    var opts = \
+          { width: 300, height: 200 }
 
 Basically multi-line expressions were never intended to be supported by sws, but since so much existing curly source code uses them, it's good to have a way to preserve them, even if it's not pretty.  We have to wrap that object literal in `(...)` if we want to get a semicolon on the last line.
 

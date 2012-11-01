@@ -487,7 +487,7 @@ class SWS {
 									//// But we don't have indentString.  HelpfulReader could find and hold it.
 									// var indent_of_currentLine = countIndent(indentString, currentLine)
 									if (indent_of_nextNonEmptyLine > indent_of_currentLine) {
-										if (options.joinMixedIndentLinesToLast && ~/^\t+ +/.match(nextNonEmptyLine)) {
+										if (options.joinMixedIndentLinesToLast && ~/^\t* +/.match(nextNonEmptyLine)) {
 											line += " \\";     // TODO: Clean up sws: We don't *have* to join them with \ on decurl.  We *could* look for mixed indent on curling, and handle it there.  But this fits logically with the other places we use '\'.
 										} else {
 											// We are about to indent; do not be concerned about missing ;
@@ -1125,18 +1125,9 @@ class Sync {
 
 		if (direction == 1) {
 			echo("Decurling "+curlyFile+" -> "+swsFile);
-			// echo(decurl(curlyFile, swsFile));
-			// decurl(curlyFile, swsFile);    // NOTE: safeCurl is now mandatory, because it deals with date updating
-			// DONE: safeCurl and safeDecurl, done via doSafely; much nicer.
-			// doSafely(decurl, curlyFile, swsFile, curl)
 			safeDecurl(curlyFile, swsFile);
-			// After transformation, transform *back* (to a tempfile), and check if the result matches the original.  If not warn user, showing differences.  (If they are minor he may ignore them.)
-			// Also to be safe, we should store a backup of the target file before it is overwritten.
 		} else if (direction == 2) {
 			echo("Curling "+swsFile+" -> "+curlyFile);
-			// traceCall(curl(swsFile, curlyFile));
-			// curl(swsFile, curlyFile);
-			// doSafely(curl, swsFile, curlyFile, decurl)
 			safeCurl(swsFile, curlyFile);
 		}
 	}
@@ -1146,9 +1137,8 @@ class Sync {
 			if (!syncOptions.skipFoldersNamed.has(node)) {
 				var children = FileSystem.readDirectory(node);
 				for (child in children) {
-					var childPath = node + syncOptions.pathSeparator + child {
-						forAllFilesBelow(childPath,fn);
-					}
+					var childPath = node + syncOptions.pathSeparator + child;
+					forAllFilesBelow(childPath,fn);
 				}
 			}
 		} else {
