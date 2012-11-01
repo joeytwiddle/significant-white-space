@@ -198,7 +198,7 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
 - `retainLineNumbers: true`
 
-  Not yet implemented.  Will track line-numbers whilst parsing, to produce more informative errors.  Probably won't even be an option.
+  Not yet implemented.  Does not remove `}` lines, just empties them, so line numbers correspond in both sws and curled file.
 
 - `guessEndGaps: true`
 
