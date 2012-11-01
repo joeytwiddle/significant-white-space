@@ -417,14 +417,18 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
 - `{`s are only detected at the *end* of lines.  `}`s are only detected at the *beginning* of lines.  It is fine to use them mid-line, provided they match.  So, the following examples work, and curlies will be *retained* in the "de-curled" file.
 
+```
     callFunc({width:300,height:200})
 
     var opts = {width:300, height:200}
+```
 
   But instances like this may cause trouble:
 
+```
     var opts = \
       { width: 300, height: 200 };
+```
 
 - Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented, and will also suffer from semicolon-insertion.  (You can get away with indenting 2 spaces in an otherwise 4-spaced file, but then face issues with semicolon-injection.)  Unindented multi-line expressions should work fine if semicolonInsertion is disabled.
 

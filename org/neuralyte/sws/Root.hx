@@ -1029,7 +1029,7 @@ class Sync {
 				// This is perfectly normal, if we have changed the source file.
 				info("There were changes to "+outFile+" since the last time ("+originalResult.length+" -> "+newResult.length+")");
 			} else {
-				// info("There were no changes since the last time ("+originalResult.length+" == "+newResult.length+")")
+				info("The new version of "+outFile+" is identical to the old version.");
 			}
 		}
 
