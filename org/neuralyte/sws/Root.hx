@@ -1023,6 +1023,16 @@ class Sync {
 		touchFile(inFile);
 		// Woop!  It worked!  (It might not work on very large files, or fine-grained filesystems.)
 
+		if (originalResult != null) {
+			var newResult = File.getContent(outFile);
+			if (newResult != originalResult) {
+				// This is perfectly normal, if we have changed the source file.
+				info("There were changes to "+outFile+" since the last time ("+originalResult.length+" -> "+newResult.length+")");
+			} else {
+				// info("There were no changes since the last time ("+originalResult.length+" == "+newResult.length+")")
+			}
+		}
+
 		if (syncOptions.safeSyncCheckInverse) {
 			var tempFile = inFile + ".inv";
 			inverseFn(outFile, tempFile);
@@ -1041,16 +1051,6 @@ class Sync {
 				}
 			} else {
 				info("File matches inverse perfectly.");
-			}
-		}
-
-		if (originalResult != null) {
-			var newResult = File.getContent(outFile);
-			if (newResult != originalResult) {
-				// This is perfectly normal, if we have changed the source file.
-				info("There were changes to "+inFile+" since the last time ("+originalResult.length+" -> "+newResult.length+")");
-			} else {
-				// info("There were no changes since the last time ("+originalResult.length+" == "+newResult.length+")")
 			}
 		}
 	}
