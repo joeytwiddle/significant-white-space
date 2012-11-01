@@ -177,7 +177,7 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
 - `unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ]`
 
-  Converts lines like `if abc` to and from `if (abc)`.  *Not currently working* for `else if abc`!
+  Converts lines like `if abc` to and from `if (abc)`.  *Not currently working* for `else if abc`!  (The algorithm only checks the first word on the line.)
 
 - `onlyWrapParensAtBlockStart: true`
 
@@ -444,7 +444,7 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
 - Indentation of single-line comments is meaningful.  If you have `//`s which look like outdent, curlies will be generated!  This may change in future, but at the moment it is considered a feature, allowing us to indicate empty blocks in the code (we need *something* to indent, or curlies cannot be generated).
 
-- Multi-line block comments `/* ... */` are somewhat supported, but single-line entries in the middle of a line can cause trouble (e.g. on the line introducing an indented/curled code block).  (Reason: splitLineAtComment returns two Strings, left and right.  If we want to stick with single-line algorithm, we need to change that return to [start_state, code/comment, comment/code, code/comment, ..., comment/code, end_state])
+- Multi-line block comments `/* ... */` are somewhat supported, but small comment blocks in the middle of a line can cause trouble (e.g. on a line introducing an indented/curled code block).  (Reason: splitLineAtComment returns two Strings, left and right.  We could change that return to [start_state, code/comment, comment/code, code/comment, ..., comment/code, end_state])
 
 - You can still express short `{ ... }` blocks on-one-line if you want to, but don't mix things up.  Specifically do not follow a curly by text and then newline and indent.  That mid-line curly will not be stripped, whilst the indent will cause a new one to be injected.
 
@@ -482,9 +482,16 @@ Restrictions on code structure:
 ------------------------------
 # Bugs
 
-    - sync fails with exception `std@sys_file_type` if it encounters any broken symlinks in the scanned tree.
-    - sws in general fails with with "Invalid field access : __s" if we forgot to pass an argument.
-    - There are plenty more, but I don't want to spoil *all* your fun.
+  - sync fails with exception `std@sys_file_type` if it encounters any broken symlinks in the scanned tree.
+  - sws in general fails with with "Invalid field access : __s" if we forgot to pass an argument.
+  - There are plenty more, but I don't want to spoil *all* your fun.
+  - Splitting lines on `//` can fail in tough conditions.  For example the following line would require a regexp parser to consume the first `"`, otherwise the second `//` looks like it's outside a string.
+
+```
+    if (path.match(/^[^"/]*\//) && url.indexOf("http://")==0) { // about do do something
+```
+
+  - Indented `//` blocks are useful to mark an empty block body, but in other cases `//` should be ignored for indentation, for example in the middle of a set of `//` lines.  The difficulty here for our algorithm is not skipping the `{`, but rmembering that the `}` can be skipped when indentation level next drops.
 
 
 

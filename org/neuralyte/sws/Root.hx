@@ -1141,18 +1141,18 @@ class Sync {
 		}
 	}
 
-	function forAllFilesBelow<ResType>(root : String, fn : String -> ResType) {
-		var children = FileSystem.readDirectory(root);
-		for (child in children) {
-			var childPath = root + syncOptions.pathSeparator + child;
-			if (FileSystem.isDirectory(childPath)) {
-				if (!syncOptions.skipFoldersNamed.has(child)) {
-					// echo("Descending to folder: "+childPath);
-					forAllFilesBelow(childPath,fn);
+	function forAllFilesBelow<ResType>(node : String, fn : String -> ResType) {
+		if (FileSystem.isDirectory(node)) {
+			if (!syncOptions.skipFoldersNamed.has(node)) {
+				var children = FileSystem.readDirectory(node);
+				for (child in children) {
+					var childPath = node + syncOptions.pathSeparator + child {
+						forAllFilesBelow(childPath,fn);
+					}
 				}
-			} else {
-				fn(childPath);
 			}
+		} else {
+			fn(node);
 		}
 	}
 
