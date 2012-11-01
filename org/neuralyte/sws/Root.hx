@@ -1039,6 +1039,8 @@ class Sync {
 					echo("If you edit the source file now, it be transformed again on the next sync; if not we will pick up where we left off, on the next file.");
 					Sys.exit(5);
 				}
+			} else {
+				info("File matches inverse perfectly.");
 			}
 		}
 

@@ -91,24 +91,36 @@ will read file myapp.c.sws, inject curlies and semicolons, and overwrite myapp.c
 
 Curl and decurl are minimal; they do their job and exit.  However the safe-curl and safe-decurl operations do some extra checking: they invert the generated file and compare the result to the original file, emitting a warning if they do not match.  This is useful to discover any formatting style in your code that SWS does not consider canonical (the sws standard).
 
+The safe modes generate a few backup and temp files.  You can remove them with:
+
+    % rm **/*.(bak|inv)
+
+    % rm **/*.sws
+
 ## Sync
 
     % sws sync src/
 
-The sync command can be used to transform a tree of files automatically.  De-curled files will be written with the `.sws` extension appended (e.g. `MyClass.java.sws`).  The user may then edit either the curly file or the sws file, and on its next run sync will update the other file in the pair.
+The sync command can be used to transform a tree of files automatically.  In a project of curly files, it will generate sws files from them, or vice-varsa in a project of sws files.  The user may then edit either a curly file or the corresponding sws file, and on its next run sync will update the other file in the pair.
 
-A good place to use sync would be at the top of your build chain.
+So you can edit sws files in your favourite text editor, and sync will update the curled files ready for compilation.  Or you can edit the curled files through a powerful IDE, and sync will update the sws files to match.
 
-If no argument is provided, sws sync will search everything below the current folder.  If that does more than you hoped it would, you may want to delete all the files it generated: **/*.(sws|bak|inv)  (By default sync generates more files than it really needs to, to aid debugging and reverting.)
+A good place to call `sws sync` would be at the top of your build chain.
+
+If no argument is provided, sync will search everything below the current folder.
+
+Note that sync current uses safe mode.  An option should be made available to disable this.
 
 Sync searches the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This allows the user to edit files in either format, without having to worry about the direction in which changes will be propagated!  Thus a single project can be edited both through its sws files, and through its traditional files, for example using an IDE such as Eclipse.
+
+There is a danger here.  That is to make some edits to one file, forget to run sync, and then make some edits to the other file in the pair.  The next time sync is run, the more recently saved file will be transformed, overwrite the other one and losing the first set of edits.  The solution to this is to run sync often and early.  Adding to the build chain is good.  Alternatively, your editor may be able to triggers a call to sws when a file is saved, Vim users can find examples below.
 
 
 
 ------------------------------
-# Trying it out
+# Installation
 
-Check out the project, and install dependencies:
+Check out this project, and install dependencies:
 
     % aptitude install haxe neko
     % haxelib install hxcpp
@@ -117,6 +129,11 @@ Build sws and put it on your PATH:
 
     % ./build.sh
     % sudo ln -s $PWD/sws /usr/local/bin/
+
+
+
+------------------------------
+# Trying it out
 
 Clone your favourite curly code project (just to be safe):
 
@@ -139,7 +156,7 @@ On the first run, sync will likely throw up a warning that a resultant sws file 
 
 If a file inverts perfectly first time, or if you don't *save* the source file to indicate it needs re-syncing, then sync will move on to the next file.
 
-Once all your files are in nice neat sws format, close all curly files, and start editing your projects through the sws files!  (If you want to edit the curly files in your favourite IDE, you can do that too - just be sure to run sync, to update the sws files when that's done.)
+Once all your files are in nice neat sws format, close all curly files, and start editing your projects through the sws files!  (If you want to edit the curly files in your favourite IDE, you can do that too - just be sure to run sync to update the sws files when that's done.)
 
 
 
@@ -160,29 +177,11 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
 - `unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ]`
 
-  Converts lines like `if abc` to and from `if (abc)`.  Notably *not currently working* for `else if abc`!
+  Converts lines like `if abc` to and from `if (abc)`.  *Not currently working* for `else if abc`!
 
 - `onlyWrapParensAtBlockStart: true`
 
   This prevents unwrapParenthesesForCommands from making a mess on lines like `if (abc) { doSmth(); }`.
-
-- `useCoffeeFunctions: true`
-
-  Converts anonymous `function (a,b) ...` (as seen in Haxe/Javascript) to and from `(a,b) -> ...` as seen in Coffeescript.  Does not affect named functions.
-
-- `blockLeadSymbol: " =>"`
-
-  After stripping all the curlies, some lines look a bit odd (e.g. function declaration lines).  This appends a special symbol to the end of such lines, to indicate that a code block is about to follow.
-
-- `blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/`
-
-  When should we add a blockLeadSymbol?  This feature is likely to change in future into a blockLeadSymbolTable, for finer customisation.  Python lovers will be able to map `if` and `while` keywords to use the `:` symbol.
-
-- `blockLeadSymbolContraIndicatedRE` and `blockLeadSymbolContraIndicatedRE2AnonymousFunctions` are heuristics, and should be moved out of the Options object.
-
-- `newline: "\n"`
-
-  Change this to `"\r\n"` if you want to output DOS-formatted files.
 
 - `addRemoveCurlies: true`
 
@@ -196,14 +195,6 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
   The difficulty with properly addressing this, is that we would need a parser/lexer for strings and regexps in all the various target languages.  This is beyond the scope of SWS, which aims to operate as a simple textual manipulator.
 
-- `retainLineNumbers: true`
-
-  Not yet implemented.  Does not remove `}` lines, just empties them, so line numbers correspond in both sws and curled file.
-
-- `guessEndGaps: true`
-
-  Cosmetic.  For curling.  When disabled, closing curlies `}` will come immediately after the indented block.  When enabled, `}`s will be spaced out if there are empty lines in the source file.
-
 - `fixIndent: false`
 
   When de-curling, forces indentation to be re-calculated from `{`s and `}`s noticed.  Useful when reading a poorly-indented source file.  However, it may cause issues by stripping indentation from lazy non-curled one-line if bodies.
@@ -212,12 +203,38 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
   If broken lines are indented by an indent less than the standard file-wide indent, we can detect this and bypass semi-colon insert (and the need for `\` to negate it).  This currently only works on space indents following a tab-indented line/file, but in future it should work on e.g. 2-spaces in a 4-indented file.  For example:
 
+- `newline: "\n"`
+
+  Change this to `"\r\n"` if you want to output DOS-formatted files.
+
+- `useCoffeeFunctions: true`
+
+  Converts anonymous `function (a,b) ...` (as seen in Haxe/Javascript) to and from `(a,b) -> ...` as seen in Coffeescript.  Does not affect named functions.
+
+- `blockLeadSymbol: " =>"`
+
+  After stripping all the curlies, some lines look a bit odd (e.g. function declaration lines).  This appends a special symbol to the end of such lines, to indicate that a code block is about to follow.  For the moment, only one such symbol is available.  The symbols are for appearance only so can be left out of the sws, but any that are present will be stripped on curling.
+
+- `blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/`
+
+  When should we add a blockLeadSymbol?  This feature is likely to change in future into a `blockLeadSymbolTable` for finer customisation.  Python lovers will be able to map `if` and `while` keywords to use the `:` symbol.
+
+- `blockLeadSymbolContraIndicatedRE` and `blockLeadSymbolContraIndicatedRE2AnonymousFunctions` are heuristics, and should be moved out of the Options object.
+
+- `guessEndGaps: true`
+
+  Cosmetic.  For curling.  When disabled, closing curlies `}` will come immediately after the indented block.  When enabled, `}`s will be spaced out if there are empty lines in the source file.
+
    --->public static final protected synchronized highoctave veryLongFunctionName(String
    --->      argument1, String argument2, String argument3) {
 
 - `doNotCurlMultiLineParentheses: false`
 
-  An old attempt at solving multi-line expressions.  Tracks `(` and `)` count, and prevents semicolon injection *and curling* while inside one.  Unfortunately this sacrifices passing of anonymous inline functions (their indentation does not create curlies), so is not recommended.
+  An old attempt at solving multi-line expressions.  Tracks `(` and `)` count, and prevents semicolon injection *and curling* while inside one.  Unfortunately this sacrifices passing of anonymous inline functions (their indentation does not create curlies), so is not recommended.  Also it suffers the same danger as `trackSlashStarCommentBlocks`.
+
+- `retainLineNumbers: true`
+
+  Not yet implemented.  Does not remove `}` lines, just empties them, so line numbers correspond in both sws and curled file.
 
 
 
@@ -227,6 +244,8 @@ Once all your files are in nice neat sws format, close all curly files, and star
 Still a little immature.
 
 Working reasonably for a neat subset of HaXe, Java and C code.
+
+Multi-line expressions with indentation are not supported, although they can be coerced to work using mixed indentation.
 
 Options are not yet exposed as command-line arguments, but can be changed by editing Root.hx.
 
@@ -299,7 +318,7 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 - Serious outstanding: multi-line *indented* expressions (e.g. assignments of a long formula) get curlies when they shouldn't.  Use heuristic: non-curled one-line if or else (or while or do ...) bodies are ok, but anything else indented that is not curled should produce Error, or receive marking (trailing `\` ok?) to explain that it is special.  (OK added error report for that at least.)
 
-- Track line numbers (retainLineNumbers).
+- Track line numbers for more informative output.
 
 - There are other things which should warn but just silently plough ahead and produce a file which will not invert properly!  E.g. we consume a curly but there is no indentation to follow, and fixIndent is not enabled.  These are mostly during the decurling phase however, which was never really the priority - users are supposed to supply a "perfect" file.  :)
 
