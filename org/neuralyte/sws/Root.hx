@@ -348,7 +348,8 @@ class SWS {
 	// static var evenNumberOfQuotes = '(('+"[^'\"]*'[^']*'[^'\"]*"+'|[^"\']*"[^"]*"[^"\']*'+')*|[^"]*)';
 	// static var forExample = "This \" will break";   // if we follow it with a comment
 	// DONE: We should also check the //s are outside of an even number of 's
-	static var evenNumberOfQuotesDislikeSlashes = '(([^"/]*"[^"]*"[^"/]*)+|[^"/]*/|[^"/]+)';
+	// Notably the following regexp fails to correctly match strings like "foo\"bar"
+	static var evenNumberOfQuotesDislikeSlashes = '("[^"]*"|/|[^"/]+)';
 	static var evenNumberOfApostrophesDislikeSlashes = (~/"/g).replace(evenNumberOfQuotesDislikeSlashes,"'");
 	static var trailingCommentOutsideQuotes = new EReg("^("+evenNumberOfQuotesDislikeSlashes+")(\\s*(//|/[*]).*)$",'');
 	static var trailingCommentOutsideApostrophes = new EReg("^("+evenNumberOfApostrophesDislikeSlashes+")(\\s*(//|/[*]).*)$",'');
