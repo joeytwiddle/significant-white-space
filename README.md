@@ -320,6 +320,8 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 - Code and comment cleanup.
 
+- Add support for preprocessor commands like `#define` and `#ifdef`.  (Currently they only work if they are flat-indented to current code level, and they get `\` appended.  We could waive both these requirements.)
+
 - Serious outstanding: multi-line *indented* expressions (e.g. assignments of a long formula) get curlies when they shouldn't.  Use heuristic: non-curled one-line if or else (or while or do ...) bodies are ok, but anything else indented that is not curled should produce Error, or receive marking (trailing `\` ok?) to explain that it is special.  (OK added error report for that at least.)
 
 - Track line numbers for more informative output.
@@ -350,27 +352,27 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 - DONE: Introduce endline `\` chars in the sws to represent lines which do not end in semicolons.
 
-- Fix blockLeadSymbol for C-style blocks.
+- DONE? Fix blockLeadSymbol for C-style blocks.
 
 - Before attacking the next refactor, set up test script that can run against a large set of sources, and warn us when number of problems increases!
 
 - Some refactoring: Central loop of curl could split comment early, saving a lot of repetition eblow, and avoiding introduction of ; on initial /* line.  Also split up more of the curl code into separate functions.
 
-- Optional forceIndent for decurling.  This would discard incoming indentation, and replace it with its own indentation based on curly counts.
+- DONE: Optional `fixIndent` for decurling.  This would discard incoming indentation, and replace it with its own indentation based on curly counts.
 
 ## On the radar
 
 - DONE in `unwrapParenthesesForCommands`: We could implement stripping and re-injection of the parenthesis ( and ) surrounding the conditional when we detect certain keywords (if, while).  This will probably only be applied to single-line expressions.
 
-- The header line of a block (e.g. class and function declarations) are stripped of all symbols, and this looks a bit odd.  In Python indented blocks are always preceeded by a `:`, and in Coffeescript either a `:` or an `=` (not true of classes).  We could give users the option of initialising blocks with a `:`.  Although one might still argue that such symbols are as redundant as curly braces, given significant indenting whitespace!  (Started work on this, see `blockLeadSymbol`.)
+- DONE: `blockLeadSymbol` The header line of a block (e.g. class and function declarations) are stripped of all symbols, and this looks a bit odd.  In Python indented blocks are always preceeded by a `:`, and in Coffeescript either a `:` or an `=` (not true of classes).  We could give users the option of initialising blocks with a `:`.  Although one might still argue that such symbols are as redundant as curly braces, given significant indenting whitespace!  (Started work on this, see `blockLeadSymbol`.)
 
 - The double-indent problem could be addressed by *expecting* multi-line `(...)` to cause an indent.
 
-- We could allow multi-line expression in sws source with a \ at the end of the line, which could be stripped for languages that won't accept it.  But this would leave the problem of when to introduce \s on the decurling to sws.
+- DONE: We could allow multi-line expression in sws source with a \ at the end of the line, which could be stripped for languages that won't accept it.  But this would leave the problem of when to introduce \s on the decurling to sws.
 
 - Our options are: either *ban* multi-line expressions or write a proper lexer to find `{...}` nodes below `(...)`s.
 
-- We have not thought about other forms of multi-line expression, such as array literals.
+- DONE: We have not thought about other forms of multi-line expression, such as array literals.
 
 - Some people might want a different blockLeadSymbol depending on the hint in the opening line, e.g. `=` for a class, `=>` for a function, `::` for a static function, `:` for a typedef struct (note this last is two tokens!).  To offer that kind of customisation, we could expose an editable map from hint to symbol.
 
@@ -417,7 +419,15 @@ Comment lines should not be stripped or injected into, or used for indentation. 
 
 SWS uses a simple text-processing algorithm to transform files; it does not properly lex/parse or understand your code.  Because of this, it will probably only work on a _subset_ of the language you are using.  In other words, you may need to restrict your code-style a little, to something that SWS can handle.  Notable examples are:
 
-- `{`s are only detected at the *end* of lines.  `}`s are only detected at the *beginning* of lines.  It is fine to use them mid-line, provided they match.  So, the following examples work, and curlies will be *retained* in the "de-curled" file.
+- SWS does not parse the code in a strict manner.  It uses a simple line-based approach for curling, with some extras tacked on.  Specifically, most of the time it does not track when it is inside or outside a String or Regexp literal, and as a result can get confused with regard to multi-line comments.  For example, the following was a problem before we introduced heuristics for it:
+
+```
+    log("It looks like /* I am starting a multi-line comment, but I'm not!")
+```
+
+  Common problem cases (some of which can be found in the SWS source code) are identified by heuristic regexps, and warnings are emitted if SWS is unsure how to correctly handle them.  However, heuristics only push the horizon; they usually fail to cover all cases.  In future we hope to present a clear description of the coding style and options neccessary to stay safe.  (For example, we might end up recommending that users at NASA never use `/* ... */` blocks, always put `//` comments on their own line, and set the options to take advantage of these simplified conditions and warn if they are breached.)
+
+- `{`s are only detected at the *end* of lines.  `}`s are only detected at the *beginning* of lines.  It is fine to use them mid-line, provided they match.  So, the following examples will work, but curlies will be *retained* in the "de-curled" file.
 
 ```
     callFunc({width:300,height:200})
@@ -432,15 +442,9 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
       { width: 300, height: 200 };
 ```
 
-- Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented, and will also suffer from semicolon-insertion.  (You can get away with indenting 2 spaces in an otherwise 4-spaced file, but then face issues with semicolon-injection.)  Unindented multi-line expressions should work fine if semicolonInsertion is disabled.
+  Just be careful not to mix things up.  For example, do not follow a `{` curly by some text and *then* newline and indent.  That mid-line curly will not be stripped, but the indent will cause a new one to be injected.
 
-- SWS does not parse the code in a strict manner.  It uses a simple line-based approach for curling, with some extras tacked on.  Specifically, most of the time it does not track when it is inside or outside a String or Regexp literal, and as a result can get confused with regard to multi-line comments.  For example, the following was a problem before we introduced heuristics for it:
-
-```
-    log("It looks like /* I am starting a multi-line comment, but I'm not!")
-```
-
-  Common problem cases (some of which can be found in the SWS source code) are identified by heuristic regexps, and warnings are emitted if SWS is unsure how to correctly handle them.  However, heuristics only push the horizon; they usually fail to cover all cases.  In future we hope to present a clear description of the coding style and options neccessary to stay safe.  (For example, we might end up recommending that users at NASA never use `/* ... */` blocks, always put `//` comments on their own line, and set the options to take advantage of these simplified conditions and warn if they are breached.)
+- Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented, and will also suffer from semicolon-insertion.  (You can get away with mixed indentation, but then face issues with semicolon-injection.)  Unindented multi-line expressions should work fine if semicolonInsertion is disabled.
 
 - Indentation of the original code must be correct for transformation to sws.  (E.g. this can be thrown up if you comment out the top and bottom lines of an if statement.)  A fix for this could be to parse `{` and `}`s and force correct indentation in the output.
 
@@ -448,17 +452,15 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 
 - Multi-line block comments `/* ... */` are somewhat supported, but small comment blocks in the middle of a line can cause trouble (e.g. on a line introducing an indented/curled code block).  (Reason: splitLineAtComment returns two Strings, left and right.  We could change that return to [start_state, code/comment, comment/code, code/comment, ..., comment/code, end_state])
 
-- You can still express short `{ ... }` blocks on-one-line if you want to, but don't mix things up.  Specifically do not follow a curly by text and then newline and indent.  That mid-line curly will not be stripped, whilst the indent will cause a new one to be injected.
-
 - FIXED: Semicolon injection's inability to detect multi-line comments and trailing comments can cause them to appear unwantedly.  (SWS's algorithm basically works one line at a time, with a lookahead for the indent of the next non-empty line.)  You can either stick with a strict single-line comment style, or try to stop caring about odd semicolons appearing in comments!
 
-- Since indentation is required to create curlies `{` `}`, if you attempt to create a class or function (or any block) with an empty body, you had better add an indented dummy line too (e.g. a comment) or you won't get curlies (and with SCI you will get a semicolon).
+- Since indentation is required to create curlies `{` `}`, if you attempt to create a class or function (or any block) with an empty body, you had better add an indented dummy line too (e.g. a single `//` comment) or you won't get curlies (and with SCI you will get a semicolon).
 
 - In Javascript, object and function definitions sometimes end with `};`.  When semicolon removal/injection is enabled, both these tokens will be stripped when decurling to sws, and the semicolon will *not* be re-introduced on curling.  However the semicolon can be retained by wrapping the definition in brackets, leaving a third symbol on the last line: `} );`
 
 - OLD `doNotCurlMultiLineParentheses` You must choose between allowing multi-line expressions (provided they are wrapped in `(`...`)`) or allowing the definition of new indented blocks within `(`...`)` expressions.  For languages where you often declare anonymous functions or implementations and pass them immediately, you probably want the latter.  The option is currently called doNotCurlMultiLineParentheses.  Perhaps we can track a stack of what nested blocks we are in (e.g. `"{{{(({"`), although since we have no `{`s in sws files, `{` must be always implied by indentation, but at least we can avoid semicolon injection in flat or only-partially-indented multi-line expressions.  However this is not an easy task, we would need to correctly parse strings and *regexps* to discard non-structural `{ } ( )` symbols.
 
-- For the moment you will not have much joy with `#ifdef` preprocessor macros.  They will suffer from semicolon and experience curly insertion just like normal code if their bodies are indented. 
+- For the moment you will not have much joy with `#ifdef` preprocessor macros.  They will suffer from semicolon and experience curly insertion just like normal code if their bodies are indented.
 
 - I have not thought about how one would declare a typedef struct.  That should work fine, although the final outer text will get pushed onto its own line after the closing `}`.
 
