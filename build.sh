@@ -18,8 +18,10 @@ export PS4="[$0] "
 # sws sync org > $transformLog 2>&1
 
 root=org/neuralyte/sws/Root.hx
-cp -n "$root" /tmp/Root.hx.`date +%Y%m%d-%H%M`
-sws curl $root.sws $root > $transformLog 2>&1
+
+cp -n "$root" /tmp/Root.hx.`date +%Y%m%d-%H%M%S`
+
+sws.stable curl $root.sws $root > $transformLog 2>&1
 
 if [ ! "$?" = 0 ]
 then

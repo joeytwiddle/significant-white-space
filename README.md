@@ -209,7 +209,7 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
 - `useCoffeeFunctions: true`
 
-  Converts anonymous `function (a,b) ...` (as seen in Haxe/Javascript) to and from `(a,b) -> ...` as seen in Coffeescript.  Does not affect named functions.
+  Converts anonymous `function (a,b) ...` (as seen in Haxe/Javascript) to and from `(a,b) -> ...` as seen in Coffeescript.  Does not affect named functions.  Also introduces the risk of accidentally making that conversion on occurrences of `(...)->` in strings.
 
 - `blockLeadSymbol: " =>"`
 
@@ -263,9 +263,8 @@ Sws is a little ropey, but that was implicit in the original specification.  :)
 - Better handling of trailing comments, by splitting and rejoining line.
 
 - Rudimentary tracking of `/* ... */` blocks and `( ... )` blocks.  Multi-line comments should now cause fewer issues.
-- Multi-line expressions are now possible, but must be wrapped inside `( ... )` (otherwise they are likely to suffer semicolon injection or indent-based curlies).
 - You can now enable `useCoffeeFunctions`, to convert between *anonymous* JS/Haxe functions `function(a,b) { ... }` and Coffeescript style functions `(a,b) -> ...` in the sws file.  When declaring a single-line function in JS, curlies must be retained in the sws, e.g. `(x) ->{ return 2*x; }` whilst Haxe does not need these.
-- Added optional `blockLeadSymbol` which when set to `:` outputs sws files which look rather like Python.  Personally I would prefer something like `=>` but *only* on function declarations, perhaps `:` on classes, and nothing on if, while, for, try and other in-code indents.
+- Added optional `blockLeadSymbol` which when set to `:` outputs sws files which look rather like Python.  Fine-tuning options should follow...  (Personally I would prefer something like `=>` but *only* on function declarations, perhaps `:` on classes, and nothing on if, while, for, try and other in-code indents.)
 - Added `unwrapParenthesesForCommands`, which can remove the `(...)` parentheses around `if` and `while` conditions, and reintroduce them on curling.  (You can set the list of keywords you want this to work on, or just empty it.  (Personally I find the visual effect of `(...)` symbols useful if I have no syntax highlighting for the given language, but redundant if branch statements already stand out by colour.)
 
 - Multi-line expressions are now possible, by appending `\` in sws files to suppress semicolon injection for that line.
@@ -509,6 +508,7 @@ Vim users who want syntax highlighting and tags to work like normal when they ar
     au BufRead,BufNewFile {*.java.sws}           set ft=java
     au BufRead,BufNewFile {*.c.sws}              set ft=c
     au BufRead,BufNewFile {*.cpp.sws}            set ft=cpp
+    au BufRead,BufNewFile {*.js.sws}             set ft=javascript
 ```
 
 Some strict syntax files may complain about missing semicolons and curlies, whilst others will be flexible enough to work fine.

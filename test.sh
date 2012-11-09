@@ -8,7 +8,6 @@ set -e
 # echo "Build successful."
 
 mkdir -p data
-cp -f ./org/neuralyte/sws/Root.hx data/
 
 if [ -n "$ZSH_NAME" ]
 then export PS4="(%?)%L%{`cursegreen`$}%c%{`cursemagenta`%}[%{`cursered``cursebold`%}%1N:%i%{`cursemagenta`%}]%{`curseyellow`%}%_%{`cursenorm`%}% # "
@@ -18,8 +17,12 @@ else export PS4="[sh $0] "
 fi
 set -x
 
+cp -f ./org/neuralyte/sws/Root.hx.sws data/
+./sws safe-curl data/Root.hx.sws data/Root.hx
+cp -f ./org/neuralyte/sws/Root.hx data/
 ./sws safe-decurl data/Root.hx data/Root.hx.sws
 exit
+
 cp -f data/Root.hx.sws data/Root.hx.sws.1
 ./sws curl data/Root.hx.sws data/Root.hx
 ./sws decurl data/Root.hx data/Root.hx.sws

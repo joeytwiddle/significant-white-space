@@ -348,8 +348,12 @@ class SWS {
 	// static var evenNumberOfQuotes = '(('+"[^'\"]*'[^']*'[^'\"]*"+'|[^"\']*"[^"]*"[^"\']*'+')*|[^"]*)';
 	// static var forExample = "This \" will break";   // if we follow it with a comment
 	// DONE: We should also check the //s are outside of an even number of 's
-	// Notably the following regexp fails to correctly match strings like "foo\"bar"
-	static var evenNumberOfQuotesDislikeSlashes = '("[^"]*"|/|[^"/]+)';
+	//// The following regexp fails to correctly match strings like "foo\"bar"
+	// static var evenNumberOfQuotesDislikeSlashes = '("[^"]*"|/|[^"/]+)'
+	//// This one might but it also caused misplaced ';' on // comments following lines containing strings.
+	// static var evenNumberOfQuotesDislikeSlashes = '("([^"\\\\]|\\\\.)*"|/|[^"/]+)'
+	//// No such problem if we remove the /, but better if we allow a lone / that isn't a //
+	static var evenNumberOfQuotesDislikeSlashes = '("([^"\\\\]|\\\\.)*"|/[^/]|[^"/]+)';
 	static var evenNumberOfApostrophesDislikeSlashes = (~/"/g).replace(evenNumberOfQuotesDislikeSlashes,"'");
 	static var trailingCommentOutsideQuotes = new EReg("^("+evenNumberOfQuotesDislikeSlashes+")(\\s*(//|/[*]).*)$",'');
 	static var trailingCommentOutsideApostrophes = new EReg("^("+evenNumberOfApostrophesDislikeSlashes+")(\\s*(//|/[*]).*)$",'');
@@ -371,12 +375,12 @@ class SWS {
 	//// Almost certainly a regexp literal assignment, not in a comment
 	public static var looksLikeRegexpLine : EReg = ~/^[^\/]*=\s*~?\/[^*\/].*\/;?\s*$/;
 	//// Might be a regexp literal, not neccessarily assigned; uncertain.
-	public static var seemsToContainRegexp : EReg = ~/~?\/[^*\/].*\//;
+	public static var seemsToContainRegexp : EReg = ~/[^\/]~?\/[^*\/].*\//;
 	// If you want to cause trouble, swap \/ and * like this: ~/~?\/[^\/*].*\//;  The line will fill with semicolons!
 	// public static var couldbeRegexpEndingSlashSlash : EReg = ~/~?\/[^*\/].*\/\//;
 	// We allow slash inside quotes.  We fail to check for an even number of 's, or mask /s inside them!
 	static var evenNumberOfQuotesWithNoSlashes = '(([^"/]*"[^"]*"[^"/]*)*|[^"/]*)';
-	public static var couldbeRegexpEndingSlashSlash : EReg = new EReg("^"+evenNumberOfQuotesWithNoSlashes+"~?\\/[^*/].*\\/\\/",'');
+	public static var couldbeRegexpEndingSlashSlash : EReg = new EReg("^"+evenNumberOfQuotesWithNoSlashes+"~?\\/[^*+?/].*\\/\\/",'');
 	// That catches Haxe EReg literal declared with = ~/...*/, or Javascript RegExp literal declared with = /...*/ whilst ignoring comment lines declared with //.  It does not notice regexps declares without assignment, e.g. passed immediately.
 
 	// The first char matched is to ensure function starts at a word boundary, i.e. not res = my_favourite_function(a,b,c);
@@ -898,6 +902,8 @@ class SWS {
 		} else {
 			if (trailingCommentOutsideQuotes.matched(1) != trailingCommentOutsideApostrophes.matched(1)) {
 				reporter.warn("trailingCommentOutsideQuotes and trailingCommentOutsideApostrophes could not agree where the comment boundary is: "+line);
+				reporter.warn("  trailingCommentOutsideQuotes.matched(1) = "+trailingCommentOutsideQuotes.matched(1));
+				reporter.warn("  trailingCommentOutsideApostrophes.matched(1) = "+trailingCommentOutsideApostrophes.matched(1));
 				return [line,""];   // Do not try to split
 			}
 			// Regexps can end in ...\// - we do not want to split on that!
