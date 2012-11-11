@@ -4,7 +4,7 @@ export PS4="[$0] "
 
 set -e
 
-./build.sh
+./make.sh
 # echo "Build successful."
 
 mkdir -p data

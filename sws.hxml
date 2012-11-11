@@ -1,5 +1,6 @@
+-cp src
 # Flash9
 # -swf9 sws.swf
--neko sws.n
+-neko build/sws.n
 -main sws.Root
 -swf-header 800:600:40

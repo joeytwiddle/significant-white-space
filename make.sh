@@ -19,9 +19,13 @@ export PS4="[$0] "
 
 root=src/sws/Root.hx
 
-cp -n "$root" /tmp/Root.hx.`date +%Y%m%d-%H%M%S`
+d=`date +%Y%m%d-%H%M%S`
+cp -n "$root" "/tmp/Root.hx.$d"
+cp -n "$root.sws" "/tmp/Root.hx.sws.$d"
 
-sws.stable curl $root.sws $root > $transformLog 2>&1
+## I usually work on the .hx.sws files:
+# sws.stable curl $root.sws $root > $transformLog 2>&1
+sws.stable sync src > $transformLog 2>&1
 
 if [ ! "$?" = 0 ]
 then
@@ -29,7 +33,7 @@ then
 	# exit 120
 fi
 
-haxe -cp src -main sws/Root.hx -neko sws.n > $haxeLog 2>&1
+haxe -cp src -main sws/Root.hx -neko build/sws.n > $haxeLog 2>&1
 
 if [ ! "$?" = 0 ]
 then cat $transformLog $haxeLog ; exit 120
@@ -37,7 +41,7 @@ else cat $haxeLog
 fi
 
 # nekotools boot sws.n
-if ! nekotools boot sws.n
+if ! nekotools boot build/sws.n
 then errcode="$?" ; echo "Problem with nekotools" ; exit "$errcode"
 fi
 
