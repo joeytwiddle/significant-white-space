@@ -231,7 +231,7 @@ class SyncOptions {
 	public var pathSeparator : String;
 
 	public function new() {
-		validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ];   // "jpp"
+		validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ]   // "jpp";
 		skipFoldersNamed = [ "CVS", ".git" ];
 		safeSyncMakeBackups  = true;
 		safeSyncCheckInverse = true;
@@ -353,7 +353,7 @@ class SWS {
 	//// This one might but it also caused misplaced ';' on // comments following lines containing strings.
 	// static var evenNumberOfQuotesDislikeSlashes = '("([^"\\\\]|\\\\.)*"|/|[^"/]+)'
 	//// No such problem if we remove the /, but better if we allow a lone / that isn't a //
-	static var evenNumberOfQuotesDislikeSlashes = '("([^"\\\\]|\\\\.)*"|/[^/]|[^"/]+)';
+	static var evenNumberOfQuotesDislikeSlashes = '("([^"\\\\]|\\\\.)*"|/[^/"]|[^"/]+)';
 	static var evenNumberOfApostrophesDislikeSlashes = (~/"/g).replace(evenNumberOfQuotesDislikeSlashes,"'");
 	static var trailingCommentOutsideQuotes = new EReg("^("+evenNumberOfQuotesDislikeSlashes+")(\\s*(//|/[*]).*)$",'');
 	static var trailingCommentOutsideApostrophes = new EReg("^("+evenNumberOfApostrophesDislikeSlashes+")(\\s*(//|/[*]).*)$",'');
@@ -496,7 +496,7 @@ class SWS {
 									// var indent_of_currentLine = countIndent(indentString, currentLine)
 									if (indent_of_nextNonEmptyLine > indent_of_currentLine) {
 										if (options.joinMixedIndentLinesToLast && ~/^\t* +/.match(nextNonEmptyLine)) {
-											line += " \\";     // TODO: Clean up sws: We don't *have* to join them with \ on decurl.  We *could* look for mixed indent on curling, and handle it there.  But this fits logically with the other places we use '\'.
+											line += " \\"     // TODO: Clean up sws: We don't *have* to join them with \ on decurl.  We *could* look for mixed indent on curling, and handle it there.  But this fits logically with the other places we use '\'.;
 										} else {
 											// We are about to indent; do not be concerned about missing ;
 											reporter.debug("About to indent despite no curlies, hopefully a one-line if: "+line);
@@ -894,17 +894,23 @@ class SWS {
 	}
 
 	// TODO: Does Haxe have a better way to return tuples, or use "out" arguments like UScript or &var pointers like C?
+	// Answer: Apparently, no.  A parametrized tuple might be neater, but might not be faster!
 	public function splitLineAtComment(line : String) {
 		var hasTrailingComment = trailingCommentOutsideQuotes.match(line) && trailingCommentOutsideApostrophes.match(line);
 		// Actually it might only be trailing after indentation, no content!
 		if (!hasTrailingComment) {
+			if (line.indexOf(" //")>=0) {
+				reporter.debug("Found to have no trailing comment: "+line);
+				reporter.debug("    quotes: "+trailingCommentOutsideQuotes.match(line));
+				reporter.debug("    aposes: "+trailingCommentOutsideApostrophes.match(line));
+			}
 			return [line,""];
 		} else {
 			if (trailingCommentOutsideQuotes.matched(1) != trailingCommentOutsideApostrophes.matched(1)) {
 				reporter.warn("trailingCommentOutsideQuotes and trailingCommentOutsideApostrophes could not agree where the comment boundary is: "+line);
 				reporter.warn("  trailingCommentOutsideQuotes.matched(1) = "+trailingCommentOutsideQuotes.matched(1));
 				reporter.warn("  trailingCommentOutsideApostrophes.matched(1) = "+trailingCommentOutsideApostrophes.matched(1));
-				return [line,""];   // Do not try to split
+				return [line,""]   // Do not try to split;
 			}
 			// Regexps can end in ...\// - we do not want to split on that!
 			if (looksLikeRegexpLine.match(line)) {

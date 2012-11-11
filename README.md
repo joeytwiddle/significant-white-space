@@ -501,32 +501,18 @@ Restrictions on code structure:
 ------------------------------
 # Vim users
 
-Vim users who want syntax highlighting and tags to work like normal when they are editing sws files, can inform vim of the correct filetype by adding to their .vimrc:
+Vim users may like to use the script in the `vim_plugin/` folder, to get suitable syntax highlighting for sws files, and the ability to run sws automatically when you save a file.
+
+Some examples:
 
 ```vim
     au BufRead,BufNewFile {*.hx.sws}             set ft=haxe
     au BufRead,BufNewFile {*.java.sws}           set ft=java
-    au BufRead,BufNewFile {*.c.sws}              set ft=c
     au BufRead,BufNewFile {*.cpp.sws}            set ft=cpp
     au BufRead,BufNewFile {*.js.sws}             set ft=javascript
 ```
 
-Some strict syntax files may complain about missing semicolons and curlies, whilst others will be flexible enough to work fine.
-
-We can also run sws automatically whenever we save .sws file:
-
-```vim
-    " Simple but messy: writes errors over your screen!
-    autocmd BufWritePost,FileWritePost *.sws silent !sws curl "%" "%:r" >/dev/null
-
-    " Better: output shown tidily, and also saved in quickfix list.
-    set makeprg=sws
-    autocmd BufWritePost,FileWritePost *.sws :make curl "%" "%:r"
-
-    " Alternative: create and use a constant build script:
-    set makeprg=bash\ ./build.sh
-    autocmd BufWritePost,FileWritePost *.sws :make
-```
+Strict syntax files may complain about missing semicolons and curlies in sws files, but many remain flexible enough to work fine.
 
 When you have both curled and decurled files open, I recommend doing this on the file you are generating (not the one you are editing):
 
