@@ -1,5 +1,5 @@
 # Flash9
 # -swf9 sws.swf
 -neko sws.n
--main org.neuralyte.sws.Root
+-main sws.Root
 -swf-header 800:600:40

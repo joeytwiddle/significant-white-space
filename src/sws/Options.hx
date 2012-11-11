@@ -1,4 +1,4 @@
-package org.neuralyte.sws;
+package sws;
 
 class Options {
 

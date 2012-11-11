@@ -9,15 +9,15 @@ export PS4="[$0] "
 # set -x
 
 ## We can compile to various languages, if we don't use neko File I/O.
-# haxe -main org/neuralyte/sws/Root.hx -js sws.js
-# haxe -main org/neuralyte/sws/Root.hx -swf9 sws.swf
-# haxe -main org/neuralyte/sws/Root.hx -cpp sws.cpp
+# haxe -main src/sws/Root.hx -js sws.js
+# haxe -main src/sws/Root.hx -swf9 sws.swf
+# haxe -main src/sws/Root.hx -cpp sws.cpp
 # haxelib run hxjava sws.hxp
 
 # sws.stable sync org > $transformLog 2>&1
 # sws sync org > $transformLog 2>&1
 
-root=org/neuralyte/sws/Root.hx
+root=src/sws/Root.hx
 
 cp -n "$root" /tmp/Root.hx.`date +%Y%m%d-%H%M%S`
 
@@ -29,7 +29,7 @@ then
 	# exit 120
 fi
 
-haxe -main org/neuralyte/sws/Root.hx -neko sws.n > $haxeLog 2>&1
+haxe -cp src -main sws/Root.hx -neko sws.n > $haxeLog 2>&1
 
 if [ ! "$?" = 0 ]
 then cat $transformLog $haxeLog ; exit 120

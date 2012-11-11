@@ -1,4 +1,4 @@
-package org.neuralyte.sws;
+package sws;
 
 import neko.io.File;
 import neko.io.FileInput;
@@ -6,7 +6,7 @@ import neko.io.FileOutput;
 import neko.FileSystem;
 import neko.Sys;
 
-import org.neuralyte.sws.Options;
+import sws.Options;
 
 using Lambda;
 
@@ -37,7 +37,8 @@ class Root {
 		var options = Options.defaultOptions;
 		var syncOptions = new SyncOptions();
 
-		var sws = new SWS(options);
+		// Cannot name this sws as it conflicts with package!
+		var _sws = new SWS(options);
 		var sync = new Sync(options,syncOptions);
 
 		try {
@@ -48,11 +49,11 @@ class Root {
 
 			} else if (args[0] == "curl") {
 
-				sws.curl(args[1], args[2]);
+				_sws.curl(args[1], args[2]);
 
 			} else if (args[0] == "decurl") {
 
-				sws.decurl(args[1], args[2]);
+				_sws.decurl(args[1], args[2]);
 
 			} else if (args[0] == "safe-curl") {
 
