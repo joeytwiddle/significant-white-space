@@ -17,10 +17,19 @@ else export PS4="[sh $0] "
 fi
 set -x
 
-cp -f ./org/neuralyte/sws/Root.hx.sws data/
-./sws safe-curl data/Root.hx.sws data/Root.hx
-cp -f ./org/neuralyte/sws/Root.hx data/
-./sws safe-decurl data/Root.hx data/Root.hx.sws
+## TODO: This test is stupid.  We want a set of a few known files, with known results.
+## Then we should check that processing with the new build gives the same results as that.
+## (If the differences is an *improvement*, we replace the target results with the new results.)
+
+## Another thing it could do is test that it can build after processing.
+## Although we could simply check that the processed source of a recent version matches its target.
+
+src="./org/neuralyte/sws/Root.hx"
+
+## WARNING: safe-curl/decurl currently touch the original file.  This could be moved to sync.
+
+./sws curl "$src.sws" data/Root.hx
+./sws decurl "$src" data/Root.hx.sws
 exit
 
 cp -f data/Root.hx.sws data/Root.hx.sws.1
