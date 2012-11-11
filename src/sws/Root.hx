@@ -122,7 +122,7 @@ class SyncOptions {
 	public var pathSeparator : String;
 
 	public function new() {
-		validExtensions = [ "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ];   // "jpp"
+		validExtensions = [ "sws", "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ];   // "jpp"
 		skipFoldersNamed = [ "CVS", ".git" ];
 		safeSyncMakeBackups  = true;
 		safeSyncCheckInverse = true;
