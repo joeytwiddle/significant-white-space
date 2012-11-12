@@ -1,5 +1,8 @@
+package sws;
 
-class SWSFileInput {
+import neko.io.File;
+
+class SWSFileInput implements SWSInput {
 
 	var input : haxe.io.Input;
 

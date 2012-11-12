@@ -89,7 +89,7 @@ class SWS {
 	public static var anonymousCoffeeFunctionRE = ~/([(][a-zA-Z0-9@$_, 	]*[)])\s*->/g;
 	public static var anonymousCoffeeFunctionReplace = "function$1";
 
-	public function decurl(infile : String, outfile : String) {
+	public function decurl(input : SWSInput, output : SWSOutput) {
 
 		// TODO: Count number of in/out curlies swallowed, and compare them against indent.  Warn when they do not look right!
 
@@ -103,9 +103,10 @@ class SWS {
 		var endsWithSemicolon : EReg = ~/\s*;\s*$/;
 
 		// var input : FileInput = File.read(infile,false);
-		var reader = new CommentTrackingReader(infile,this);
+		// var reader = new CommentTrackingReader(infile,this)
+		var reader = new CommentTrackingReader(input,this);
 
-		var output : FileOutput = File.write(outfile,false);
+		// var output : FileOutput = File.write(outfile,false)
 
 		var out = new Outputter(output,options);
 
@@ -265,13 +266,13 @@ class SWS {
 
 	}
 
-	public function curl(infile : String, outfile : String) {
+	public function curl(input : SWSInput, output : SWSOutput) {
 
 		var currentLine : String;
 
-		var helper = new CommentTrackingReader(infile,this);
+		var helper = new CommentTrackingReader(input,this);
 
-		var output : FileOutput = File.write(outfile,false);
+		// var output : FileOutput = File.write(outfile,false)
 
 		var currentLine : String;
 
@@ -699,12 +700,18 @@ class SWS {
 
 class HelpfulReader {
 
-	var input : haxe.io.Input;
+	var input : SWSInput;
 
 	var queue : Array<String>;
 
-	public function new(infile : String) {
-		input = File.read(infile,false);
+	/*
+	public function new(infile : String) =>
+		input = File.read(infile,false)
+		queue = new Array<String>()
+	*/
+
+	public function new(_input : SWSInput) {
+		input = _input;
 		queue = new Array<String>();
 	}
 
@@ -812,7 +819,7 @@ class OptionalReporter extends Reporter {
 
 class Outputter {
 
-	var output : FileOutput;      // (for now)
+	var output : SWSOutput;
 	var options : Options;
 
 	public function new(_output,_options) {
@@ -854,8 +861,17 @@ class CommentTrackingReader extends HelpfulReader {
 	var sws : SWS;
 	var reporter : Reporter;
 
-	public function new(infile,_sws) {
-		super(infile);
+	/*
+	public function new(infile,_sws) =>
+		super(infile)
+		sws = _sws
+		reporter = sws.reporter
+		insideComment = false
+		depthInsideParentheses = 0
+	*/
+
+	public function new(input,_sws) {
+		super(input);
 		sws = _sws;
 		reporter = sws.reporter;
 		insideComment = false;

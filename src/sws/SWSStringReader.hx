@@ -1,5 +1,6 @@
+package sws;
 
-class SWSStringReader {
+class SWSStringReader implements SWSInput {
 
 	var lines : Array<String>;
 

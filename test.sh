@@ -24,17 +24,22 @@ set -x
 ## Another thing it could do is test that it can build after processing.
 ## Although we could simply check that the processed source of a recent version matches its target.
 
-src="./org/neuralyte/sws/Root.hx"
+src="./src/sws/Root.hx"
 
 ## WARNING: safe-curl/decurl currently touch the original file.  This could be moved to sync.
 
-./sws curl "$src.sws" data/Root.hx
-./sws decurl "$src" data/Root.hx.sws
-exit
+# build/sws curl "$src.sws" data/Root.hx
+# build/sws decurl "$src" data/Root.hx.sws
+# exit
+
+cp "$src" data/Root.hx
+build/sws safe-decurl data/Root.hx data/curled
+cp "$src".sws data/Root.hx.sws
+build/sws safe-curl data/Root.hx.sws data/decurled
 
 cp -f data/Root.hx.sws data/Root.hx.sws.1
-./sws curl data/Root.hx.sws data/Root.hx
-./sws decurl data/Root.hx data/Root.hx.sws
+build/sws curl data/Root.hx.sws data/Root.hx
+build/sws decurl data/Root.hx data/Root.hx.sws
 cp -f data/Root.hx.sws data/Root.hx.sws.2
 
 if ! cmp data/Root.hx.sws.1 data/Root.hx.sws.2

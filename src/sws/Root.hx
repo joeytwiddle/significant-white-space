@@ -50,11 +50,11 @@ class Root {
 
 			} else if (args[0] == "curl") {
 
-				_sws.curl(args[1], args[2]);
+				_sws.curl(new SWSFileInput(args[1]), new SWSFileOutput(args[2]));
 
 			} else if (args[0] == "decurl") {
 
-				_sws.decurl(args[1], args[2]);
+				_sws.decurl(new SWSFileInput(args[1]), new SWSFileOutput(args[2]));
 
 			} else if (args[0] == "safe-curl") {
 
@@ -169,7 +169,9 @@ class Sync {
 			originalResult = File.getContent(outFile);
 		}
 
-		fn(inFile, outFile);
+		var input = new SWSFileInput(inFile);
+		var output = new SWSFileOutput(outFile);
+		fn(input, output);
 		// Now we want to mark the outFile with identical modification time to the inFile, so that sws knows it need not translate between them.
 		// Unfortunately neko FileSystem does not expose this ability
 		// So instead, we will simply try to touch the inFile ASAP, and if the time is a millisecond too late, accept the consequences (this source will be uneccessarily transformed again).
@@ -188,7 +190,9 @@ class Sync {
 
 		if (syncOptions.safeSyncCheckInverse) {
 			var tempFile = inFile + ".inv";
-			inverseFn(outFile, tempFile);
+			var input = new SWSFileInput(outFile);
+			var output = new SWSFileOutput(tempFile);
+			inverseFn(input, output);
 			// echo("Now compare "+inFile+" against "+tempFile);
 			if (File.getContent(inFile) != File.getContent(tempFile)) {
 				warn("Inverse differs from original.  Differences may or may not be cosmetic!");
