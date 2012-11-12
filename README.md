@@ -54,7 +54,7 @@ Please be aware of the caveats below.  SWS only works on a (nice clean) subset o
 
 SWS is *not* a professional tool; it may or may not perform to your requirements.  Some of the options perform simple text-transformation, and can get confused.  For example, if you run SWS with support for `/* ... */` comment blocks enabled, then you also run the risk of incorrectly matching `/*` or `*/` occurrences inside String or regexp literals in your program!  Perhaps with the minimum options enabled, SWS is safe and deterministic.  Documenting for this may come in future.
 
-SWS is written in HaXe.  Currently we build an executable binary via Neko, but you may be able to export the tool to Java or Javascript.
+SWS is written in HaXe.  Currently we can build an executable binary via Neko, and a library for Javascript.  A library for Java may follow in the future.
 
 
 
@@ -120,15 +120,16 @@ There is a danger here.  That is to make some edits to one file, forget to run s
 ------------------------------
 # Installation
 
-Check out this project, and install dependencies:
+Clone this project, and install dependencies:
 
+    % git clone https://github.com/joeytwiddle/significant-white-space/
     % aptitude install haxe neko
     % haxelib install hxcpp
 
 Build sws and put it on your PATH:
 
     % ./build.sh
-    % sudo ln -s $PWD/sws /usr/local/bin/
+    % sudo ln -s $PWD/build/sws /usr/local/bin/
 
 
 
@@ -169,7 +170,7 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
 - `javaStyleCurlies: true`
 
-  Outputs ` {` at the end of lines.  Otherwise outputs C style, `{` on its own line.
+  Outputs ` {` at the end of lines.  Otherwise outputs `{` on its own line, C style.
 
 - `addRemoveSemicolons: true`
 
@@ -319,11 +320,11 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 - Code and comment cleanup.
 
-- Add support for preprocessor commands like `#define` and `#ifdef`.  (Currently they only work if they are flat-indented to current code level, and they get `\` appended.  We could waive both these requirements.)
+- Track line numbers for more informative output.
+
+- Add support for preprocessor commands like `#define` and `#ifdef`.  (Currently they only work if they are flat-indented to current code level, and they get `\` appended.  We could certainly remove the second requirement, but we may need indentation to mean curlies inside the block.)
 
 - Serious outstanding: multi-line *indented* expressions (e.g. assignments of a long formula) get curlies when they shouldn't.  Use heuristic: non-curled one-line if or else (or while or do ...) bodies are ok, but anything else indented that is not curled should produce Error, or receive marking (trailing `\` ok?) to explain that it is special.  (OK added error report for that at least.)
-
-- Track line numbers for more informative output.
 
 - There are other things which should warn but just silently plough ahead and produce a file which will not invert properly!  E.g. we consume a curly but there is no indentation to follow, and fixIndent is not enabled.  These are mostly during the decurling phase however, which was never really the priority - users are supposed to supply a "perfect" file.  :)
 
@@ -339,7 +340,7 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 - Clear documentation, detection and warning of problematic code configurations.  Easy to read definition of what is legal code structure, and list of the gotchas (common issues we cannot fix).
 
-  The best form for this might be to list all the options.  When disabled, SWS should do nothing to the code, simply clone it.  As each option is listed, we can explain its features and any the problems that it may cause.
+  DONE: The best form for this might be to list all the options.  When disabled, SWS should do nothing to the code, simply clone it.  As each option is listed, we can explain its features and any the problems that it may cause.
 
 - If some problems we decide do not want to attempt to solve, because we do not want to increase complexity that far (e.g. situations where we really should parse string, char and regexp literals, comment blocks, etc.), then we should instead provide a covering set of tests/regexps that can look for potentially problematic situations and warn the user "I am not sure if this is bad or not, perhaps you could re-jigger it for me so I can regain confidence"; then a little escaping or reformatting (or option/warning toggling) may eliminate the issue.  This would be far preferable to ploughing onward as if the problems do not exist and can never occur, then producing some unrelated error (e.g. from a later compiler) when they do.
 
