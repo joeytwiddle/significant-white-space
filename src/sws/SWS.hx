@@ -1,9 +1,15 @@
 package sws;
 
-import neko.io.File;
-import neko.io.FileOutput;
+// import neko.io.File
+// import neko.io.FileOutput
+
+import haxe.io.Output;
 
 import sws.Options;
+
+// We don't need these, but we want to export them
+import sws.SWSStringInput;
+import sws.SWSStringOutput;
 
 using Lambda;
 
@@ -13,10 +19,16 @@ class SWS {
 
 	public var reporter : Reporter;
 
-	public function new(?_options) {
+	public function new(?_options, out) {
 		// options = new Options()
 		options = _options!=null ? _options : Options.defaultOptions;
-		reporter = new OptionalReporter(options);
+		reporter = new OptionalReporter(out,options);
+	}
+
+	static function main() {
+		#if JS
+		__js__("console.log(\"SWS.main() called.\");");
+		#end
 
 	}
 
@@ -255,10 +267,15 @@ class SWS {
 				}
 
 				out.writeLine(wholeLine);
-
 			}
 
-		} catch (ex : haxe.io.Eof) {
+		}
+
+		// In JS, ex appears to be a String, even if we threw a haxe.io.Eof
+		// So whilst this works fine in Neko, we can't use it in general
+		// catch ex : haxe.io.Eof
+		catch (ex : Dynamic) {
+			// Now we aren't sure if it was an expected exception or not!
 			// reporter.debug("Reached the End Of the File.");
 		}
 
@@ -721,7 +738,7 @@ class HelpfulReader {
 		}
 		try {
 			return input.readLine();
-		} catch (ex : haxe.io.Eof) {
+		} catch (ex : Dynamic) { // haxe.io.Eof
 			return null;
 		}
 	}
@@ -742,7 +759,7 @@ class HelpfulReader {
 				if (!SWS.emptyOrBlank.match(line)) {
 					return line;
 				}
-			} catch (ex: haxe.io.Eof) {
+			} catch (ex: Dynamic) { // haxe.io.Eof
 				break;
 			}
 		}
@@ -760,7 +777,7 @@ class HelpfulReader {
 			try {
 				var nextLine = input.readLine();
 				queue.push(nextLine);
-			} catch (ex : haxe.io.Eof) {
+			} catch (ex : Dynamic) { // haxe.io.Eof
 				return null;   // Beware: Do not attempt regexp matching on a null String - it will causes a segfault!
 				// return "DUMMY";
 			}
@@ -771,9 +788,19 @@ class HelpfulReader {
 
 class Reporter {
 
+	var out : Output;
+
+	public function new(_out : Output) {
+		out = _out;
+	}
+
 	// Try not to use echo!  info is preferred.
 	public function echo(s : String) {
-		File.stdout().writeString(s + "\n");
+		if (out == null) {
+			trace(s);
+		} else {
+			out.writeString(s + "\n");
+		}
 	}
 
 	public function debug(s : String) {
@@ -799,13 +826,17 @@ class OptionalReporter extends Reporter {
 
 	var options : Options;
 
-	public function new(_options) {
+	public function new(out : Output, _options) {
+		super(out);
 		options = _options;
 	}
 
 	public override function echo(s : String) {
-		// trace(s);
-		File.stdout().writeString(s + options.newline);
+		if (out == null) {
+			trace(s);
+		} else {
+			out.writeString(s + options.newline);
+		}
 	}
 
 	public override function debug(s : String) {

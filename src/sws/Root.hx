@@ -39,7 +39,7 @@ class Root {
 		var syncOptions = new SyncOptions();
 
 		// Cannot name this sws as it conflicts with package!
-		var _sws = new SWS(options);
+		var _sws = new SWS(options,File.stdout());
 		var sync = new Sync(options,syncOptions);
 
 		try {
@@ -140,7 +140,7 @@ class Sync {
 	var syncOptions : SyncOptions;
 
 	public function new(_options, _syncOptions) {
-		sws = new SWS(_options);
+		sws = new SWS(_options,File.stdout());
 		syncOptions = _syncOptions;
 	}
 

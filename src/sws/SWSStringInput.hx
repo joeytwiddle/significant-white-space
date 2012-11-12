@@ -1,6 +1,6 @@
 package sws;
 
-class SWSStringReader implements SWSInput {
+class SWSStringInput implements SWSInput {
 
 	var lines : Array<String>;
 
@@ -16,19 +16,9 @@ class SWSStringReader implements SWSInput {
 			}
 			return line;
 		} else {
-			// throw "End of stringfile"
-			// throw new Eof()
-			throw new haxe.io.Eof();
+			throw "End of stringfile";
 		}
 		return null;
 	}
+
 }
-
-/*
-class Eof extends haxe.io.Eof
-	public function new() =>
-		//
-	function toString() =>
-		return "End of stringfile"
-*/
-

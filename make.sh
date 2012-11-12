@@ -34,6 +34,7 @@ then
 fi
 
 haxe -cp src -main sws/Root.hx -neko build/sws.n > $haxeLog 2>&1
+haxe -cp src -main sws/SWS.hx -js build/sws.js >> $haxeLog 2>&1
 
 if [ ! "$?" = 0 ]
 then cat $transformLog $haxeLog ; exit 120
