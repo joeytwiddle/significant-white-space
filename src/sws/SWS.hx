@@ -592,7 +592,7 @@ class SWS {
 				var res = splitLineAtComment(currentLine);
 				var beforeComment = res[0];
 				var afterComment = res[1];
-				var replacementRE = new EReg(firstToken+"\\s*",'');
+				var replacementRE = new EReg(firstToken+"\\s",'');
 				beforeComment = replacementRE.replace(beforeComment,firstToken+" (") + ")";
 				currentLine = beforeComment + afterComment;
 			}
