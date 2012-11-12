@@ -109,7 +109,7 @@ class Options {
 
 	public function new() {
 		//
+
 	}
 
 }
-

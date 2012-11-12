@@ -939,5 +939,44 @@ class Heuristics {
 	public static var whitespaceRE : EReg = ~/\s+/;
 	public static var endsWithBackslash : EReg = ~/\s?\\$/;
 	public static var endsWithComma : EReg = ~/,\s*$/;
+}
+
+interface SWSInput {
+	function readLine() : String;
+}
+
+class SWSFileInput {
+
+	var input : haxe.io.Input;
+
+	public function new(fname : String) {
+		input = File.read(fname,false);
+	}
+
+	public function readLine() : String {
+		return input.readLine();
+	}
+}
+
+class SWSStringReader {
+
+	var lines : Array<String>;
+
+	public function new(input : String) {
+		lines = input.split("\n");
+	}
+
+	public function readLine() : String {
+		if (lines.length > 0) {
+			var line = lines.pop();
+			if (line.charAt(line.length-1) == '\r') {
+				line = line.substr(0,line.length-1);
+			}
+			return line;
+		} else {
+			throw "End of stringfile";
+		}
+		return null;
+	}
 
 }
