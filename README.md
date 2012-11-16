@@ -124,7 +124,6 @@ Clone this project, and install dependencies:
 
     % git clone https://github.com/joeytwiddle/significant-white-space/
     % aptitude install haxe neko
-    % haxelib install hxcpp
 
 Build sws and put it on your PATH:
 
