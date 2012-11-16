@@ -9,6 +9,9 @@ import neko.Sys;
 import sws.Options;
 import sws.SWS;
 
+// For arg parsing
+import Type;
+
 using Lambda;
 
 // TODO: Track input file line numbers, and use these when printing warnings.
@@ -37,6 +40,9 @@ class Root {
 
 		var options = Options.defaultOptions;
 		var syncOptions = new SyncOptions();
+
+		checkForOptions(args,options);
+		checkForOptions(args,syncOptions);
 
 		// Cannot name this sws as it conflicts with package!
 		var _sws = new SWS(options,File.stdout());
@@ -95,6 +101,22 @@ class Root {
 		echo("sws curl <filename> <outname>");
 		echo("sws decurl <filename> <outname>");
 		echo("sws sync [<folder/filename>]");
+		echo("Language transformation options:");
+		showOptions(Options.defaultOptions);
+		echo("Sync options:");
+		showOptions(new SyncOptions());
+	}
+
+	static function showOptions(opts : Dynamic) {
+		var fields = Reflect.fields(opts);
+		for (field in fields) {
+			var opt = "-"+field.toLowerCase();
+			var currentValue = Reflect.field(opts,field);
+			var type = Type.typeof(currentValue);
+			echo("  "+opt+" "+currentValue);
+			/// currentValue and type are too messy, even on strings!
+			// +" : default "+currentValue+" (type "+type+") 
+		}
 	}
 
 	static function echo(s:String) {
@@ -103,6 +125,31 @@ class Root {
 
 	static function echoPure(s:String) {
 		File.stdout().writeString(s + "\n");
+	}
+
+	static function checkForOptions(args : Array<String>, opts:Dynamic) {
+		var fields = Reflect.fields(opts);
+		for (field in fields) {
+			var opt = "-"+field.toLowerCase();
+			// for arg in args            // We need an index
+			// for i in 0...args.length   // "Loop variable cannot be modified"
+			var i = 0;
+			while (i < args.length) {
+				var arg = args[i];
+				if (arg == opt) {
+					var currentValue = Reflect.field(opts,field);
+					var type = Type.typeof(currentValue);
+					if (type == TBool) {
+						Reflect.setField(opts,field,!currentValue);
+						args.splice(i,1);
+						i--;
+					} else {
+						echo("Do not know how to handle type of option "+field+": "+type);
+					}
+				}
+				i++;
+			}
+		}
 
 	}
 

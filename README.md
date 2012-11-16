@@ -128,7 +128,7 @@ Clone this project, and install dependencies:
 
 Build sws and put it on your PATH:
 
-    % ./build.sh
+    % ./make.sh
     % sudo ln -s $PWD/build/sws /usr/local/bin/
 
 
@@ -269,6 +269,8 @@ Sws is a little ropey, but that was implicit in the original specification.  :)
 - Added `unwrapParenthesesForCommands`, which can remove the `(...)` parentheses around `if` and `while` conditions, and reintroduce them on curling.  (You can set the list of keywords you want this to work on, or just empty it.  (Personally I find the visual effect of `(...)` symbols useful if I have no syntax highlighting for the given language, but redundant if branch statements already stand out by colour.)
 
 - Multi-line expressions are now possible, by appending `\` in sws files to suppress semicolon injection for that line.
+
+- Refactored.  Curl and decurl now possible on anything which implements SWSInput / SWSOutput.  This allowed us to compile a library for Javascript.
 
 ## New multi-line support
 
