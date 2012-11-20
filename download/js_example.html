@@ -1,10 +1,11 @@
 <html>
 	<body>
 	</body>
-	<script src="build/sws.js"></script>
+	<script src="sws.js"></script>
 	<script>
-		// var options = new sws.Options()
-		var options = sws.defaultOptions
+		//// Note: Use sws.defaultOptions not new sws.Options() which is full of nulls!
+		// var options = new sws.Options();
+		var options = sws.defaultOptions;
 		var _sws = new sws.SWS(options,null);
 		var text = "hi(mum)\n";
 		var input = new sws.SWSStringInput(text);
