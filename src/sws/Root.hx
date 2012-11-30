@@ -170,7 +170,7 @@ class SyncOptions {
 
 	public function new() {
 		validExtensions = [ "sws", "java", "c", "C", "cpp", "c++", "h", "hx", "uc", "js" ];   // "jpp"
-		skipFoldersNamed = [ "CVS", ".git" ];
+		skipFoldersNamed = [ "CVS", ".git", ".svn" ];
 		safeSyncMakeBackups  = true;
 		safeSyncCheckInverse = true;
 		breakOnFirstFailedInverse = true;

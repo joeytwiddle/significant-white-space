@@ -54,7 +54,7 @@ Please be aware of the caveats below.  SWS only works on a (nice clean) subset o
 
 SWS is *not* a professional tool; it may or may not perform to your requirements.  Some of the options perform simple text-transformation, and can get confused.  For example, if you run SWS with support for `/* ... */` comment blocks enabled, then you also run the risk of incorrectly matching `/*` or `*/` occurrences inside String or regexp literals in your program!  Perhaps with the minimum options enabled, SWS is safe and deterministic.  Documenting for this may come in future.
 
-SWS is written in HaXe.  Currently we can build an executable binary via Neko, and a library for Javascript.  A library for Java may follow in the future.
+SWS is written in HaXe.  Currently we can build an executable binary via Neko, and a library for Javascript.  We hope to export the library and the commandline tool to Java and C++ in the future.
 
 
 
@@ -77,11 +77,13 @@ Available commands are:
 
     % sws decurl myapp.c myapp.c.sws
 
-will strip curlies and semicolons from myapp.c and write file myapp.c.sws
+will strip curlies and semicolons from myapp.c and write file myapp.c.sws.
 
     % sws curl myapp.c.sws myapp.c
 
 will read file myapp.c.sws, inject curlies and semicolons, and overwrite myapp.c
+
+Please note that sws was mainly written for curling.  Decurling does not always work perfectly, and is very sensitive to oddly-indented code especially around wrapped lines.
 
 ## Safe modes
 
@@ -596,7 +598,7 @@ We could approach this project from the point of view of addressing concerns.  (
 
 We might be able to build the reformatter out of a chain of minor reformatters.  Addressing a concern would mean placing a reformatter or two at appropriate places in the chain.  Whilst this abstraction might help us to deal with each concern separately, there may be times when one concern needs to know about another, in order to decide how to proceed.  (E.g. joinMixedIndentLinesToLast can negate the need to append a `\`.)  Perhaps I must make an attempt at writing in this style, before I can see it's major flaws/benefits.
 
-If you care to input to this discussion, we are talking about the major functions `curl()` and `decurl()`.  Is there a better way to present that code, by splitting it up?  Or it is it good to keep the whole algorithm in once place, minor options and all, so we can clearly see what is happening?
+If you care to input to this discussion, we are talking about the major functions `curl()` and `decurl()`.  Is there a better way to present that code, by splitting it up?  Or it is it good to keep the whole algorithm in one place, minor options and all, so we can clearly see what is happening?
 
 It could be said that the two classes `HelpfulReader` and `CommentTrackingReader` address some concerns is a nice separated fashion, although these are purely information concerns, not reformatting concerns.  I really meant to put `indentString` detection into a helper class too, but didn't get around to it.
 
