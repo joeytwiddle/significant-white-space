@@ -24,8 +24,10 @@ cp -n "$root" "/tmp/Root.hx.$d"
 cp -n "$root.sws" "/tmp/Root.hx.sws.$d"
 
 ## I usually work on the .hx.sws files:
-# sws.stable curl $root.sws $root > $transformLog 2>&1
-sws.stable sync src > $transformLog 2>&1
+if which sws.stable >/dev/null 2>&1
+# then sws.stable curl $root.sws $root > $transformLog 2>&1
+then sws.stable sync src > $transformLog 2>&1
+fi
 
 if [ ! "$?" = 0 ]
 then
