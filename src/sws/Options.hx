@@ -13,6 +13,8 @@ class Options {
 		unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ],
 		// , "elseif"
 		continuationKeywords: [ "else", "catch" ],
+		// Not sure about the last two
+		mayPrecedeOneLineIndent: [ "if", "while", "else", "for", "try", "catch" ],
 		blockLeadSymbol: " =>",
 		blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/,
 		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/,
@@ -55,7 +57,10 @@ class Options {
 	public var unwrapParenthesesForCommands : Array<String>;
 
 	// Keywords which are usually joins between two indented blocks.  We do not in fact indent them.
-	static var continuationKeywords : Array<String>;
+	public var continuationKeywords : Array<String>;
+
+	// Many languages (C,Java) allow `if (something) <nl><indent> doSomething();` without any curlies.  We won't complain if the leading statement suggests this is what's happening.
+	public var mayPrecedeOneLineIndent : Array<String>;
 
 	//// blockLeadSymbol is an entirely optional symbol used to indicate the start of certain blocks.  This works much like Python's ":" symbol, but with SWS we want fine-grained control over when they are used.
 	// static var blockLeadSymbol = null;

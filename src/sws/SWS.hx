@@ -150,7 +150,7 @@ class SWS {
 
 					if (startsWithClosingCurly.match(line)) {
 						if (~/^\s*}\s*;\s*$/.match(line)) {
-							reporter.error("We do not currently support \"};\" end-lines, try \"});\" instead:"+line);
+							reporter.error("We do not currently support \"...};\" end-lines, try wrapping into \"(...});\".  "+line);
 						}
 						line = startsWithCurlyReplacer.replace(line,"");
 						indentCountAtLineStart--;
@@ -210,9 +210,12 @@ class SWS {
 											line += " \\";     // TODO: Clean up sws: We don't *have* to join them with \ on decurl.  We *could* look for mixed indent on curling, and handle it there.  But this fits logically with the other places we use '\'.
 										} else {
 											// We are about to indent; do not be concerned about missing ;
-											// TODO: We can skip this warning if line starts "if" or "else"
-											reporter.debug("About to indent despite no curlies, hopefully a one-line if: "+line);
-											// reporter.debug("indent_of_nextNonEmptyLine="+indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
+											// We can skip this warning if line starts "if" or "else" or "while"...
+											var firstToken = getFirstWord(line);
+											if (!options.mayPrecedeOneLineIndent.has(firstToken)) {
+												reporter.debug("About to indent despite no curlies, hopefully a one-line if: "+line);
+												// reporter.debug("indent_of_nextNonEmptyLine="+indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
+											}
 										}
 									} else {
 										// Lines ending ',' do not need trailing \ marker

@@ -199,7 +199,7 @@ Once all your files are in nice neat sws format, close all curly files, and star
 
 - `fixIndent: false`
 
-  When de-curling, forces indentation to be re-calculated from `{`s and `}`s noticed.  Useful when reading a poorly-indented source file.  However, it may cause issues by stripping indentation from lazy non-curled one-line if bodies.
+  When de-curling, forces indentation to be re-calculated from `{`s and `}`s noticed.  Useful when reading a poorly-indented source file.
 
 - `joinMixedIndentLinesToLast: true`
 
@@ -329,7 +329,18 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 - Add support for preprocessor commands like `#define` and `#ifdef`.  (Currently they only work if they are flat-indented to current code level, and they get `\` appended.  We could certainly remove the second requirement, but we may need indentation to mean curlies inside the block.)
 
-- Serious outstanding: multi-line *indented* expressions (e.g. assignments of a long formula) get curlies when they shouldn't.  Use heuristic: non-curled one-line if or else (or while or do ...) bodies are ok, but anything else indented that is not curled should produce Error, or receive marking (trailing `\` ok?) to explain that it is special.  (OK added error report for that at least.)
+- DONE?  Serious outstanding: multi-line *indented* expressions (e.g. assignments of a long formula) get curlies when they shouldn't.  Use heuristic: non-curled one-line if or else (or while or do ...) bodies are ok, but anything else indented that is not curled should produce Error, or receive marking (trailing `\` ok?) to explain that it is special.  (OK added error report for that at least.)
+
+- The bodies of case and default stements.  They are indented, but unlike most indentation they should not be curled!  Here is the incorrect output we produce at the moment:
+
+    switch (type) {
+        case 'b': {
+            return value == 'true';
+        }
+        default: {
+            return value;
+        }
+    }
 
 - There are other things which should warn but just silently plough ahead and produce a file which will not invert properly!  E.g. we consume a curly but there is no indentation to follow, and fixIndent is not enabled.  These are mostly during the decurling phase however, which was never really the priority - users are supposed to supply a "perfect" file.  :)
 
