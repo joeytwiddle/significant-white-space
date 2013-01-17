@@ -233,11 +233,6 @@ class Sync {
 			} else {
 				info("The new version of "+outFile+" is identical to the old version.");
 			}
-			if (syncOptions.safeSyncCheckInverse) {
-				info("As for the inverse...");
-			} else {
-				info("Not checking the inverse.  Good luck!");
-			}
 		}
 
 		if (syncOptions.safeSyncCheckInverse) {

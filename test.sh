@@ -77,6 +77,9 @@ set +x
 test_curl   Root.hx
 test_decurl Root.hx
 
+test_curl   auto_scroll_keys.user.js
+test_decurl auto_scroll_keys.user.js
+
 
 echo "All tests completed successfully."
 exit 0
