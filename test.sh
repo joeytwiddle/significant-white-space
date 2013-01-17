@@ -16,6 +16,7 @@ cp -a data/* _testing/
 
 
 
+## Or perhaps you can enjoy a colorful one:
 if [ -n "$ZSH_NAME" ]
 then export PS4="(%?)%L%{`cursegreen`$}%c%{`cursemagenta`%}[%{`cursered``cursebold`%}%1N:%i%{`cursemagenta`%}]%{`curseyellow`%}%_%{`cursenorm`%}% # "
 elif [ -n "$BASH" ]
@@ -25,13 +26,6 @@ fi
 set -x
 
 
-
-## TODO: This test is stupid.  We want a set of a few known files, with known results.
-## Then we should check that processing with the new build gives the same results as that.
-## (If the differences is an *improvement*, we replace the target results with the new results.)
-
-## Another thing it could do is test that it can build after processing.
-## Although we could simply check that the processed source of a recent version matches its target.
 
 cd _testing
 
@@ -58,7 +52,7 @@ do_compare() {
 	new="$2"
 	if ! cmp "$1" "$2"
 	then
-		echo "[Test FAILED.] $new differs from $orig"
+		echo "!!! Test FAILED !!! $new differs from $orig"
 		diff "$orig" "$new"
 		exit 2
 	else
@@ -70,15 +64,23 @@ do_compare() {
 
 
 
-# The test set:
 set +x
 
 
-test_curl   Root.hx
-test_decurl Root.hx
 
-test_curl   auto_scroll_keys.user.js
+## The main working test set:
+
+test_decurl Root.hx
+test_curl   Root.hx
 test_decurl auto_scroll_keys.user.js
+test_curl   auto_scroll_keys.user.js
+
+
+
+## Tests we would like to get working:
+
+# test_decurl wikiindent.user.js
+
 
 
 echo "All tests completed successfully."
@@ -88,7 +90,16 @@ exit 0
 
 ## Old stuff:
 
-## WARNING: safe-curl/decurl currently touch the original file.  This could be moved to sync.
+## WARNING: safe-curl/decurl currently touch the original file.  This may
+## confuse other tools (not least Vim!).  This behaviour should be separated to
+## happen only during Sync, not all safe transforms.
+
+## This old test was stupid.  We want a set of a few known files, with known results.
+## Then we should check that processing with the new build gives the same results as that.
+## (If the differences is an *improvement*, we replace the target results with the new results.)
+
+## Another thing it could do is test that it can build after processing.
+## Although we could simply check that the processed source of a recent version matches its target.
 
 # src="./src/sws/Root.hx"
 # cp "$src" data/Root.hx
