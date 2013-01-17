@@ -15,6 +15,16 @@ using Lambda;
 
 
 
+class Heuristics {
+
+	public static var leadingIndentRE : EReg = ~/^\s*/;
+	public static var whitespaceRE : EReg = ~/\s+/;
+	public static var endsWithBackslash : EReg = ~/\s?\\$/;
+	public static var endsWithComma : EReg = ~/,\s*$/;
+
+}
+
+
 class SWS {
 
 	public var options : Options;
@@ -115,7 +125,7 @@ class SWS {
 
 		// var input : FileInput = File.read(infile,false);
 		// var reader = new CommentTrackingReader(infile,this)
-		var reader = new CommentTrackingReader(input,this);
+		var reader = new SuperDuperReader(input,this);
 
 		// var output : FileOutput = File.write(outfile,false)
 
@@ -194,27 +204,23 @@ class SWS {
 									// We only addRemoveSemicolons if the line does not start or end in a curl.
 									// However, some languages allow single-line if result without curls.
 									// If that is well indented, we do not need to remove ';' or more importantly add '\'
-									var nextNonEmptyLine = reader.getNextNonEmptyLine();
-									if (nextNonEmptyLine == null) {
-										nextNonEmptyLine = "";
-									}
-									Heuristics.leadingIndentRE.match(line);
-									var indent_of_currentLine = Heuristics.leadingIndentRE.matched(0).length;
-									Heuristics.leadingIndentRE.match(nextNonEmptyLine);
-									var indent_of_nextNonEmptyLine = Heuristics.leadingIndentRE.matched(0).length;
+
+									reader.updateIndentInfo(line);
+
 									//// TODO: We should not demand tabs-spaces here.  We should check for any extra indent after matching/stripping indentString, e.g. to pick up 2 space indent in a 4 spaced file.
 									//// But we don't have indentString.  HelpfulReader could find and hold it.
 									// var indent_of_currentLine = countIndent(indentString, currentLine)
-									if (indent_of_nextNonEmptyLine > indent_of_currentLine) {
-										if (options.joinMixedIndentLinesToLast && ~/^\t* +/.match(nextNonEmptyLine)) {
+									if (reader.indent_of_nextNonEmptyLine > reader.indent_of_currentLine) {
+										if (options.joinMixedIndentLinesToLast && ~/^\t* +/.match(reader.nextNonEmptyLine)) {
 											line += " \\";     // TODO: Clean up sws: We don't *have* to join them with \ on decurl.  We *could* look for mixed indent on curling, and handle it there.  But this fits logically with the other places we use '\'.
 										} else {
 											// We are about to indent; do not be concerned about missing ;
 											// We can skip this warning if line starts "if" or "else" or "while"...
 											var firstToken = getFirstWord(line);
 											if (!options.mayPrecedeOneLineIndent.has(firstToken)) {
-												reporter.debug("About to indent despite no curlies, hopefully a one-line if: "+line);
-												// reporter.debug("indent_of_nextNonEmptyLine="+indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
+												// reporter.debug("About to indent despite no curlies, hopefully a one-line if: "+line)
+												reporter.warn("The lines following this are indented, but do not have curlies, and may gain them! "+line);
+												// reporter.debug("indent_of_nextNonEmptyLine="+reader.indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
 											}
 										}
 									} else {
@@ -291,7 +297,7 @@ class SWS {
 
 		var currentLine : String;
 
-		var helper = new CommentTrackingReader(input,this);
+		var helper = new SuperDuperReader(input,this);
 
 		// var output : FileOutput = File.write(outfile,false)
 
@@ -393,12 +399,16 @@ class SWS {
 
 			if (!helper.insideComment && indent_of_nextNonEmptyLine > currentIndent) {
 
+				// We are code and the next line of code is indented.
+				// We are likely to add a curl now
+
 				if (options.onlyWrapParensAtBlockStart) {
 					currentLine = wrapParens(currentLine);
 				}
 
 				if (indent_of_nextNonEmptyLine > currentIndent+1) {
 					reporter.error("Unexpected double indent on: "+nextNonEmptyLine);
+					// We cannot currently handle this on the out case; we will always put two or more "}" lines.  That info must sit on the stack.
 				}
 
 				// DONE: Should be done after splitLineAtComment and then we can check it should only appear at the end.
@@ -748,7 +758,26 @@ class HelpfulReader {
 		}
 	}
 
-	public function getNextNonEmptyLine() : String {
+	public function pushBackLine(line : String) {
+		queue.unshift(line);
+	}
+
+	// peekLine provides lines from the stream's future, without actually consuming them.
+	// i starts from 1, not 0.  This may be a sub-optimal design.
+	public function peekLine(i : Int) : String {
+		while (queue.length < i) {
+			try {
+				var nextLine = input.readLine();
+				queue.push(nextLine);
+			} catch (ex : Dynamic) { // haxe.io.Eof
+				return null;   // Beware: Do not attempt regexp matching on a null String - it will causes a segfault!
+				// return "DUMMY";
+			}
+		}
+		return queue[i - 1];
+	}
+
+	public function findNextNonEmptyLine() : String {
 		// This could be rafactored to use peekLine
 		var i : Int;
 		for (i in 0...queue.length) {
@@ -769,25 +798,6 @@ class HelpfulReader {
 			}
 		}
 		return null;
-	}
-
-	public function pushBackLine(line : String) {
-		queue.unshift(line);
-	}
-
-	// peekLine provides lines from the stream's future, without actually consuming them.
-	// i starts from 1, not 0.  This may be a sub-optimal design.
-	public function peekLine(i : Int) : String {
-		while (queue.length < i) {
-			try {
-				var nextLine = input.readLine();
-				queue.push(nextLine);
-			} catch (ex : Dynamic) { // haxe.io.Eof
-				return null;   // Beware: Do not attempt regexp matching on a null String - it will causes a segfault!
-				// return "DUMMY";
-			}
-		}
-		return queue[i - 1];
 	}
 }
 
@@ -873,6 +883,7 @@ class Outputter {
 	}
 
 }
+
 
 // This streamer maintains whether we are inside a /*...*/ comment, or how deep we are inside nested parentheses (...).  It is not a proper lexer and therefore might be fooled by clever comments, or string or regexp literals.
 
@@ -985,11 +996,40 @@ class CommentTrackingReader extends HelpfulReader {
 
 }
 
-class Heuristics {
+class SuperDuperReader extends CommentTrackingReader {
 
-	public static var leadingIndentRE : EReg = ~/^\s*/;
-	public static var whitespaceRE : EReg = ~/\s+/;
-	public static var endsWithBackslash : EReg = ~/\s?\\$/;
-	public static var endsWithComma : EReg = ~/,\s*$/;
+	public var indent_of_currentLine : Int;
+	public var nextNonEmptyLine : String;
+	public var indent_of_nextNonEmptyLine : Int;
+	public var firstWord : String;
+	public var lineThatOpenedIndent : Array<String>;
+
+	public function new(input,_sws) {
+		super(input,_sws);
+		firstWord = null;
+		lineThatOpenedIndent = new Array<String>();
+	}
+
+	public function getNextNonEmptyLine() : String {
+		nextNonEmptyLine = findNextNonEmptyLine();
+		return nextNonEmptyLine;
+	}
+
+	public function updateIndentInfo(currentLine) : Void {
+
+		Heuristics.leadingIndentRE.match(currentLine);
+		indent_of_currentLine = Heuristics.leadingIndentRE.matched(0).length;
+
+		var nextNonEmptyLine = getNextNonEmptyLine();
+		if (nextNonEmptyLine == null) {
+			nextNonEmptyLine = "";
+		}
+
+		Heuristics.leadingIndentRE.match(nextNonEmptyLine);
+		indent_of_nextNonEmptyLine = Heuristics.leadingIndentRE.matched(0).length;
+
+	}
 
 }
+
+

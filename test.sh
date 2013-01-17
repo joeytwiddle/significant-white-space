@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# In case you have exported one which is too tough for /bin/sh
 export PS4="[$0] "
 
 set -e
@@ -9,6 +10,12 @@ set -e
 
 mkdir -p data
 
+mkdir -p _testing
+
+cp -a data/* _testing/
+
+
+
 if [ -n "$ZSH_NAME" ]
 then export PS4="(%?)%L%{`cursegreen`$}%c%{`cursemagenta`%}[%{`cursered``cursebold`%}%1N:%i%{`cursemagenta`%}]%{`curseyellow`%}%_%{`cursenorm`%}% # "
 elif [ -n "$BASH" ]
@@ -17,6 +24,8 @@ else export PS4="[sh $0] "
 fi
 set -x
 
+
+
 ## TODO: This test is stupid.  We want a set of a few known files, with known results.
 ## Then we should check that processing with the new build gives the same results as that.
 ## (If the differences is an *improvement*, we replace the target results with the new results.)
@@ -24,31 +33,62 @@ set -x
 ## Another thing it could do is test that it can build after processing.
 ## Although we could simply check that the processed source of a recent version matches its target.
 
-src="./src/sws/Root.hx"
+cd _testing
+
+# The binary we are evaluating is:
+sws="../build/sws"
+safe=""
+# safe="safe-"
+
+test_curl() {
+	tip="$1"
+	$sws "$safe"curl "$tip.sws" "$tip.curled"
+	do_compare "$tip" "$tip.curled"
+	# Do not drop these cmps.  They trigger the set -e and *are* the warning atm.
+}
+
+test_decurl() {
+	tip="$1"
+	$sws "$safe"decurl "$tip" "$tip.decurled"
+	do_compare "$tip.sws" "$tip.decurled"
+}
+
+do_compare() {
+	orig="$1"
+	new="$2"
+	if ! cmp "$1" "$2"
+	then
+		echo "[Test FAILED.] $new differs from $orig"
+		diff "$orig" "$new"
+		exit 2
+	else
+		if [ -z "$safe" ]
+		then echo "Succeeded: $new === $orig"
+		fi
+	fi
+}
+
+
+
+# The test set:
+set +x
+
+
+test_curl   Root.hx
+test_decurl Root.hx
+
+
+echo "All tests completed successfully."
+exit 0
+
+
+
+## Old stuff:
 
 ## WARNING: safe-curl/decurl currently touch the original file.  This could be moved to sync.
 
-# build/sws curl "$src.sws" data/Root.hx
-# build/sws decurl "$src" data/Root.hx.sws
-# exit
-
-cp "$src" data/Root.hx
-build/sws safe-decurl data/Root.hx data/curled
-cp "$src".sws data/Root.hx.sws
-build/sws safe-curl data/Root.hx.sws data/decurled
-
-cp -f data/Root.hx.sws data/Root.hx.sws.1
-build/sws curl data/Root.hx.sws data/Root.hx
-build/sws decurl data/Root.hx data/Root.hx.sws
-cp -f data/Root.hx.sws data/Root.hx.sws.2
-
-if ! cmp data/Root.hx.sws.1 data/Root.hx.sws.2
-then
-	echo "STABILITY TEST FAILED!  Second generation does not match first!"
-	echo "  vimdiff org/neuralyte/sws/Root.hx data/Root.hx"
-	echo "  vimdiff data/Root.hx.sws.1 data/Root.hx.sws.2"
-	exit 17
-fi
+# src="./src/sws/Root.hx"
+# cp "$src" data/Root.hx
 
 ## OK so we often encounter minor changes when decurling code for the first time.
 ## If we want to see how we are performing on less-friendly code, we could compare the post-sync restuls against those of the last run, to indicate if we have made anything better or worse.
