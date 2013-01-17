@@ -12,6 +12,7 @@ class Options {
 		useCoffeeFunctions: true,
 		unwrapParenthesesForCommands: [ "if", "while", "for", "catch", "switch" ],
 		// , "elseif"
+		continuationKeywords: [ "else", "catch" ],
 		blockLeadSymbol: " =>",
 		blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/,
 		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/,
@@ -52,6 +53,9 @@ class Options {
 
 	// NOTE: Current implementation will *not* unbrace or re-brace if(...) - because we peek the first symbol, a space is required: if (...)
 	public var unwrapParenthesesForCommands : Array<String>;
+
+	// Keywords which are usually joins between two indented blocks.  We do not in fact indent them.
+	static var continuationKeywords : Array<String>;
 
 	//// blockLeadSymbol is an entirely optional symbol used to indicate the start of certain blocks.  This works much like Python's ":" symbol, but with SWS we want fine-grained control over when they are used.
 	// static var blockLeadSymbol = null;

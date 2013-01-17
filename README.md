@@ -325,6 +325,8 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 - Track line numbers for more informative output.
 
+- Blocks ending `};` are treated the same as those ending `}`, so on re-curling the needed `;` is not re-introduced.  One option, that of retaining a marker for the `;` in the SWS file, is undesirable.  Perhaps preferable, detect *when* a `}` should be followed by a `;`.  This rule might go something like "A `;` is needed after a close block curly `}` IFF the first line of that block was an assignment, or a `return` (or `yield`?) statement.  If we go with the second options, we should *still detect* when we are nullifying a `};` and in that situation *check* that the `;` will be re-introduced on re-curling, otherwise issue a warning.
+
 - Add support for preprocessor commands like `#define` and `#ifdef`.  (Currently they only work if they are flat-indented to current code level, and they get `\` appended.  We could certainly remove the second requirement, but we may need indentation to mean curlies inside the block.)
 
 - Serious outstanding: multi-line *indented* expressions (e.g. assignments of a long formula) get curlies when they shouldn't.  Use heuristic: non-curled one-line if or else (or while or do ...) bodies are ok, but anything else indented that is not curled should produce Error, or receive marking (trailing `\` ok?) to explain that it is special.  (OK added error report for that at least.)

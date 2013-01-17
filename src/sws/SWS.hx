@@ -13,6 +13,8 @@ import sws.SWSStringOutput;
 
 using Lambda;
 
+
+
 class SWS {
 
 	public var options : Options;
@@ -31,11 +33,6 @@ class SWS {
 		#end
 
 	}
-
-
-	// Sync options:
-
-	static var continuationKeywords = [ "else", "catch" ];
 
 
 	// Constants:
@@ -101,6 +98,8 @@ class SWS {
 	public static var anonymousCoffeeFunctionRE = ~/([(][a-zA-Z0-9@$_, 	]*[)])\s*->/g;
 	public static var anonymousCoffeeFunctionReplace = "function$1";
 
+
+
 	public function decurl(input : SWSInput, output : SWSOutput) {
 
 		// TODO: Count number of in/out curlies swallowed, and compare them against indent.  Warn when they do not look right!
@@ -128,8 +127,8 @@ class SWS {
 
 			while (true) {
 
-				var wasInsideComment = reader.insideComment;
 				var indentCountAtLineStart = indentCountAtLineEnd;
+				var wasInsideComment = reader.insideComment;
 
 				var wholeLine : String = reader.getNextLine();
 				if (wholeLine == null) {   // Unlike input, our reader does not throw Eof.
@@ -211,6 +210,7 @@ class SWS {
 											line += " \\";     // TODO: Clean up sws: We don't *have* to join them with \ on decurl.  We *could* look for mixed indent on curling, and handle it there.  But this fits logically with the other places we use '\'.
 										} else {
 											// We are about to indent; do not be concerned about missing ;
+											// TODO: We can skip this warning if line starts "if" or "else"
 											reporter.debug("About to indent despite no curlies, hopefully a one-line if: "+line);
 											// reporter.debug("indent_of_nextNonEmptyLine="+indent_of_nextNonEmptyLine+" nextNonEmptyLine="+nextNonEmptyLine)
 										}
@@ -282,6 +282,7 @@ class SWS {
 		out.close();
 
 	}
+
 
 	public function curl(input : SWSInput, output : SWSOutput) {
 
@@ -449,7 +450,7 @@ class SWS {
 					// var tokens = Heuristics.leadingIndentRE.replace(nextNonEmptyLine,'').split(" ");   // TODO: should really split on whitespaceRE
 					// var firstToken = tokens[0];
 					var firstToken = getFirstWord(nextNonEmptyLine);
-					if (continuationKeywords.has(firstToken)) {
+					if (options.continuationKeywords.has(firstToken)) {
 						delayLastCurly = " ";
 					}
 					if (firstToken.charAt(0)==')' || firstToken.charAt(0)==',') {
@@ -566,6 +567,7 @@ class SWS {
 		out.close();
 
 	}
+
 
 	function considerSemicolonInjection(currentLine : String, options : Options, wholeLineIsComment : Bool) {
 		// DONE: We should not act on comment lines!
