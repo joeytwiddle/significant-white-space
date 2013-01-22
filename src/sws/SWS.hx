@@ -934,7 +934,7 @@ class CommentTrackingReader extends HelpfulReader {
 		var lineBeforeComment = res[0];
 		var trailingComment = res[1];
 
-		if (lineOpensCommentRE.match(line)) {
+		if (lineOpensCommentRE.match(lineBeforeComment)) {
 			if (SWS.looksLikeRegexpLine.match(line)) {
 				// reporter.echo("Looks like regexp literal declaration; assuming not a comment start: "+line);
 			} else {
@@ -1027,8 +1027,30 @@ class SuperDuperReader extends CommentTrackingReader {
 
 		Heuristics.leadingIndentRE.match(nextNonEmptyLine);
 		indent_of_nextNonEmptyLine = Heuristics.leadingIndentRE.matched(0).length;
-
 	}
+
+}
+
+class BlockRecord {
+	public var openingLine : String;
+	public var openingLineNumber : Int;
+}
+
+class Stack<Item> {
+
+	public var items : Array<Item>;
+
+	public function push(item) {
+		items.push(item);
+	}
+
+	public function pop() {
+		return items.pop();
+	}
+}
+
+class BlockStack extends Stack<BlockRecord> {
+	//
 
 }
 
