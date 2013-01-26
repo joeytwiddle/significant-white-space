@@ -931,6 +931,9 @@ sws.SWS.prototype.decurl = function(input,output) {
 						if(this.options.addRemoveSemicolons) {
 							if(endsWithSemicolon.match(line)) {
 								line = endsWithSemicolon.replace(line,"");
+								if(sws.SWS.emptyOrBlank.match(line)) {
+									continue;
+								}
 							}
 							else {
 								reader.updateIndentInfo(line);
@@ -1331,7 +1334,6 @@ sws.Reporter.__name__ = ["sws","Reporter"];
 sws.Reporter.prototype.out = null;
 sws.Reporter.prototype.echo = function(s) {
 	if(this.out == null) {
-		haxe.Log.trace(s,{ fileName : "SWS.hx", lineNumber : 833, className : "sws.Reporter", methodName : "echo"});
 		haxe.Log.trace(s,{ fileName : "SWS.hx", lineNumber : 837, className : "sws.Reporter", methodName : "echo"});
 	}
 	else {
@@ -1361,7 +1363,7 @@ for(var k in sws.Reporter.prototype ) sws.OptionalReporter.prototype[k] = sws.Re
 sws.OptionalReporter.prototype.options = null;
 sws.OptionalReporter.prototype.echo = function(s) {
 	if(this.out == null) {
-		haxe.Log.trace(s,{ fileName : "SWS.hx", lineNumber : 875, className : "sws.OptionalReporter", methodName : "echo"});
+		sws.Reporter.prototype.echo.call(this,s);
 	}
 	else {
 		this.out.writeString(s + this.options.newline);

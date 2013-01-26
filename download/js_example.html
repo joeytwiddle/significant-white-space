@@ -11,6 +11,10 @@
 		// Perhaps we could look for that explicitly in window.
 		// For now we use '_sws'.
 
+		function log(s) {
+			document.getElementById("haxe:trace").appendChild(document.createElement("PRE")).innerText = s;
+		}
+
 		//// Note: For now use sws.defaultOptions not new sws.Options() which is full of nulls!
 		// var options = new sws.Options();
 		var options = sws.defaultOptions;
@@ -20,7 +24,8 @@
 		var output = new sws.SWSStringOutput();
 		// debugger;
 		_sws.curl(input,output);
-		alert("Got result: "+output.toString());
+
+		log("Got result: "+output.toString());
 
 		//// TODO: How a smoother JS interface should look:
 		//var output = _sws.curl(text);

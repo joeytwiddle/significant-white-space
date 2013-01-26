@@ -200,7 +200,7 @@ class SWS {
 							if (options.addRemoveSemicolons) {
 								if (endsWithSemicolon.match(line)) {
 									line = endsWithSemicolon.replace(line,"");
-									// TESTING: "Remove }; lines entirely"
+									// TESTING: Remove "};" lines entirely
 									if (emptyOrBlank.match(line)) {
 										continue;
 									}
@@ -384,7 +384,7 @@ class SWS {
 			if (!wholeLineIsComment) {
 				var containsTrailingComment = trailingCommentOutsideQuotes.match(currentLine);
 				if (containsTrailingComment) {
-					// trace("Found trailing comment on: "+currentLine);
+					// reporter.debug("Found trailing comment on: "+currentLine);
 					// wholeLineIsComment = true;
 				}
 			}
@@ -683,15 +683,15 @@ class SWS {
 			} catch (ex : Dynamic) {
 				reporter.warn("Exception applying couldbeRegexpEndingSlashSlash: \""+ex+"\" on line: "+line);
 			}
-			// trace("Line has trailing comment!  "+line);
+			// reporter.debug("Line has trailing comment!  "+line);
 			// This regexp finds the *last* occurrence of // on the line.  But sometimes a // comment contains // inside it!
 			// We really want the first // which is not inside a string (or a regexp - unlikely).
 			// Unfortunately we can't tell our evenNumberOfQuotes regexp to stop on /s, because a single / is a valid division operator.
 			// OK managed to squeeze them.
 			var beforeComment = trailingCommentOutsideQuotes.matched(1);
 			var afterComment = trailingCommentOutsideQuotes.matched(4);
-			// trace("beforeComment = "+beforeComment);
-			// trace("afterComment="+afterComment);
+			// reporter.debug("beforeComment = "+beforeComment);
+			// reporter.debug("afterComment="+afterComment);
 			// Deal with annoying greediness: move the spaces from the end of beforeComment into the front of afterComment.
 			var trailingSpaces = ~/\s*$/;
 			if (trailingSpaces.match(beforeComment)) {
@@ -835,7 +835,8 @@ class Reporter {
 	public function echo(s : String) {
 		if (out == null) {
 			trace(s);
-			// If no div with id 'haxe:trace' is provided, in JS this will alert.  =/
+			// If no div with id 'haxe:trace' is provided, JS will alert.  =/
+			// The following fix does not seem to help.
 			/*
 			#if JS \
 			__js__("console.log(\""+s+"\")")
@@ -879,7 +880,7 @@ class OptionalReporter extends Reporter {
 
 	public override function echo(s : String) {
 		if (out == null) {
-			trace(s);
+			super.echo(s);
 		} else {
 			out.writeString(s + options.newline);
 		}
