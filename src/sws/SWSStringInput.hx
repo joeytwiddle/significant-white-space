@@ -10,7 +10,7 @@ class SWSStringInput implements SWSInput {
 
 	public function readLine() : String {
 		if (lines.length > 0) {
-			var line = lines.pop();
+			var line = lines.shift();
 			if (line.charAt(line.length-1) == '\r') {
 				line = line.substr(0,line.length-1);
 			}

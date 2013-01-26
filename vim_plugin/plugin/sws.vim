@@ -1,6 +1,20 @@
 " sws.vim - Vim settings for significant-white-space files
 " vim: foldmethod=marker ts=2 sw=2 expandtab
 
+" TODO: Should be convert to an ftplugin
+
+" CheckNotNewerThan might be useful in other filetypes which might be
+" generated rather than original source files.  The correct route might be to
+" be to put that functionality into its own "check-if-generated" plugin with
+" some handy defaults, and allow sws to register itself as another type here.
+
+" Config should be made clearer, as some SWS users *want* to work on the
+" curled files, and therefore check against the decurled file.
+" TODO: :let g:swsCheckPreference = "curled"   or "non_curled" or ""
+
+augroup SWSCommands
+au!
+
 " Detect filetypes for decurled files
 au BufRead,BufNewFile {*.hx.sws}             set ft=haxe
 au BufRead,BufNewFile {*.java.sws}           set ft=java
@@ -9,8 +23,8 @@ au BufRead,BufNewFile {*.cpp.sws}            set ft=cpp
 au BufRead,BufNewFile {*.js.sws}             set ft=javascript
 
 " Shortcut commands to transform a file and open the result
-command SWSDecurl exec "!sws safe-decurl % %.sws" | :e %.sws
-command SWSCurl exec ":!sws safe-curl % %<" | :e %<
+command! SWSDecurl exec "!sws safe-decurl % %.sws" | :e %.sws
+command! SWSCurl exec ":!sws safe-curl % %<" | :e %<
 
 " Automatically curl sws file on save {{{
 
@@ -73,4 +87,6 @@ endfunction
 command! -nargs=1 CheckNotNewerThan call CheckNotNewerThan(<q-args>)
 
 " }}}
+
+augroup END
 

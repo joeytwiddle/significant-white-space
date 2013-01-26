@@ -466,10 +466,13 @@ sws.Options.prototype.addRemoveSemicolons = null;
 sws.Options.prototype.doNotCurlMultiLineParentheses = null;
 sws.Options.prototype.useCoffeeFunctions = null;
 sws.Options.prototype.unwrapParenthesesForCommands = null;
+sws.Options.prototype.continuationKeywords = null;
+sws.Options.prototype.mayPrecedeOneLineIndent = null;
 sws.Options.prototype.blockLeadSymbol = null;
 sws.Options.prototype.blockLeadSymbolIndicatedRE = null;
 sws.Options.prototype.blockLeadSymbolContraIndicatedRE = null;
 sws.Options.prototype.blockLeadSymbolContraIndicatedRE2AnonymousFunctions = null;
+sws.Options.prototype.leadLinesRequiringSemicolonEnd = null;
 sws.Options.prototype.newline = null;
 sws.Options.prototype.onlyWrapParensAtBlockStart = null;
 sws.Options.prototype.guessEndGaps = null;
@@ -490,7 +493,7 @@ sws.SWSStringInput.__name__ = ["sws","SWSStringInput"];
 sws.SWSStringInput.prototype.lines = null;
 sws.SWSStringInput.prototype.readLine = function() {
 	if(this.lines.length > 0) {
-		var line = this.lines.pop();
+		var line = this.lines.shift();
 		if(line.charAt(line.length - 1) == "\r") {
 			line = line.substr(0,line.length - 1);
 		}
@@ -813,6 +816,9 @@ haxe.io.Error.OutsideBounds = ["OutsideBounds",2];
 haxe.io.Error.OutsideBounds.toString = $estr;
 haxe.io.Error.OutsideBounds.__enum__ = haxe.io.Error;
 haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; $x.toString = $estr; return $x; }
+sws.Heuristics = function() { }
+sws.Heuristics.__name__ = ["sws","Heuristics"];
+sws.Heuristics.prototype.__class__ = sws.Heuristics;
 sws.SWS = function(_options,out) { if( _options === $_ ) return; {
 	this.options = _options != null?_options:sws.Options.defaultOptions;
 	this.reporter = new sws.OptionalReporter(out,this.options);
@@ -873,13 +879,13 @@ sws.SWS.prototype.decurl = function(input,output) {
 	var startsWithClosingCurly = new EReg("^\\s*}\\s*","");
 	var startsWithCurlyReplacer = new EReg("}\\s*","");
 	var endsWithSemicolon = new EReg("\\s*;\\s*$","");
-	var reader = new sws.CommentTrackingReader(input,this);
+	var reader = new sws.SuperDuperReader(input,this);
 	var out = new sws.Outputter(output,this.options);
 	var indentCountAtLineEnd = 0;
 	try {
 		while(true) {
-			var wasInsideComment = reader.insideComment;
 			var indentCountAtLineStart = indentCountAtLineEnd;
+			var wasInsideComment = reader.insideComment;
 			var wholeLine = reader.getNextLine();
 			if(wholeLine == null) {
 				break;
@@ -891,7 +897,7 @@ sws.SWS.prototype.decurl = function(input,output) {
 			if(!wholeLineIsComment && !wasInsideComment) {
 				if(startsWithClosingCurly.match(line)) {
 					if(new EReg("^\\s*}\\s*;\\s*$","").match(line)) {
-						this.reporter.error("We do not currently support \"};\" end-lines, try \"});\" instead:" + line);
+						this.reporter.error("We do not currently support \"...};\" end-lines, try wrapping into \"(...});\".  " + line);
 					}
 					line = startsWithCurlyReplacer.replace(line,"");
 					indentCountAtLineStart--;
@@ -927,20 +933,16 @@ sws.SWS.prototype.decurl = function(input,output) {
 								line = endsWithSemicolon.replace(line,"");
 							}
 							else {
-								var nextNonEmptyLine = reader.getNextNonEmptyLine();
-								if(nextNonEmptyLine == null) {
-									nextNonEmptyLine = "";
-								}
-								sws.Heuristics.leadingIndentRE.match(line);
-								var indent_of_currentLine = sws.Heuristics.leadingIndentRE.matched(0).length;
-								sws.Heuristics.leadingIndentRE.match(nextNonEmptyLine);
-								var indent_of_nextNonEmptyLine = sws.Heuristics.leadingIndentRE.matched(0).length;
-								if(indent_of_nextNonEmptyLine > indent_of_currentLine) {
-									if(this.options.joinMixedIndentLinesToLast && new EReg("^\t* +","").match(nextNonEmptyLine)) {
+								reader.updateIndentInfo(line);
+								if(reader.indent_of_nextNonEmptyLine > reader.indent_of_currentLine) {
+									if(this.options.joinMixedIndentLinesToLast && new EReg("^\t* +","").match(reader.nextNonEmptyLine)) {
 										line += " \\";
 									}
 									else {
-										this.reporter.debug("About to indent despite no curlies, hopefully a one-line if: " + line);
+										var firstToken = sws.SWS.getFirstWord(line);
+										if(!Lambda.has(this.options.mayPrecedeOneLineIndent,firstToken)) {
+											this.reporter.warn("The lines following this are indented, but do not have curlies, and may gain them! " + line);
+										}
 									}
 								}
 								else {
@@ -997,11 +999,12 @@ sws.SWS.prototype.decurl = function(input,output) {
 }
 sws.SWS.prototype.curl = function(input,output) {
 	var currentLine;
-	var helper = new sws.CommentTrackingReader(input,this);
+	var helper = new sws.SuperDuperReader(input,this);
 	var currentLine1;
 	var indentString = null;
 	var currentIndent = 0;
 	var out = new sws.Outputter(output,this.options);
+	var openingLines = new sws.LineStack();
 	while(true) {
 		var wasInsideComment = helper.insideComment;
 		currentLine1 = helper.getNextLine();
@@ -1071,6 +1074,7 @@ sws.SWS.prototype.curl = function(input,output) {
 				out.writeLine(sws.SWS.repeatString(currentIndent,indentString) + "{");
 			}
 			currentIndent++;
+			openingLines.push(new sws.LineRecord(0,currentLine1));
 			continue;
 		}
 		if(!helper.insideComment && indent_of_nextNonEmptyLine < currentIndent) {
@@ -1079,7 +1083,7 @@ sws.SWS.prototype.curl = function(input,output) {
 			var delayLastCurly = null;
 			if(nextNonEmptyLine != null) {
 				var firstToken = sws.SWS.getFirstWord(nextNonEmptyLine);
-				if(Lambda.has(sws.SWS.continuationKeywords,firstToken)) {
+				if(Lambda.has(this.options.continuationKeywords,firstToken)) {
 					delayLastCurly = " ";
 				}
 				if(firstToken.charAt(0) == ")" || firstToken.charAt(0) == ",") {
@@ -1088,6 +1092,7 @@ sws.SWS.prototype.curl = function(input,output) {
 			}
 			var i = currentIndent - 1;
 			while(i >= indent_of_nextNonEmptyLine) {
+				var lineWeStartedOn = openingLines.pop().line;
 				var indentAtThisLevel = sws.SWS.repeatString(i,indentString);
 				if(delayLastCurly != null && i == indent_of_nextNonEmptyLine) {
 					var nextLine = null;
@@ -1142,7 +1147,12 @@ sws.SWS.prototype.curl = function(input,output) {
 							out.writeLine(nextLine);
 						}
 					}
-					out.writeLine(indentAtThisLevel + "}");
+					if(this.options.leadLinesRequiringSemicolonEnd != null && this.options.leadLinesRequiringSemicolonEnd.match(lineWeStartedOn)) {
+						out.writeLine(indentAtThisLevel + "};");
+					}
+					else {
+						out.writeLine(indentAtThisLevel + "}");
+					}
 				}
 				i--;
 			}
@@ -1161,11 +1171,16 @@ sws.SWS.prototype.considerSemicolonInjection = function(currentLine,options,whol
 			return currentLine;
 		}
 		else {
-			if(sws.Heuristics.endsWithBackslash.match(currentLine)) {
-				return sws.Heuristics.endsWithBackslash.replace(currentLine,"");
+			if(sws.Heuristics.looksLikePreproc.match(currentLine)) {
+				return currentLine;
 			}
 			else {
-				return this.appendToLine(currentLine,";");
+				if(sws.Heuristics.endsWithBackslash.match(currentLine)) {
+					return sws.Heuristics.endsWithBackslash.replace(currentLine,"");
+				}
+				else {
+					return this.appendToLine(currentLine,";");
+				}
 			}
 		}
 	}
@@ -1258,7 +1273,27 @@ sws.HelpfulReader.prototype.getNextLine = function() {
 		}
 	}
 }
-sws.HelpfulReader.prototype.getNextNonEmptyLine = function() {
+sws.HelpfulReader.prototype.pushBackLine = function(line) {
+	this.queue.unshift(line);
+}
+sws.HelpfulReader.prototype.peekLine = function(i) {
+	while(this.queue.length < i) {
+		try {
+			var nextLine = this.input.readLine();
+			this.queue.push(nextLine);
+		}
+		catch( $e0 ) {
+			{
+				var ex = $e0;
+				{
+					return null;
+				}
+			}
+		}
+	}
+	return this.queue[i - 1];
+}
+sws.HelpfulReader.prototype.findNextNonEmptyLine = function() {
 	var i;
 	{
 		var _g1 = 0, _g = this.queue.length;
@@ -1288,26 +1323,6 @@ sws.HelpfulReader.prototype.getNextNonEmptyLine = function() {
 	}
 	return null;
 }
-sws.HelpfulReader.prototype.pushBackLine = function(line) {
-	this.queue.unshift(line);
-}
-sws.HelpfulReader.prototype.peekLine = function(i) {
-	while(this.queue.length < i) {
-		try {
-			var nextLine = this.input.readLine();
-			this.queue.push(nextLine);
-		}
-		catch( $e0 ) {
-			{
-				var ex = $e0;
-				{
-					return null;
-				}
-			}
-		}
-	}
-	return this.queue[i - 1];
-}
 sws.HelpfulReader.prototype.__class__ = sws.HelpfulReader;
 sws.Reporter = function(_out) { if( _out === $_ ) return; {
 	this.out = _out;
@@ -1316,7 +1331,8 @@ sws.Reporter.__name__ = ["sws","Reporter"];
 sws.Reporter.prototype.out = null;
 sws.Reporter.prototype.echo = function(s) {
 	if(this.out == null) {
-		haxe.Log.trace(s,{ fileName : "SWS.hx", lineNumber : 800, className : "sws.Reporter", methodName : "echo"});
+		haxe.Log.trace(s,{ fileName : "SWS.hx", lineNumber : 833, className : "sws.Reporter", methodName : "echo"});
+		haxe.Log.trace(s,{ fileName : "SWS.hx", lineNumber : 837, className : "sws.Reporter", methodName : "echo"});
 	}
 	else {
 		this.out.writeString(s + "\n");
@@ -1345,7 +1361,7 @@ for(var k in sws.Reporter.prototype ) sws.OptionalReporter.prototype[k] = sws.Re
 sws.OptionalReporter.prototype.options = null;
 sws.OptionalReporter.prototype.echo = function(s) {
 	if(this.out == null) {
-		haxe.Log.trace(s,{ fileName : "SWS.hx", lineNumber : 836, className : "sws.OptionalReporter", methodName : "echo"});
+		haxe.Log.trace(s,{ fileName : "SWS.hx", lineNumber : 875, className : "sws.OptionalReporter", methodName : "echo"});
 	}
 	else {
 		this.out.writeString(s + this.options.newline);
@@ -1394,7 +1410,12 @@ sws.CommentTrackingReader.prototype.getNextLine = function() {
 	var lineBeforeComment = res[0];
 	var trailingComment = res[1];
 	if(sws.CommentTrackingReader.lineOpensCommentRE.match(line)) {
-		if(sws.SWS.looksLikeRegexpLine.match(line)) null;
+		var indexOfSingleLineComment = line.indexOf("//");
+		var indexOfCommentStart = line.indexOf("/" + "*");
+		if(indexOfSingleLineComment != -1 && indexOfSingleLineComment < indexOfCommentStart) {
+			this.reporter.echo("Looks like opening comment but *after* one-line comment, so ignoring it: " + line);
+		}
+		else if(sws.SWS.looksLikeRegexpLine.match(line)) null;
 		else {
 			this.insideComment = true;
 			if(sws.SWS.seemsToContainRegexp.match(lineBeforeComment)) {
@@ -1441,9 +1462,61 @@ sws.CommentTrackingReader.prototype.countInString = function(s,c) {
 	return count;
 }
 sws.CommentTrackingReader.prototype.__class__ = sws.CommentTrackingReader;
-sws.Heuristics = function() { }
-sws.Heuristics.__name__ = ["sws","Heuristics"];
-sws.Heuristics.prototype.__class__ = sws.Heuristics;
+sws.SuperDuperReader = function(input,_sws) { if( input === $_ ) return; {
+	sws.CommentTrackingReader.call(this,input,_sws);
+	this.firstWord = null;
+	this.lineThatOpenedIndent = new Array();
+}}
+sws.SuperDuperReader.__name__ = ["sws","SuperDuperReader"];
+sws.SuperDuperReader.__super__ = sws.CommentTrackingReader;
+for(var k in sws.CommentTrackingReader.prototype ) sws.SuperDuperReader.prototype[k] = sws.CommentTrackingReader.prototype[k];
+sws.SuperDuperReader.prototype.indent_of_currentLine = null;
+sws.SuperDuperReader.prototype.nextNonEmptyLine = null;
+sws.SuperDuperReader.prototype.indent_of_nextNonEmptyLine = null;
+sws.SuperDuperReader.prototype.firstWord = null;
+sws.SuperDuperReader.prototype.lineThatOpenedIndent = null;
+sws.SuperDuperReader.prototype.getNextNonEmptyLine = function() {
+	this.nextNonEmptyLine = this.findNextNonEmptyLine();
+	return this.nextNonEmptyLine;
+}
+sws.SuperDuperReader.prototype.updateIndentInfo = function(currentLine) {
+	sws.Heuristics.leadingIndentRE.match(currentLine);
+	this.indent_of_currentLine = sws.Heuristics.leadingIndentRE.matched(0).length;
+	var nextNonEmptyLine = this.getNextNonEmptyLine();
+	if(nextNonEmptyLine == null) {
+		nextNonEmptyLine = "";
+	}
+	sws.Heuristics.leadingIndentRE.match(nextNonEmptyLine);
+	this.indent_of_nextNonEmptyLine = sws.Heuristics.leadingIndentRE.matched(0).length;
+}
+sws.SuperDuperReader.prototype.__class__ = sws.SuperDuperReader;
+sws.LineRecord = function(_number,_line) { if( _number === $_ ) return; {
+	this.number = _number;
+	this.line = _line;
+}}
+sws.LineRecord.__name__ = ["sws","LineRecord"];
+sws.LineRecord.prototype.number = null;
+sws.LineRecord.prototype.line = null;
+sws.LineRecord.prototype.__class__ = sws.LineRecord;
+sws.Stack = function(p) { if( p === $_ ) return; {
+	this.items = new Array();
+}}
+sws.Stack.__name__ = ["sws","Stack"];
+sws.Stack.prototype.items = null;
+sws.Stack.prototype.push = function(item) {
+	this.items.push(item);
+}
+sws.Stack.prototype.pop = function() {
+	return this.items.pop();
+}
+sws.Stack.prototype.__class__ = sws.Stack;
+sws.LineStack = function(p) { if( p === $_ ) return; {
+	sws.Stack.call(this);
+}}
+sws.LineStack.__name__ = ["sws","LineStack"];
+sws.LineStack.__super__ = sws.Stack;
+for(var k in sws.Stack.prototype ) sws.LineStack.prototype[k] = sws.Stack.prototype[k];
+sws.LineStack.prototype.__class__ = sws.LineStack;
 Std = function() { }
 Std.__name__ = ["Std"];
 Std["is"] = function(v,t) {
@@ -1997,8 +2070,12 @@ js.Boot.__init();
 		return f(msg,[url+":"+line]);
 	}
 }
-sws.Options.defaultOptions = { debugging : true, javaStyleCurlies : true, addRemoveSemicolons : true, doNotCurlMultiLineParentheses : false, useCoffeeFunctions : true, unwrapParenthesesForCommands : ["if","while","for","catch","switch"], blockLeadSymbol : " =>", blockLeadSymbolIndicatedRE : new EReg("(\\s|^)function\\s+[a-zA-Z_$]",""), blockLeadSymbolContraIndicatedRE : new EReg("^\\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])",""), blockLeadSymbolContraIndicatedRE2AnonymousFunctions : new EReg("(^|[^A-Za-z0-9_$@])function\\s*[(]",""), newline : "\n", addRemoveCurlies : true, trackSlashStarCommentBlocks : true, retainLineNumbers : true, onlyWrapParensAtBlockStart : true, guessEndGaps : true, fixIndent : false, joinMixedIndentLinesToLast : true};
-sws.SWS.continuationKeywords = ["else","catch"];
+sws.Options.defaultOptions = { debugging : true, javaStyleCurlies : true, addRemoveSemicolons : true, doNotCurlMultiLineParentheses : false, useCoffeeFunctions : true, unwrapParenthesesForCommands : ["if","while","for","catch","switch"], continuationKeywords : ["else","catch"], mayPrecedeOneLineIndent : ["if","while","else","for","try","catch"], blockLeadSymbol : " =>", blockLeadSymbolIndicatedRE : new EReg("(\\s|^)function\\s+[a-zA-Z_$]",""), blockLeadSymbolContraIndicatedRE : new EReg("^\\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])",""), blockLeadSymbolContraIndicatedRE2AnonymousFunctions : new EReg("(^|[^A-Za-z0-9_$@])function\\s*[(]",""), leadLinesRequiringSemicolonEnd : new EReg("([ \t\\[\\]a-zA-Z_$]=[ \t\\[\\]a-zA-Z_$]|^\\s*return( |\t|$))",""), newline : "\n", addRemoveCurlies : true, trackSlashStarCommentBlocks : true, retainLineNumbers : true, onlyWrapParensAtBlockStart : true, guessEndGaps : true, fixIndent : false, joinMixedIndentLinesToLast : true};
+sws.Heuristics.leadingIndentRE = new EReg("^\\s*","");
+sws.Heuristics.whitespaceRE = new EReg("\\s+","");
+sws.Heuristics.endsWithBackslash = new EReg("\\s?\\\\$","");
+sws.Heuristics.endsWithComma = new EReg(",\\s*$","");
+sws.Heuristics.looksLikePreproc = new EReg("^\\s*#","");
 sws.SWS.emptyOrBlank = new EReg("^\\s*$","");
 sws.SWS.indentRE = new EReg("^\\s*","");
 sws.SWS.wholeLineIsCommentRE = new EReg("(^\\s*//|^\\s*/\\*|\\*/\\s*$)","");
@@ -2016,13 +2093,9 @@ sws.SWS.anonymousFunctionReplace = "$1$2 ->";
 sws.SWS.anonymousCoffeeFunctionRE = new EReg("([(][a-zA-Z0-9@$_, \t]*[)])\\s*->","g");
 sws.SWS.anonymousCoffeeFunctionReplace = "function$1";
 sws.SWS.firstTokenRE = new EReg("^\\s*([^\\s]*)","");
-sws.CommentTrackingReader.lineOpensCommentRE = new EReg(".*/\\*.*","");
-sws.CommentTrackingReader.lineClosesCommentRE = new EReg(".*\\*/.*","");
+sws.CommentTrackingReader.lineOpensCommentRE = new EReg("/\\*","");
+sws.CommentTrackingReader.lineClosesCommentRE = new EReg("\\*/","");
 sws.CommentTrackingReader.parenthesisInsideQuotes = new EReg("^[^\"]*\"[^\"]*[()][^\"]*\"","");
 sws.CommentTrackingReader.parenthesisInsideApostrophes = new EReg("^[^']*'[^']*[()][^']*'","");
-sws.Heuristics.leadingIndentRE = new EReg("^\\s*","");
-sws.Heuristics.whitespaceRE = new EReg("\\s+","");
-sws.Heuristics.endsWithBackslash = new EReg("\\s?\\\\$","");
-sws.Heuristics.endsWithComma = new EReg(",\\s*$","");
 js.Lib.onerror = null;
 sws.SWS.main()
