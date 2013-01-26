@@ -21,6 +21,7 @@ class Heuristics {
 	public static var whitespaceRE : EReg = ~/\s+/;
 	public static var endsWithBackslash : EReg = ~/\s?\\$/;
 	public static var endsWithComma : EReg = ~/,\s*$/;
+	public static var looksLikePreproc : EReg = ~/^\s*#/;
 
 }
 
@@ -309,6 +310,8 @@ class SWS {
 
 		var out = new Outputter(output,options);
 
+		var openingLines = new LineStack();
+
 		while (true) {
 
 			var wasInsideComment = helper.insideComment;
@@ -438,6 +441,7 @@ class SWS {
 					out.writeLine(repeatString(currentIndent,indentString) + "{");
 				}
 				currentIndent++;
+				openingLines.push(new LineRecord(0,currentLine));
 				continue;
 
 			}
@@ -476,6 +480,8 @@ class SWS {
 				var i = currentIndent - 1;   // We could actually just continue to use currentIndent instead of i.
 				while (i >= indent_of_nextNonEmptyLine) {
 					// reporter.debug("De-curlifying with i="+i);
+
+					var lineWeStartedOn = openingLines.pop().line;
 
 					var indentAtThisLevel = repeatString(i,indentString);
 
@@ -552,7 +558,11 @@ class SWS {
 							}
 						}
 
-						out.writeLine(indentAtThisLevel + "}");
+						if (options.leadLinesRequiringSemicolonEnd != null && options.leadLinesRequiringSemicolonEnd.match(lineWeStartedOn)) {
+							out.writeLine(indentAtThisLevel + "};");
+						} else {
+							out.writeLine(indentAtThisLevel + "}");
+						}
 
 					}
 
@@ -589,10 +599,18 @@ class SWS {
 			if (Heuristics.endsWithComma.match(currentLine)) {
 				return currentLine;
 			} else {
-				if (Heuristics.endsWithBackslash.match(currentLine)) {
-					return Heuristics.endsWithBackslash.replace(currentLine,"");
+				// Do not add semicolon to lines starting "#" i.e. preproc macros.
+				// This allows use of #ifdef provided you don't indent.
+				// BUG TODO: Somehow not working :o
+				// For the moment you can use unindented preprocs, and supress semicolon injection with a trailing \
+				if (Heuristics.looksLikePreproc.match(currentLine)) {
+					return currentLine;
 				} else {
-					return appendToLine(currentLine,";");
+					if (Heuristics.endsWithBackslash.match(currentLine)) {
+						return Heuristics.endsWithBackslash.replace(currentLine,"");
+					} else {
+						return appendToLine(currentLine,";");
+					}
 				}
 			}
 		}
@@ -813,6 +831,12 @@ class Reporter {
 	public function echo(s : String) {
 		if (out == null) {
 			trace(s);
+			#if JS
+			console.log(s);
+			#else
+			trace(s);
+			#end
+			// 
 		} else {
 			out.writeString(s + "\n");
 		}
@@ -892,8 +916,8 @@ class Outputter {
 class CommentTrackingReader extends HelpfulReader {
 
 	// Currently completely noob yet still unreadable xD
-	public static var lineOpensCommentRE = ~/.*\/\*.*/;
-	public static var lineClosesCommentRE = ~/.*\*\/.*/;
+	public static var lineOpensCommentRE = ~/\/\*/;
+	public static var lineClosesCommentRE = ~/\*\//;
 
 	public var insideComment : Bool; // = false;
 
@@ -934,9 +958,20 @@ class CommentTrackingReader extends HelpfulReader {
 		var lineBeforeComment = res[0];
 		var trailingComment = res[1];
 
-		if (lineOpensCommentRE.match(lineBeforeComment)) {
-			if (SWS.looksLikeRegexpLine.match(line)) {
-				// reporter.echo("Looks like regexp literal declaration; assuming not a comment start: "+line);
+		//// Look for an opening / * to decide if we are moving into a comment block
+		if (lineOpensCommentRE.match(line)) {
+			//// But a / * after a // does not open a new block!
+			// reporter.echo("pos="+lineOpensCommentRE.matchedPos().pos+" len="+lineBeforeComment.length+" on line: "+line)
+			// if lineOpensCommentRE.matchedPos().pos > lineBeforeComment.length
+			var indexOfSingleLineComment = line.indexOf("//");
+			// TODO: Stop *this* line from breaking with non-gapped / *
+			// TODO: Stop the next line from breaking without the +
+			var indexOfCommentStart = line.indexOf("/"+"*");
+			// reporter.echo("SLC="+indexOfSingleLineComment+" CS="+indexOfCommentStart+" on: "+line)
+			if (indexOfSingleLineComment!=-1 && indexOfSingleLineComment < indexOfCommentStart) {
+				reporter.echo("Looks like opening comment but *after* one-line comment, so ignoring it: "+line);
+			} else if (SWS.looksLikeRegexpLine.match(line)) {
+				// reporter.echo("Looks like regexp literal declaration; assuming not a comment start: "+line)
 			} else {
 				insideComment = true;
 				if (SWS.seemsToContainRegexp.match(lineBeforeComment)) {
@@ -946,7 +981,7 @@ class CommentTrackingReader extends HelpfulReader {
 		}
 		if (lineClosesCommentRE.match(line)) {
 			if (SWS.looksLikeRegexpLine.match(line)) {
-				// reporter.echo("Looks like regexp literal declaration; assuming not a comment end: "+line);
+				// reporter.echo("Looks like regexp literal declaration; assuming not a comment end: "+line)
 			} else {
 				insideComment = false;
 				if (SWS.seemsToContainRegexp.match(lineBeforeComment)) {
@@ -1027,18 +1062,27 @@ class SuperDuperReader extends CommentTrackingReader {
 
 		Heuristics.leadingIndentRE.match(nextNonEmptyLine);
 		indent_of_nextNonEmptyLine = Heuristics.leadingIndentRE.matched(0).length;
+
 	}
 
 }
 
-class BlockRecord {
-	public var openingLine : String;
-	public var openingLineNumber : Int;
+class LineRecord {
+	public var number : Int;
+	public var line : String;
+	public function new(_number,_line) {
+		number = _number;
+		line = _line;
+	}
 }
 
 class Stack<Item> {
 
 	public var items : Array<Item>;
+
+	public function new() {
+		items = new Array<Item>();
+	}
 
 	public function push(item) {
 		items.push(item);
@@ -1049,9 +1093,11 @@ class Stack<Item> {
 	}
 }
 
-class BlockStack extends Stack<BlockRecord> {
-	//
+class LineStack extends Stack<LineRecord> {
+	public function new() {
+		super();
+
+	}
 
 }
-
 

@@ -49,6 +49,15 @@ au BufReadPost {*.{hx,java,c,cpp,js,C}} if exists("*CheckNotNewerThan") | call C
 au BufReadPost {*.sws} if exists("*CheckNotNewerThan") | call CheckNotNewerThan(expand("%<")) | endif
 
 function! CheckNotNewerThan(fname)
+
+  " Only do it the first time we open each file, not every time we read it
+  " (which might be often if we set 'autoread' and have it visible in a
+  " window).
+  if exists("b:alreadyDoneSWSCheck")
+    return
+  endif
+  let b:alreadyDoneSWSCheck = 1
+
   let otherFile = a:fname
   if filereadable(otherFile)
     let thisFile = expand("%")
@@ -58,6 +67,7 @@ function! CheckNotNewerThan(fname)
       let res = confirm("Warning! File ".otherFile." is newer than this one!\nPerhaps you should be editing that instead!","&Press Enter")
     endif
   endif
+
 endfunction
 
 command! -nargs=1 CheckNotNewerThan call CheckNotNewerThan(<q-args>)

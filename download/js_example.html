@@ -3,15 +3,24 @@
 	</body>
 	<script src="sws.js"></script>
 	<script>
+
 		//// Note: Use sws.defaultOptions not new sws.Options() which is full of nulls!
 		// var options = new sws.Options();
 		var options = sws.defaultOptions;
 		var _sws = new sws.SWS(options,null);
-		var text = "hi(mum)\n";
+		var text = "if true\n  hi(mum)\n\n";
 		var input = new sws.SWSStringInput(text);
 		var output = new sws.SWSStringOutput();
 		// debugger;
 		_sws.curl(input,output);
 		alert("Got result: "+output.toString());
+
+		//// TODO: A smoother JS interface could look more like:
+		//var output = _sws.curl(text);
+		//// or:
+		//_sws.curl(text,function(output){ ...; });
+		//// or even as a promise:
+		//_sws.curl(text).then( function(output){ ...; } );
+
 	</script>
 </html>

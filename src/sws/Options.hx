@@ -19,6 +19,7 @@ class Options {
 		blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/,
 		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/,
 		blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/,
+		leadLinesRequiringSemicolonEnd: ~/([ 	\[\]a-zA-Z_$]=[ 	\[\]a-zA-Z_$]|^\s*return( |	|$))/,
 		newline: "\n",
 		addRemoveCurlies: true,
 		trackSlashStarCommentBlocks: true,
@@ -90,6 +91,8 @@ class Options {
 	// static var blockLeadSymbolContraIndicatedRE = null;   // Not sure when Python users want their ":"s
 	// TODO: DRY.  useCoffeeFunctions already detects anonymous functions, and therefore can contra-indicate them without the need for a repeat regexp.
 	// TODO: Java does not have anonymous functions, but we should check that inline interface implementations are working ok.
+
+	public var leadLinesRequiringSemicolonEnd : EReg;
 
 	// static var newline : String = "\r\n";
 	public var newline : String;
