@@ -200,6 +200,10 @@ class SWS {
 							if (options.addRemoveSemicolons) {
 								if (endsWithSemicolon.match(line)) {
 									line = endsWithSemicolon.replace(line,"");
+									// TESTING: "Remove }; lines entirely"
+									if (emptyOrBlank.match(line)) {
+										continue;
+									}
 								} else {
 									//// options.solveMissingSemicolonsWithBackslash
 									// We only addRemoveSemicolons if the line does not start or end in a curl.
@@ -831,11 +835,14 @@ class Reporter {
 	public function echo(s : String) {
 		if (out == null) {
 			trace(s);
-			#if JS
-			console.log(s);
-			#else
-			trace(s);
-			#end
+			// If no div with id 'haxe:trace' is provided, in JS this will alert.  =/
+			/*
+			#if JS \
+			__js__("console.log(\""+s+"\")")
+			#else \
+			trace(s)
+			#end \
+			*/
 			// 
 		} else {
 			out.writeString(s + "\n");

@@ -1,10 +1,17 @@
 <html>
 	<body>
+		<div id="haxe:trace"></div>
+		<!-- TODO: Without this div, Haxe blinks up an alert box!  This rather sucks.  We might want output to console.log.  It might be easiest to do this by always calling our own top-level stdoutput, rather than relying on the __trace in js/Boot.hx . -->
 	</body>
 	<script src="sws.js"></script>
 	<script>
 
-		//// Note: Use sws.defaultOptions not new sws.Options() which is full of nulls!
+		// Our first unfortunate coincidence is that we can't have a variable
+		// called 'sws' because we expect to find the 'sws' package there.
+		// Perhaps we could look for that explicitly in window.
+		// For now we use '_sws'.
+
+		//// Note: For now use sws.defaultOptions not new sws.Options() which is full of nulls!
 		// var options = new sws.Options();
 		var options = sws.defaultOptions;
 		var _sws = new sws.SWS(options,null);
@@ -15,7 +22,7 @@
 		_sws.curl(input,output);
 		alert("Got result: "+output.toString());
 
-		//// TODO: A smoother JS interface could look more like:
+		//// TODO: How a smoother JS interface should look:
 		//var output = _sws.curl(text);
 		//// or:
 		//_sws.curl(text,function(output){ ...; });
