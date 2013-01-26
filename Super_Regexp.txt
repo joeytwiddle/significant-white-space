@@ -1,0 +1,21 @@
+
+When a user wants to provide a pattern to match some string or substring, he
+should not be forced into providing a glob, or a regexp, or a fixed string, or
+list of fixed strings.  He should have the choice.
+
+I suggest we need a new all-consuming "matcher" type, which allows the user to
+specify which method they wish to use to express the valid set of strings.
+Perhaps the first char of their "matcher" could represent which method to use,
+and the second char (if not ':') could be a chosen delimeter.
+
+  s:LiteralString
+  l,LiteralString1,LiteralString2,LiteralString3
+  g:*.glob.199?
+  r/good_ole_regexp/flags
+  e/eregexp/flags
+
+We might even allow extensions too, for example a Turing-complete function to
+attempt the match.
+
+skipFoldersNamed is one of many examples where this could be used.
+
