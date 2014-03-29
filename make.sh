@@ -39,20 +39,21 @@ fi
 
 mkdir -p build
 
-haxe -cp src -main sws/Root.hx -neko build/sws.n > $haxeLog 2>&1
-haxe -cp src -main sws/SWS.hx -js build/sws.js >> $haxeLog 2>&1
-
-cp -f build/sws.js download/sws.js
+haxe -cp src -main sws/Root.hx -neko build/sws.n  >  $haxeLog 2>&1
+haxe -cp src -main sws/SWS.hx  -js   build/sws.js >> $haxeLog 2>&1
 
 if [ ! "$?" = 0 ]
 then cat $transformLog $haxeLog ; exit 120
 else cat $haxeLog
 fi
 
+## Complete the building of the executable from the .n (neko) file
 # nekotools boot sws.n
 if ! nekotools boot build/sws.n
 then errcode="$?" ; echo "Problem with nekotools" ; exit "$errcode"
 fi
+
+cp -f build/sws.js download/sws.js
 
 # ctags org/**/*.hx /usr/share/haxe/**/*.hx
 
