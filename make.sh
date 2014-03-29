@@ -19,21 +19,25 @@ export PS4="[$0] "
 
 root=src/sws/Root.hx
 
-d=`date +%Y%m%d-%H%M%S`
-cp -n "$root" "/tmp/Root.hx.$d"
-cp -n "$root.sws" "/tmp/Root.hx.sws.$d"
-
-## I usually work on the .hx.sws files:
+## I usually work on the .hx.sws files, converting them before the build using a stable version of sws.
 if which sws.stable >/dev/null 2>&1
-# then sws.stable curl $root.sws $root > $transformLog 2>&1
-then sws.stable sync src > $transformLog 2>&1
+then
+	# Backup the files in case something goes wrong
+	d=`date +%Y%m%d-%H%M%S`
+	[ -f "$root" ] && cp -n "$root" "/tmp/Root.hx.$d"
+	[ -f "$root.sws" ] && cp -n "$root.sws" "/tmp/Root.hx.sws.$d"
+
+	#sws.stable curl "$root.sws" "$root" > $transformLog 2>&1
+	sws.stable sync src > $transformLog 2>&1
+
+	if [ ! "$?" = 0 ]
+	then
+		cat $transformLog
+		# exit 120
+	fi
 fi
 
-if [ ! "$?" = 0 ]
-then
-	cat $transformLog
-	# exit 120
-fi
+mkdir -p build
 
 haxe -cp src -main sws/Root.hx -neko build/sws.n > $haxeLog 2>&1
 haxe -cp src -main sws/SWS.hx -js build/sws.js >> $haxeLog 2>&1
