@@ -16,8 +16,9 @@ class Options {
 		// Not sure about the last two
 		mayPrecedeOneLineIndent: [ "if", "while", "else", "for", "try", "catch" ],
 		blockLeadSymbol: " =>",
+		// TODO: To simplify exposure, these regexps should probably be lists of regexps/words, like above, which would be wrapped with the pre/post patterns at runtime.
 		blockLeadSymbolIndicatedRE: ~/(\s|^)function\s+[a-zA-Z_$]/,
-		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class)($|[^A-Za-z0-9_$@])/,
+		blockLeadSymbolContraIndicatedRE: ~/^\s*(if|else|while|for|try|catch|finally|switch|class|interface)($|[^A-Za-z0-9_$@])/,
 		blockLeadSymbolContraIndicatedRE2AnonymousFunctions: ~/(^|[^A-Za-z0-9_$@])function\s*[(]/,
 		leadLinesRequiringSemicolonEnd: ~/([ 	\[\]a-zA-Z_$]=[ 	\[\]a-zA-Z_$]|^\s*return( |	|$))/,
 		newline: "\n",
