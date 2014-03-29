@@ -48,7 +48,12 @@ into the more traditional style that HaXe requires for compilation:
 
 And SWS can also convert the code back again!
 
-Options can be tweaked to rename or remove that `=>` symbol, generate Java or C-style curlies, retain brackets around `if` conditionals rather than remove them, and enable conversion of inline functions to Coffeescript's `->` form.  Python lovers may place `:`s at block starts if they wish.
+Options can be tweaked to
+
+- rename or remove that `=>` symbol (Python devs may prefer a `:`),
+- generate Java or C-style curlies,
+- retain brackets around `if` conditionals instead of removing them,
+- enable conversion of inline functions to Coffeescript's `->` form.
 
 Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.  It was written in a quick-and-dirty fashion to work on 99% of valid code, with heuristics and warnings to mitigate the edge-cases.  This allows us to employ SWS on a wide variety of languages, without having to use a number of different lexers for language-specific String and Regexp literals.
 
@@ -103,7 +108,7 @@ The safe modes generate a few backup and temp files.  You can remove them with:
 
     % sws sync src/
 
-The sync command can be used to transform a tree of files automatically.  In a project of curly files, it will generate sws files from them, or vice-varsa in a project of sws files.  The user may then edit either a curly file or the corresponding sws file, and on its next run sync will update the other file in the pair.
+The sync command can be used to transform a tree of files automatically.  In a project of curly files, it will generate sws files from them, or vice-versa in a project of sws files.  The user may then edit either a curly file or the corresponding sws file, and on its next run sync will update the other file in the pair.
 
 So you can edit sws files in your favourite text editor, and sync will update the curled files ready for compilation.  Or you can edit the curled files through a powerful IDE, and sync will update the sws files to match.
 
@@ -115,7 +120,7 @@ Note that sync current uses safe mode.  An option should be made available to di
 
 Sync searches the current folder and subfolders for all sws or sws-able files (by a default or provided extension list), and will sync up any new edits based on which file was modified most recently.  This allows the user to edit files in either format, without having to worry about the direction in which changes will be propagated!  Thus a single project can be edited both through its sws files, and through its traditional files, for example using an IDE such as Eclipse.
 
-There is a danger here.  That is to make some edits to one file, forget to run sync, and then make some edits to the other file in the pair.  The next time sync is run, the more recently saved file will be transformed, overwrite the other one and losing the first set of edits.  The solution to this is to run sync often and early.  Adding to the build chain is good.  Alternatively, your editor may be able to triggers a call to sws when a file is saved, Vim users can find examples below.
+There is a danger here, that sync always assumes the most recent file is valuable, and the other file is not.  The situation you must avoid is to make some edits to one file, forget to run sync, and then make some edits to the other file in the pair.  The next time sync is run, the more recent file will be transformed, overwriting the other one and losing the first set of edits.  The solution to this is to run sync often and early.  Adding to the build chain is good.  Alternatively, your editor may be able to triggers a call to sws when a file is saved.  A plugin for Vim users can be found below.
 
 
 
@@ -137,26 +142,26 @@ Build sws and put it on your PATH:
 ------------------------------
 # Trying it out
 
-Clone your favourite curly code project (just to be safe):
+Copy your favourite curly code project to a separate folder for experimentation (just to be safe):
 
     % cp -a ~/projects/MyApp ~/projects/MyAppSWS
     % cd ~/projects/MyAppSWS
 
-Now let's de-curl your code to sws files:
+Now let's de-curl your code to sws files.  Assuming you have a `src` folder:
 
     % sws sync src/
 
 ## Handling differences
 
-On the first run, sync will likely throw up a warning that a resultant sws file did not invert back to the original source perfectly.  vimdiff the original and inverse files, checking for any differences.
+On the first run, sync will likely throw up a warning that a resultant sws file did not invert back to the original source perfectly.  The recommendation is to diff or vimdiff the original and inverse files, and resolve the differences.
 
 - If the problems are cosmetic (unimportant), then just run sync again to process the next file.
 
-- However if there are any non-cosmetic (problematic) differences, you need to fix them!  Edit the source file and try to fix it to make it SWS friendly; then *save it* before running `sws sync` again.  Repeat this until all the differences are fixed (or unimportant).  Now you should have a happy sws file which you can work on, instead of the original curly file.  Run sync without saving the file, so it will move on to the next file.
+- However if there are any problematic differences, you need to fix them before running sync again!  Edit the source file and try to fix it to make it SWS friendly; then *save it* and run `sws sync` again.  Repeat this until all the differences are fixed (or simply cosmetic).  Now you should have a happy sws file which you can work on, instead of the original curly file.  Run sync without saving the file, so it will move on to the next file.
 
-  (You don't *have* to fix post-decurl issues by editing the curly file; if it is nearly correct, you may choose to edit the sws file instead.  But beware when syncing that the sws file will overwrite your original curled file, so you will not be able to compare them!)
+  (If the `.sws` file was nearly correct, you may choose to edit that file instead of the original.  But beware that the next sync will overwrite your original curled file with the changes to the `.sws` file, so this is less forgiving if the results are not as expected.)
 
-If a file inverts perfectly first time, or if you don't *save* the source file to indicate it needs re-syncing, then sync will move on to the next file.
+If a file inverts perfectly the first time, or if you don't *save* the source file to indicate it needs re-syncing, then sync will move on to the next file.
 
 Once all your files are in nice neat sws format, close all curly files, and start editing your projects through the sws files!  (If you want to edit the curly files in your favourite IDE, you can do that too - just be sure to run sync to update the sws files when that's done.)
 
@@ -252,6 +257,16 @@ Multi-line expressions with indentation are not supported, although they can be 
 Options are not yet exposed as command-line arguments, but can be changed by editing Root.hx.
 
 Sws is a little ropey, but that was implicit in the original specification.  :)
+
+Recommended restrictions on code structure:
+
+  - Curly-files should be well indented before decurling.  (Support was added to detect one-line well-indented `if` bodies without curlies; they will be given curlies on re-curling.)
+
+  - Indentation must be perfect as every indent/outdent will create `{...}` curlies.  (In a tab-indented file or N-space indented file, extra space indents below the standard will be ignored.)
+
+  - Empty blocks which require curlies should contain an indented line with a comment (`//`) to mark the body, or no curlies will be generated.
+
+  - ... This list is incomplete!  TODO
 
 
 
@@ -372,7 +387,7 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 - Before attacking the next refactor, set up test script that can run against a large set of sources, and warn us when number of problems increases!
 
-- Some refactoring: Central loop of curl could split comment early, saving a lot of repetition eblow, and avoiding introduction of ; on initial /* line.  Also split up more of the curl code into separate functions.
+- Some refactoring: Central loop of curl could split comment early, saving a lot of repetition eblow, and avoiding introduction of `;` on initial `/*` line.  Also split up more of the curl code into separate functions.
 
 - DONE: Optional `fixIndent` for decurling.  This would discard incoming indentation, and replace it with its own indentation based on curly counts.
 
@@ -396,7 +411,7 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 ## Over the horizon
 
-- Decide how to gap closing curlies based on gap found at opening, for symmetry.
+- Decide how many lines to use to gap closing curlies based on the gap found at the corresponding opening, to achieve symmetry in the curled file.  (This information is lost when a closing curly bracket is removed.)
 
 
 
@@ -415,7 +430,7 @@ The indent chars for detection are determined from the _first_ indented line fou
 
     while (weHaveAFourSpaceIndentedFile)                            # indent 0
         if (ourLineIsTooLong() && weNeedToMakeItWrap() &&   \       # indent 1
-          weCanUseATwoSpaceIndent() && thatWillBeIgnored())         # indent 1
+          nowWeCanUseATwoSpaceIndent() && thatWillBeIgnored())      # indent 1
             thisShouldStillGetTheCurliesItNeeds()                   # indent 2
 
 However that example will have problems if semicolon injection is enabled (one will be added after the `\`).
@@ -441,7 +456,14 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
     log("It looks like /* I am starting a multi-line comment, but I'm not!")
 ```
 
-  Common problem cases (some of which can be found in the SWS source code) are identified by heuristic regexps, and warnings are emitted if SWS is unsure how to correctly handle them.  However, heuristics only push the horizon; they usually fail to cover all cases.  In future we hope to present a clear description of the coding style and options neccessary to stay safe.  (For example, we might end up recommending that users at NASA never use `/* ... */` blocks, always put `//` comments on their own line, and set the options to take advantage of these simplified conditions and warn if they are breached.)
+  Most of the problem areas SWS has experienced are trying to detect the following without using a language-specfic parser:
+
+  - Text inside strings
+  - Text following single-line comments, e.g. `//`
+  - Text inbetween multi-line comments, e.g. `/* ... */`
+  - Text inside regexp literals
+
+  Common problem cases (some of which can be found in the SWS source code) are identified by heuristic regexps, and warnings are emitted if SWS is unsure how to correctly handle them.  However, heuristics only push the horizon; they usually fail to cover all cases.  In future we hope to present a clear description of the coding style and options neccessary to stay safe.  (For example, we might end up recommending that users at NASA never use `/* ... */` blocks, always put `//` comments on their own line, use a string to construct regexps, rather than a regexp literal, and set the options to take advantage of these simplified conditions and warn if they are breached.)
 
 - `{`s are only detected at the *end* of lines.  `}`s are only detected at the *beginning* of lines.  It is fine to use them mid-line, provided they match.  So, the following examples will work, but curlies will be *retained* in the "de-curled" file.
 
@@ -459,6 +481,20 @@ SWS uses a simple text-processing algorithm to transform files; it does not prop
 ```
 
   Just be careful not to mix things up.  For example, do not follow a `{` curly by some text and *then* newline and indent.  That mid-line curly will not be stripped, but the indent will cause a new one to be injected.
+
+  If a multi-line block needs a trailing semicolon, then it should be wrapped in brackets:
+
+    // Curly file:
+    var opts = ({
+        ...
+    });
+
+    // SWS file:
+    var opts = (
+        ...
+    )
+
+  Although see `leadLinesRequiringSemicolonEnd` for possible progress at automating this.  (But we may want to deprecate that in future; it might not be very tolerant.)
 
 - Breaking a line up over multiple lines may introduce unwanted curlies if the later lines are indented, and will also suffer from semicolon-insertion.  (You can get away with mixed indentation, but then face issues with semicolon-injection.)  Unindented multi-line expressions should work fine if semicolonInsertion is disabled.
 
@@ -485,17 +521,6 @@ Let's also critique the sync algorithm:
 - After syncing a pair of files we would like to set the modification time of the target file to match that of the source file, to indicate against syncing again on future runs.  Unfortunately Neko does not offer a way to set the stats of files directly.  Until we introduce C-specific code for this, as an alternative we "touch" the *source* file by cloning and replacing it.  That is only likely to match up the mtimes exactly on small/medium source files, and not on filesystems with fine-grained time-stamps.  (Although if the mtimes don't match, our approach will only cause the same transformation to be performed again on the next sync - not the end of the world.)  Another minor disadvantage of touching the source file is that your editor may think it has been updated when it hasn't.
 
 - On filesystems with coarse-grained time-stamps, sync may not notice changes made to a source file very soon after it was synced (within 1 second).  This is rare, but could happen e.g. if a developer edits and saves a file while sync is running in the background.
-
-Restrictions on code structure:
-
-  - Curly-files should be well indented before decurling.  Support was added to read one-line well-indented if bodies without curlies; they will be given curlies on curling.
-
-  - Indentation must be perfect as every indent/outdent will create `{...}` curlies.  (In a tab-indented file, extra space indents will be ignored.)
-
-  - Empty blocks require an indented // comment line to mark the body, or no curlies will be generated.
-
-  - ... This list is incomplete!  TODO
-
 
 
 
