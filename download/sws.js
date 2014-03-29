@@ -954,7 +954,7 @@ sws.SWS.prototype.decurl = function(input,output) {
 									if(nextLine != null && new EReg("^\\s*{\\s*$","").match(nextLine)) {
 										nextLineIsCurl = true;
 									}
-									if(!sws.Heuristics.endsWithComma.match(line) && !nextLineIsCurl) {
+									if(!sws.Heuristics.endsWithComma.match(line) && !nextLineIsCurl && !sws.Heuristics.looksLikePreproc.match(line)) {
 										line += " \\";
 									}
 								}
@@ -1334,7 +1334,7 @@ sws.Reporter.__name__ = ["sws","Reporter"];
 sws.Reporter.prototype.out = null;
 sws.Reporter.prototype.echo = function(s) {
 	if(this.out == null) {
-		haxe.Log.trace(s,{ fileName : "SWS.hx", lineNumber : 837, className : "sws.Reporter", methodName : "echo"});
+		haxe.Log.trace(s,{ fileName : "SWS.hx", lineNumber : 835, className : "sws.Reporter", methodName : "echo"});
 	}
 	else {
 		this.out.writeString(s + "\n");
