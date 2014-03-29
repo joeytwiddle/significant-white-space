@@ -98,8 +98,10 @@ class Root {
 	}
 
 	static function showHelp() {
-		echo("sws curl <filename> <outname>");
+		echo("sws curl   <filename> <outname>");
 		echo("sws decurl <filename> <outname>");
+		echo("sws safe-curl   <filename> <outname>    - safe mode checks whether");
+		echo("sws safe-decurl <filename> <outname>    - inversion reproduces original");
 		echo("sws sync [<folder/filename>]");
 		echo("Language transformation options:");
 		showOptions(Options.defaultOptions);
