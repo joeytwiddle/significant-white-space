@@ -236,7 +236,7 @@ class SWS {
 										if (nextLine!=null && ~/^\s*{\s*$/.match(nextLine)) {
 											nextLineIsCurl = true;
 										}
-										if (!Heuristics.endsWithComma.match(line) && !nextLineIsCurl) {
+										if (!Heuristics.endsWithComma.match(line) && !nextLineIsCurl && !Heuristics.looksLikePreproc.match(line)) {
 											line += " \\";
 										}
 										// Note that if the final line does not have a comma, it may need a ' \'!
@@ -604,9 +604,7 @@ class SWS {
 				return currentLine;
 			} else {
 				// Do not add semicolon to lines starting "#" i.e. preproc macros.
-				// This allows use of #ifdef provided you don't indent.
-				// BUG TODO: Somehow not working :o
-				// For the moment you can use unindented preprocs, and supress semicolon injection with a trailing \
+				// This allows use of #ifdef **provided you don't indent**.
 				if (Heuristics.looksLikePreproc.match(currentLine)) {
 					return currentLine;
 				} else {
