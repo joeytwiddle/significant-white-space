@@ -638,7 +638,7 @@ We might be able to build the reformatter out of a chain of minor reformatters. 
 
 If you care to input to this discussion, we are talking about the major functions `curl()` and `decurl()`.  Is there a better way to present that code, by splitting it up?  Or it is it good to keep the whole algorithm in one place, minor options and all, so we can clearly see what is happening?
 
-It could be said that the two classes `HelpfulReader` and `CommentTrackingReader` address some concerns is a nice separated fashion, although these are purely information concerns, not reformatting concerns.  I really meant to put `indentString` detection into a helper class too, but didn't get around to it.
+It could be said that the two classes `HelpfulReader` and `CommentTrackingReader` address some concerns in a nice separated fashion, although these are purely information concerns, not reformatting concerns.  I really meant to put `indentString` detection into a helper class too, but didn't get around to it.
 
 Perhaps that is a better approach, to separate out extraction of information about the input, from decisions about the output.  Then our core loop would have no code to seek data, it would just accept all the processed information (a bunch of bools/Strings/getters), and decide what to do with it.
 
