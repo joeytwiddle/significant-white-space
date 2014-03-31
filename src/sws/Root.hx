@@ -5,6 +5,7 @@ import neko.io.FileInput;
 import neko.io.FileOutput;
 import neko.FileSystem;
 import neko.Sys;
+import neko.io.Process;
 
 import sws.Options;
 import sws.SWS;
@@ -224,8 +225,10 @@ class Sync {
 		// Now we want to mark the outFile with identical modification time to the inFile, so that sws knows it need not translate between them.
 		// Unfortunately neko FileSystem does not expose this ability
 		// So instead, we will simply try to touch the inFile ASAP, and if the time is a millisecond too late, accept the consequences (this source will be uneccessarily transformed again).
-		touchFile(inFile);
-		// Woop!  It worked!  (It might not work on very large files, or fine-grained filesystems.)
+		//touchFile(inFile)
+		// Woop!  It worked!  (It might not work on very large files, or fine-grained filesystems.)  I think it worked for me because ext2/3/4 uses second-based timestamps, not millisecond-based.
+		// But anyway that was a nasty solution.  Really we want to force the timestamp of the outFile
+		cloneTimestamp(inFile, outFile);
 
 		if (originalResult != null) {
 			var newResult = File.getContent(outFile);
@@ -266,9 +269,17 @@ class Sync {
 		}
 	}
 
-	static function touchFile(filename) {
-		File.copy(filename,filename+".touch");
-		FileSystem.rename(filename+".touch",filename);
+	/*
+	static function touchFile(filename) =>
+		File.copy(filename,filename+".touch")
+		FileSystem.rename(filename+".touch",filename)
+	*/
+
+	static function cloneTimestamp(srcFile, destFile) {
+		// A Unix-only solution, until I find something better.
+		var process = new Process("touch", ["-r", srcFile, destFile]);
+		process.exitCode();   // Don't let it zombie!
+		// Not needed but noting it: var mediaSize:String = process.stdout.readAll().toString()
 	}
 
 	function traceCall(fn : Dynamic, args : Array<Dynamic>) : Dynamic {

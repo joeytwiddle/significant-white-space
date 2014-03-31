@@ -522,6 +522,8 @@ Let's also critique the sync algorithm:
 
 - On filesystems with coarse-grained time-stamps, sync may not notice changes made to a source file very soon after it was synced (within 1 second).  This is rare, but could happen e.g. if a developer edits and saves a file while sync is running in the background.
 
+Update: I am now making an external call to `touch -r` to set the modification time of the target file to match that of the source file, and not modifying the source file at all.  This is the desirable solution, but the current implementation currently only works on Unix systems.
+
 
 
 ------------------------------
