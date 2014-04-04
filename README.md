@@ -127,13 +127,24 @@ There is a danger here, that sync always assumes the most recent file is valuabl
 ------------------------------
 # Installation
 
-Clone this project, and install dependencies:
+Clone this project:
 
     % git clone https://github.com/joeytwiddle/significant-white-space/
-    % aptitude install haxe neko
 
-Build sws and put it on your PATH:
+Now let's get the build dependencies: haxe and neko.
 
+If you want the latest haxe for Ubuntu, you can run the following.  (You can skip this if you are happier with an older version of haxe from your distribution.)
+
+    % sudo add-apt-repository ppa:eyecreate/haxe
+    % sudo apt-get update
+
+Install the build dependencies:
+
+    % sudo aptitude install haxe neko
+
+Finally build sws itself, and then link it into your PATH:
+
+    % cd ./significant-white-space
     % ./make.sh
     % sudo ln -s $PWD/build/sws /usr/local/bin/
 
