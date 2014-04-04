@@ -1,6 +1,6 @@
 package sws;
 
-import neko.io.File;
+import sys.io.File;
 
 class SWSFileOutput implements SWSOutput {
 

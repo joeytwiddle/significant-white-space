@@ -1,11 +1,13 @@
 package sws;
 
-import neko.io.File;
-import neko.io.FileInput;
-import neko.io.FileOutput;
-import neko.FileSystem;
-import neko.Sys;
-import neko.io.Process;
+import sys.io.File;
+import sys.io.FileInput;
+import sys.io.FileOutput;
+import sys.FileSystem;
+import Sys;
+import sys.io.Process;
+
+import haxe.CallStack;
 
 import sws.Options;
 import sws.SWS;
@@ -37,7 +39,7 @@ class Root {
 
 	static function main() {
 
-		var args = neko.Sys.args();
+		var args = Sys.args();
 
 		var options = Options.defaultOptions;
 		var syncOptions = new SyncOptions();
@@ -46,7 +48,7 @@ class Root {
 		checkForOptions(args,syncOptions);
 
 		// Cannot name this sws as it conflicts with package!
-		var _sws = new SWS(options,File.stdout());
+		var _sws = new SWS(options,Sys.stdout());
 		var sync = new Sync(options,syncOptions);
 
 		try {
@@ -87,7 +89,7 @@ class Root {
 		} catch (ex : Dynamic) {
 			echo("Exception occurred: "+ex);
 			// echo(haxe.Stack.toString(haxe.Stack.callStack()))
-			echoPure(haxe.Stack.toString(haxe.Stack.exceptionStack()));
+			echoPure(CallStack.toString(CallStack.exceptionStack()));
 			// var stackArray = haxe.Stack.exceptionStack()
  {			// for stackElem in stackArray
 				// echo(""+stackElem)
@@ -127,7 +129,7 @@ class Root {
 	}
 
 	static function echoPure(s:String) {
-		File.stdout().writeString(s + "\n");
+		Sys.stdout().writeString(s + "\n");
 	}
 
 	static function checkForOptions(args : Array<String>, opts:Dynamic) {
@@ -190,7 +192,7 @@ class Sync {
 	var syncOptions : SyncOptions;
 
 	public function new(_options, _syncOptions) {
-		sws = new SWS(_options,File.stdout());
+		sws = new SWS(_options,Sys.stdout());
 		syncOptions = _syncOptions;
 	}
 
