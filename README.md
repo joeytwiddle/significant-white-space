@@ -140,7 +140,7 @@ If you want the latest haxe for Ubuntu, you can run the following.  (You can ski
 
 Install the build dependencies:
 
-    % sudo aptitude install haxe neko
+    % sudo apt-get install haxe neko
 
 Finally build sws itself, and then link it into your PATH:
 
@@ -309,19 +309,20 @@ Recently added somewhat gnarly multi-line support; although if later lines are i
 
 The `\` markers are needed to prevent `;` semicolons from being injected when curling, but a trailing `,` can also prevent this.  Later-line indentation with Tabs will cause curly wrapping (fine if you're creating an object literal).  Later-line indentation with spaces (in a Tab-indenetd file) does not cause curly wrapping, so use this to break up expressions, or for a multi-line array literal:
 
-    --->// An object literal (curlies will be added due to indent)
+    --->// An object literal (curlies will be introduced due to indent)
     --->var obj = (
     --->--->foo: 3,
     --->--->bar: 7 \
     --->)
 
-    --->// An array literal (curlies avoided by mixed indent)
+    --->// An array literal (introduction of curlies avoided by mixed indent)
     --->// An array literal
     --->var list = [ \
     --->  3,
     --->  7 \
     --->]
 
+    --->// Again avoid unwanted curlies using mixed indent (spaces afer the tabs).
     --->var opts = \
     --->      { width: 300, height: 200 }
 
@@ -329,12 +330,13 @@ Basically multi-line expressions were never intended to be supported by sws, but
 
 Multi-line expressions which introduce an anonymous function should work, provided only one level of indentation is used:
 
-    fs.readFile(options.input, function(err, contents)
-        if (err)
+    fs.readFile(options.inputFilename, (err, contents) ->
+        if err
             log(err)
         else
-            input = contents
+            log("Received: "+contents)
     )
+    // Sorry Coffeescripters, the ()s around a function call are currently required.
 
 The head of the function may not appear on its own line.  (You can try using `\` to lead into it, but you will probably want to indent it, and receive unwanted curlies from that.)
 
@@ -343,13 +345,13 @@ The head of the function may not appear on its own line.  (You can try using `\`
 ------------------------------
 # TODO
 
-- Parse options from command-line.
+- Parse (more) options from command-line.
 
 - Allow options to be set near top/bottom of file (like vim's modeline).
 
 - Code and comment cleanup.
 
-- Track line numbers for more informative output.
+- Track line numbers for more informative output messages.
 
 - Blocks ending `};` are treated the same as those ending `}`, so on re-curling the needed `;` is not re-introduced.  One option, that of retaining a marker for the `;` in the SWS file, is undesirable.  Perhaps preferable, detect *when* a `}` should be followed by a `;`.  This rule might go something like "A `;` is needed after a close block curly `}` IFF the first line of that block was an assignment, or a `return` (or `yield`?) statement.  If we go with the second options, we should *still detect* when we are nullifying a `};` and in that situation *check* that the `;` will be re-introduced on re-curling, otherwise issue a warning.
 
@@ -357,8 +359,9 @@ The head of the function may not appear on its own line.  (You can try using `\`
 
 - DONE?  Serious outstanding: multi-line *indented* expressions (e.g. assignments of a long formula) get curlies when they shouldn't.  Use heuristic: non-curled one-line if or else (or while or do ...) bodies are ok, but anything else indented that is not curled should produce Error, or receive marking (trailing `\` ok?) to explain that it is special.  (OK added error report for that at least.)
 
-- The bodies of case and default stements.  They are indented, but unlike most indentation they should not be curled!  Here is the incorrect output we produce at the moment:
+- The bodies of case and default stements.  They are indented, but unlike most indentation they should not be curled!  Here is the *incorrect* output we produce at the moment:
 
+```
     switch (type) {
         case 'b': {
             return value == 'true';
@@ -367,6 +370,9 @@ The head of the function may not appear on its own line.  (You can try using `\`
             return value;
         }
     }
+```
+
+  For the time being you might be able to avoid this by not indenting the block bodies, or by using `if ... else if ... else` statements instead of `switch ... case`!
 
 - There are other things which should warn but just silently plough ahead and produce a file which will not invert properly!  E.g. we consume a curly but there is no indentation to follow, and fixIndent is not enabled.  These are mostly during the decurling phase however, which was never really the priority - users are supposed to supply a "perfect" file.  :)
 
