@@ -52,10 +52,10 @@ Options can be tweaked to
 
 - rename or remove that `=>` symbol (Python devs may prefer a `:`),
 - generate Java or C-style curlies,
-- retain brackets around `if` conditionals instead of removing them,
+- retain brackets around `if` and `while` conditionals instead of removing them,
 - enable conversion of inline functions to Coffeescript's `->` form.
 
-Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.  It was written in a quick-and-dirty fashion to work on 99% of valid code, with heuristics and warnings to mitigate the edge-cases.  This allows us to employ SWS on a wide variety of languages, without having to use a number of different lexers for language-specific String and Regexp literals.
+Please be aware of the caveats below.  SWS only works on a (nice clean) subset of the target language.  It was written in a quick-and-dirty fashion to work on 99% of valid code, with heuristics and warnings to mitigate the edge-cases.  This allows us to employ SWS on a wide variety of languages, without having to use a number of different lexers for language-specific syntax like String and Regexp literals.
 
 SWS is *not* a professional tool; it may or may not perform to your requirements.  Some of the options perform simple text-transformation, and can get confused.  For example, if you run SWS with support for `/* ... */` comment blocks enabled, then you also run the risk of incorrectly matching `/*` or `*/` occurrences inside String or regexp literals in your program!  Perhaps with the minimum options enabled, SWS is safe and deterministic.  Documenting for this may come in future.
 
