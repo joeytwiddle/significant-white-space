@@ -9,7 +9,7 @@ SWS can also strip and inject `;` semicolons, and comes with a few more minor fe
 
 As a simple example, SWS can turn code of the following form (in this case decurled HaXe code):
 
-```js
+```
     static function curl(infile, outfile) =>
 
         while readNextLine()
@@ -26,7 +26,7 @@ As a simple example, SWS can turn code of the following form (in this case decur
 
 into the more traditional style that HaXe requires for compilation:
 
-```js
+```
     static function curl(infile, outfile) {
 
         while (readNextLine()) {
