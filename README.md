@@ -661,3 +661,8 @@ It could be said that the two classes `HelpfulReader` and `CommentTrackingReader
 
 Perhaps that is a better approach, to separate out extraction of information about the input, from decisions about the output.  Then our core loop would have no code to seek data, it would just accept all the processed information (a bunch of bools/Strings/getters), and decide what to do with it.
 
+
+------------------------------
+# See also
+
+- https://old.reddit.com/r/ProgrammerHumor/comments/2wrxyt/a_python_programmer_attempting_java/
